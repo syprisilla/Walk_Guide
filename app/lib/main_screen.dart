@@ -10,7 +10,7 @@ class MainScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('오늘도 즐거운 하루 되세요!'),
         centerTitle: true,
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.amber, // 노란색으로 변경
       ),
       body: Column(
         children: [
@@ -24,37 +24,45 @@ class MainScreen extends StatelessWidget {
               ),
             ),
           ),
-          BottomNavigationBar(
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.info_outline),
-                label: '설명창',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.directions_walk),
-                label: '보행시작하기',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings), // 또는 빈 아이콘 가능
-                label: '',
-              ),
-            ],
-            onTap: (index) {
-              if (index == 0) {
-                // 설명창 페이지로 이동 (임시)
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('설명창으로 이동')));
-              } else if (index == 1) {
-                // 보행시작 페이지로 이동
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const StepCounterPage(),
-                  ),
-                );
-              }
-            },
+          SizedBox(
+            height: 80, // 하단 버튼 영역 높이 키움
+            child: BottomNavigationBar(
+              selectedFontSize: 16,
+              unselectedFontSize: 14,
+              iconSize: 32,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.info_outline),
+                  label: '설명창',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.directions_walk),
+                  label: '보행시작하기',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.settings),
+                  label: '설정', // 오른쪽에 '설정' 추가
+                ),
+              ],
+              onTap: (index) {
+                if (index == 0) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('설명창으로 이동')));
+                } else if (index == 1) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StepCounterPage(),
+                    ),
+                  );
+                } else if (index == 2) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('설정 페이지는 준비 중입니다')),
+                  );
+                }
+              },
+            ),
           ),
         ],
       ),
