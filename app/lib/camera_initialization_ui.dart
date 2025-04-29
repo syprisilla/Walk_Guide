@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:async';
+import 'camera_screen.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key});
@@ -29,5 +30,16 @@ class _MyAppState extends State<MyApp> {
       print('Unexpected error finding cameras: $e');
       return [];
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Realtime Object Detection',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+    );
   }
 }
