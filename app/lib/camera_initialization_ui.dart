@@ -47,6 +47,14 @@ class _MyAppState extends State<MyApp> {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
+          } else if (snapshot.hasError ||
+              snapshot.data == null ||
+              snapshot.data!.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('사용 가능한 카메라를 찾을 수 없습니다.')),
+            );
+          } else {
+            return RealtimeObjectDetectionScreen(cameras: snapshot.data!);
           }
         },
       ),
