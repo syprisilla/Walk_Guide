@@ -15,3 +15,12 @@ class BoundingBoxUtils {
     final double imageHeight = imageSize.height;
     final double canvasWidth = canvasSize.width;
     final double canvasHeight = canvasSize.height;
+
+    final double scaleX, scaleY;
+    if (_isRotationSideways(rotation)) {
+      scaleX = canvasWidth / imageHeight;
+      scaleY = canvasHeight / imageWidth;
+    } else {
+      scaleX = canvasWidth / imageWidth;
+      scaleY = canvasHeight / imageHeight;
+    }
