@@ -10,4 +10,8 @@ class BoundingBoxUtils {
     required Size canvasSize,
     required InputImageRotation rotation, 
     required CameraLensDirection cameraLensDirection, 
-  })
+  }) {
+    final double imageWidth = imageSize.width;
+    final double imageHeight = imageSize.height;
+    final double canvasWidth = canvasSize.width;
+    final double canvasHeight = canvasSize.height;
