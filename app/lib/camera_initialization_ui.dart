@@ -40,6 +40,10 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      home: FutureBuilder<List<CameraDescription>>(
+        future: _camerasFuture,
+        builder: (context, snapshot) {},
+      ),
     );
   }
 }
