@@ -53,3 +53,9 @@ class BoundingBoxUtils {
       canvas.drawRect(rect, paintRect);
     }
   }
+
+   static bool _isRotationSideways(InputImageRotation rotation) {
+   return rotation == InputImageRotation.rotation90deg ||
+       rotation == InputImageRotation.rotation270deg;
+  }
+}
