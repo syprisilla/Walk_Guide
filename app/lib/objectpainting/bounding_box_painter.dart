@@ -47,3 +47,9 @@ class BoundingBoxUtils {
   static void paintBoundingBox(Canvas canvas, Rect rect) {
     final Paint paintRect = Paint()
       ..color = Colors.redAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    if (rect.width > 0 && rect.height > 0) {
+      canvas.drawRect(rect, paintRect);
+    }
+  }
