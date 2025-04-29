@@ -42,7 +42,13 @@ class _MyAppState extends State<MyApp> {
       ),
       home: FutureBuilder<List<CameraDescription>>(
         future: _camerasFuture,
-        builder: (context, snapshot) {},
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+        },
       ),
     );
   }
