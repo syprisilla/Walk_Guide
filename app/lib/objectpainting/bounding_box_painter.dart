@@ -24,3 +24,11 @@ class BoundingBoxUtils {
       scaleX = canvasWidth / imageWidth;
       scaleY = canvasHeight / imageHeight;
     }
+
+    double L, T, R, B;
+    switch (rotation) {
+      case InputImageRotation.rotation90deg: L = boundingBox.top * scaleX; T = (imageWidth - boundingBox.right) * scaleY; R = boundingBox.bottom * scaleX; B = (imageWidth - boundingBox.left) * scaleY; break;
+      case InputImageRotation.rotation180deg: L = (imageWidth - boundingBox.right) * scaleX; T = (imageHeight - boundingBox.bottom) * scaleY; R = (imageWidth - boundingBox.left) * scaleX; B = (imageHeight - boundingBox.top) * scaleY; break;
+      case InputImageRotation.rotation270deg: L = (imageHeight - boundingBox.bottom) * scaleX; T = boundingBox.left * scaleY; R = (imageHeight - boundingBox.top) * scaleX; B = boundingBox.right * scaleY; break;
+      case InputImageRotation.rotation0deg: default: L = boundingBox.left * scaleX; T = boundingBox.top * scaleY; R = boundingBox.right * scaleX; B = boundingBox.bottom * scaleY; break;
+    }
