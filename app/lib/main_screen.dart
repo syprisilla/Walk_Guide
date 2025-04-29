@@ -7,33 +7,56 @@ class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('메인 화면')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('즐거운 하루 되세요!', style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 20,
+      appBar: AppBar(
+        title: const Text('오늘도 즐거운 하루 되세요!'),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Container(
+                color: Colors.grey[300],
+                child: const Center(
+                  child: Text('지도', style: TextStyle(fontSize: 24)),
                 ),
-                textStyle: const TextStyle(fontSize: 20),
               ),
-              onPressed: () {
+            ),
+          ),
+          BottomNavigationBar(
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.info_outline),
+                label: '설명창',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.directions_walk),
+                label: '보행시작하기',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings), // 또는 빈 아이콘 가능
+                label: '',
+              ),
+            ],
+            onTap: (index) {
+              if (index == 0) {
+                // 설명창 페이지로 이동 (임시)
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('설명창으로 이동')));
+              } else if (index == 1) {
+                // 보행시작 페이지로 이동
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const StepCounterPage(),
                   ),
                 );
-              },
-              child: const Text('보행 시작하기'),
-            ),
-          ],
-        ),
+              }
+            },
+          ),
+        ],
       ),
     );
   }
