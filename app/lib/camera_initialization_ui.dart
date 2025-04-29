@@ -18,4 +18,16 @@ class _MyAppState extends State<MyApp> {
 
     _camerasFuture = _initializeCameras();
   }
+
+  Future<List<CameraDescription>> _initializeCameras() async {
+    try {
+      return await availableCameras();
+    } on CameraException catch (e) {
+      print('Error finding cameras: ${e.code}, ${e.description}');
+      return [];
+    } catch (e) {
+      print('Unexpected error finding cameras: $e');
+      return [];
+    }
+  }
 }
