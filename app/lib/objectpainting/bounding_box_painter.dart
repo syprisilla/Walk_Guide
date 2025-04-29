@@ -32,3 +32,14 @@ class BoundingBoxUtils {
       case InputImageRotation.rotation270deg: L = (imageHeight - boundingBox.bottom) * scaleX; T = boundingBox.left * scaleY; R = (imageHeight - boundingBox.top) * scaleX; B = boundingBox.right * scaleY; break;
       case InputImageRotation.rotation0deg: default: L = boundingBox.left * scaleX; T = boundingBox.top * scaleY; R = boundingBox.right * scaleX; B = boundingBox.bottom * scaleY; break;
     }
+
+     if (cameraLensDirection == CameraLensDirection.front && Platform.isAndroid) {
+      double tempL = L; L = canvasWidth - R; R = canvasWidth - tempL;
+    }
+
+    
+    L = L.clamp(0.0, canvasWidth); T = T.clamp(0.0, canvasHeight); R = R.clamp(0.0, canvasWidth); B = B.clamp(0.0, canvasHeight);
+    if (L > R) { double temp = L; L = R; R = temp; } if (T > B) { double temp = T; T = B; B = temp; }
+
+    return Rect.fromLTRB(L, T, R, B);
+  }
