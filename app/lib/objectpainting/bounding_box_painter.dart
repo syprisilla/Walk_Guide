@@ -43,3 +43,7 @@ class BoundingBoxUtils {
 
     return Rect.fromLTRB(L, T, R, B);
   }
+
+  static void paintBoundingBox(Canvas canvas, Rect rect) {
+    final Paint paintRect = Paint()
+      ..color = Colors.redAccent
