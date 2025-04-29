@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -78,6 +79,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   void startAccelerometer() {
     _accelerometerSubscription?.cancel();
+    // ignore: deprecated_member_use
     _accelerometerSubscription = accelerometerEvents.listen((
       AccelerometerEvent event,
     ) {
