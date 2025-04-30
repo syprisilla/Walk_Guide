@@ -37,4 +37,13 @@ class _RealtimeObjectDetectionScreenState
   SendPort? _imageRotationIsolateSendPort;
   StreamSubscription? _objectDetectionSubscription;
   StreamSubscription? _imageRotationSubscription;
+
+  bool _isWaitingForRotation = false;
+  bool _isWaitingForDetection = false;
+  InputImageRotation? _lastCalculatedRotation;
+  Uint8List? _pendingImageDataBytes;
+  int? _pendingImageDataWidth;
+  int? _pendingImageDataHeight;
+  int? _pendingImageDataFormatRaw;
+  int? _pendingImageDataBytesPerRow;
 }
