@@ -44,7 +44,7 @@ class DescriptionPage extends StatelessWidget {
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text('→ 사용자의 보행 속도를 파악하고 안내해요. 음성 피드백을 제공해요.',
+            const Text('→ 사용자의 보행 속도를 ai가 파악하고 안내해요. 음성 피드백을 제공해요.',
             style: TextStyle(fontSize: 20),
             ),
           ],
