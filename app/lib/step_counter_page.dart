@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import 'walk_session.dart'; // WalkSession 클래스 import
+import 'package:hive/hive.dart';
+import 'walk_session.dart';
 
 class StepCounterPage extends StatefulWidget {
   const StepCounterPage({super.key});
@@ -29,7 +29,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   bool _isMoving = false;
   List<DateTime> _recentSteps = [];
 
-  List<WalkSession> _sessionHistory = []; // 보행 세션 저장 리스트
+  List<WalkSession> _sessionHistory = [];
 
   static const double movementThreshold = 1.5;
 
@@ -165,7 +165,12 @@ class _StepCounterPageState extends State<StepCounterPage> {
     );
 
     _sessionHistory.add(session);
+
+    final box = Hive.box<WalkSession>('walk_sessions');
+    box.add(session);
+
     debugPrint("🟢 저장된 세션: $session");
+    debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");
 
     _steps = 0;
     _initialSteps = null;
@@ -180,7 +185,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
         final diff =
             DateTime.now().difference(_lastMovementTime!).inMilliseconds;
         if (diff >= 1500 && _isMoving) {
-          _saveSessionData(); // 정지 시 세션 저장
+          _saveSessionData();
           setState(() {
             _isMoving = false;
           });
@@ -246,8 +251,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
               ],
             ),
           ),
-
-          // ✅ 세션 히스토리 리스트 추가
           Positioned(
             bottom: 20,
             left: 20,
