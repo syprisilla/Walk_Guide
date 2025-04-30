@@ -46,4 +46,19 @@ class _RealtimeObjectDetectionScreenState
   int? _pendingImageDataHeight;
   int? _pendingImageDataFormatRaw;
   int? _pendingImageDataBytesPerRow;
+
+  @override
+  void initState() {
+    super.initState();
+    _objectDetector = initializeObjectDetector();
+    _spawnIsolates()
+        .then((_) {
+          if (widget.cameras.isNotEmpty) {
+            _initializeCamera(widget.cameras[0]);
+          }
+        })
+        .catchError((e, stacktrace) {
+          print("****** initState: Error spawning isolates: $e");
+        });
+  }
 }
