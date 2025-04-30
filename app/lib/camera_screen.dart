@@ -17,3 +17,15 @@ class RealtimeObjectDetectionScreen extends StatefulWidget {
   _RealtimeObjectDetectionScreenState createState() =>
       _RealtimeObjectDetectionScreenState();
 }
+
+class _RealtimeObjectDetectionScreenState
+    extends State<RealtimeObjectDetectionScreen> {
+  CameraController? _cameraController;
+  int _cameraIndex = 0;
+  bool _isCameraInitialized = false;
+  bool _isBusy = false;
+  List<DetectedObject> _detectedObjects = [];
+  InputImageRotation? _imageRotation;
+  late ObjectDetector _objectDetector;
+  Size? _lastImageSize;
+}
