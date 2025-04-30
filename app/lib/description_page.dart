@@ -6,18 +6,48 @@ class DescriptionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[300], 
       appBar: AppBar(
-        title: const Text('앱 사용 설명'),
+        title: const Text('무슨 기능이 있나요?'),
         backgroundColor: Colors.amber,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: const Text(
-          '이 앱은 시각장애인을 위한 보행 보조 앱입니다.\n\n'
-          '- 보행 시작하기 버튼을 눌러 측정을 시작하세요.\n'
-          '- 지도에는 현재 위치 및 주변 정보가 표시될 예정입니다.\n'
-          '- 향후 경로 안내, 음성 피드백 기능도 제공될 예정입니다.',
-          style: TextStyle(fontSize: 18),
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            const Text(
+              '• 지도 •',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('→ 사용자의 현재 위치와 주변 정보가 나타나요!',
+            style: TextStyle(fontSize: 20),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              '• 객체 감지 •',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('→ 사용자 주변 객체를 탐지해요. 객체의 크기를 알고 정의할 수 있어요.',
+            style: TextStyle(fontSize: 20),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              '• 음성 안내 •',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('→ 사용자의 보행 속도를 파악하고 안내해요. 음성 피드백을 제공해요.',
+            style: TextStyle(fontSize: 20),
+            ),
+          ],
         ),
       ),
     );
