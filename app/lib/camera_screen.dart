@@ -72,4 +72,14 @@ class _RealtimeObjectDetectionScreenState
     _objectDetector.close();
     super.dispose();
   }
+
+  Future<void> _spawnIsolates() async {
+    Completer<void> rotationPortCompleter = Completer();
+    Completer<void> detectionPortCompleter = Completer();
+    final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
+
+    if (rootIsolateToken == null) {
+      throw Exception("Root token null");
+    }
+  }
 }
