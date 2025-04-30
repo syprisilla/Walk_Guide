@@ -103,5 +103,15 @@ class _RealtimeObjectDetectionScreenState
     _imageRotationSubscription = _imageRotationReceivePort.listen(
       _handleRotationResult,
     );
+
+    try {
+      await Future.wait([
+        rotationPortCompleter.future.timeout(const Duration(seconds: 5)),
+        detectionPortCompleter.future.timeout(const Duration(seconds: 5)),
+      ]);
+    } catch (e) {
+      _killIsolates();
+      throw e;
+    }
   }
 }
