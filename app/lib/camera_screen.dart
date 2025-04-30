@@ -132,6 +132,17 @@ class _RealtimeObjectDetectionScreenState
   void _handleDetectionResult(dynamic message) {
     if (_objectDetectionIsolateSendPort == null && message is SendPort) {
       _objectDetectionIsolateSendPort = message;
+    } else if (message is List<DetectedObject>) {
+      _isWaitingForDetection = false;
+      if (mounted) {
+        setState(() {
+          _detectedObjects = message;
+          _imageRotation = _lastCalculatedRotation;
+        });
+      }
+      if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
+        _isBusy = false;
+      }
     }
   }
 }
