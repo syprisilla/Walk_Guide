@@ -114,4 +114,18 @@ class _RealtimeObjectDetectionScreenState
       throw e;
     }
   }
+
+  void _killIsolates() {
+    try {
+      _objectDetectionIsolate?.kill(priority: Isolate.immediate);
+    } catch (e) {}
+    try {
+      _imageRotationIsolate?.kill(priority: Isolate.immediate);
+    } catch (e) {}
+
+    _objectDetectionIsolate = null;
+    _imageRotationIsolate = null;
+    _objectDetectionIsolateSendPort = null;
+    _imageRotationIsolateSendPort = null;
+  }
 }
