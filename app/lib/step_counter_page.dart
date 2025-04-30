@@ -6,6 +6,8 @@ import 'package:pedometer/pedometer.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'walk_session.dart'; // WalkSession 클래스 import
+
 class StepCounterPage extends StatefulWidget {
   const StepCounterPage({super.key});
   @override
@@ -26,6 +28,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   bool _isMoving = false;
   List<DateTime> _recentSteps = [];
+
+  List<WalkSession> _sessionHistory = []; // 보행 세션 저장 리스트
 
   static const double movementThreshold = 1.5;
 
@@ -149,19 +153,36 @@ class _StepCounterPageState extends State<StepCounterPage> {
     return distance / 3;
   }
 
+  void _saveSessionData() {
+    if (_startTime == null || _steps == 0) return;
+
+    final endTime = DateTime.now();
+    final session = WalkSession(
+      startTime: _startTime!,
+      endTime: endTime,
+      stepCount: _steps,
+      averageSpeed: getAverageSpeed(),
+    );
+
+    _sessionHistory.add(session);
+    debugPrint("🟢 저장된 세션: $session");
+
+    _steps = 0;
+    _initialSteps = null;
+    _previousSteps = null;
+    _startTime = null;
+    _recentSteps.clear();
+  }
+
   void startCheckingMovement() {
     _checkTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (_lastMovementTime != null) {
         final diff =
             DateTime.now().difference(_lastMovementTime!).inMilliseconds;
         if (diff >= 1500 && _isMoving) {
+          _saveSessionData(); // 정지 시 세션 저장
           setState(() {
             _isMoving = false;
-            _steps = 0;
-            _initialSteps = null;
-            _previousSteps = null;
-            _startTime = null;
-            _recentSteps.clear();
           });
           debugPrint("정지 감지 → 걸음 수 초기화!");
         }
@@ -175,7 +196,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
       appBar: AppBar(title: const Text('걸음 속도 측정')),
       body: Stack(
         children: [
-          // 카메라 영역 (임시 배경)
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -186,8 +206,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
               style: TextStyle(fontSize: 24, color: Colors.black38),
             ),
           ),
-
-          // 오른쪽 상단 텍스트 정보 (박스 제거)
           Positioned(
             top: 30,
             right: 20,
@@ -226,6 +244,31 @@ class _StepCounterPageState extends State<StepCounterPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // ✅ 세션 히스토리 리스트 추가
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: Container(
+              height: 180,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white70,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ListView.builder(
+                itemCount: _sessionHistory.length,
+                itemBuilder: (context, index) {
+                  final session = _sessionHistory[index];
+                  return Text(
+                    '${index + 1}) ${session.stepCount}걸음, 평균속도: ${session.averageSpeed.toStringAsFixed(2)} m/s',
+                    style: const TextStyle(fontSize: 16),
+                  );
+                },
+              ),
             ),
           ),
         ],
