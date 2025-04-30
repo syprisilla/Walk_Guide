@@ -28,4 +28,13 @@ class _RealtimeObjectDetectionScreenState
   InputImageRotation? _imageRotation;
   late ObjectDetector _objectDetector;
   Size? _lastImageSize;
+
+  Isolate? _objectDetectionIsolate;
+  Isolate? _imageRotationIsolate;
+  late ReceivePort _objectDetectionReceivePort;
+  late ReceivePort _imageRotationReceivePort;
+  SendPort? _objectDetectionIsolateSendPort;
+  SendPort? _imageRotationIsolateSendPort;
+  StreamSubscription? _objectDetectionSubscription;
+  StreamSubscription? _imageRotationSubscription;
 }
