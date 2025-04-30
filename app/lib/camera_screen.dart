@@ -143,6 +143,13 @@ class _RealtimeObjectDetectionScreenState
       if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
         _isBusy = false;
       }
-    }
+    } else if (message is List &&
+        message.length == 2 &&
+        message[0] is String &&
+        message[0].contains('Error')) {
+      print('****** Object Detection Isolate Error: ${message[1]}');
+      _isWaitingForDetection = false;
+      if (!_isWaitingForRotation) _isBusy = false;
+    } else {}
   }
 }
