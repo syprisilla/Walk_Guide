@@ -175,7 +175,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       appBar: AppBar(title: const Text('걸음 속도 측정')),
       body: Stack(
         children: [
-          // 📷 카메라 자리 (지금은 회색 배경)
+          // 카메라 영역 (임시 배경)
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -187,40 +187,45 @@ class _StepCounterPageState extends State<StepCounterPage> {
             ),
           ),
 
-          // 📊 정보 박스
+          // 오른쪽 상단 텍스트 정보 (박스 제거)
           Positioned(
             top: 30,
             right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _isMoving ? '움직이는 중' : '정지 상태',
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  _isMoving ? '움직이는 중' : '정지 상태',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Color.fromARGB(255, 0, 0, 0),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '걸음 수: $_steps',
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '걸음 수: $_steps',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Color.fromARGB(255, 0, 0, 0),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '평균 속도: ${getAverageSpeed().toStringAsFixed(2)} m/s',
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '평균 속도: ${getAverageSpeed().toStringAsFixed(2)} m/s',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Color.fromARGB(255, 0, 0, 0),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '3초 속도: ${getRealTimeSpeed().toStringAsFixed(2)} m/s',
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '3초 속도: ${getRealTimeSpeed().toStringAsFixed(2)} m/s',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Color.fromARGB(255, 0, 0, 0),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
