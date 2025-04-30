@@ -54,11 +54,22 @@ class _RealtimeObjectDetectionScreenState
     _spawnIsolates()
         .then((_) {
           if (widget.cameras.isNotEmpty) {
-            _initializeCamera(widget.cameras[0]);
+            initializeCamera(widget.cameras[0]);
           }
         })
         .catchError((e, stacktrace) {
           print("****** initState: Error spawning isolates: $e");
         });
+  }
+
+  @override
+  void dispose() {
+    _stopCameraStream();
+    _objectDetectionSubscription?.cancel();
+    _imageRotationSubscription?.cancel();
+    _killIsolates();
+    _cameraController?.dispose();
+    _objectDetector.close();
+    super.dispose();
   }
 }
