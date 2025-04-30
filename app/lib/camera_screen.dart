@@ -92,5 +92,16 @@ class _RealtimeObjectDetectionScreenState
     _objectDetectionSubscription = _objectDetectionReceivePort.listen(
       _handleDetectionResult,
     );
+
+    _imageRotationReceivePort = ReceivePort();
+    _imageRotationIsolate = await Isolate.spawn(
+      getImageRotationIsolateEntry,
+      _imageRotationReceivePort.sendPort,
+      onError: _imageRotationReceivePort.sendPort,
+      onExit: _imageRotationReceivePort.sendPort,
+    );
+    _imageRotationSubscription = _imageRotationReceivePort.listen(
+      _handleRotationResult,
+    );
   }
 }
