@@ -12,6 +12,19 @@ class MainScreen extends StatelessWidget {
       title: const Text('오늘도 즐거운 하루 되세요!'),
       centerTitle: true,
       backgroundColor: Colors.amber,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline,
+             size: 28),
+          tooltip: '설명 보기',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DescriptionPage()),
+            );
+          },
+        ),
+      ],
     ),
     body: Center(
       child: Container(
@@ -26,10 +39,6 @@ class MainScreen extends StatelessWidget {
       unselectedFontSize: 14,
       iconSize: 32,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.info_outline),
-          label: '설명창',
-        ),
         BottomNavigationBarItem(
           icon: Icon(Icons.directions_walk),
           label: '보행시작하기',
