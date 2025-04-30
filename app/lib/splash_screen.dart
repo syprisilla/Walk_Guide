@@ -23,16 +23,30 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 노란 배경색 설정
-      body: Center(
-        child: Image.asset(
-        'assets/images/logo1.png',
-        width: 100, // 원하는 크기로 조절
-        height: 100,
-        ),
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 노란 배경색
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/images/logo1.png',
+            width: 150,
+            height: 150,
+          ),
+          const SizedBox(height: 16), // 이미지와 텍스트 사이 여백
+          const Text(
+            'WalkGuide',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
