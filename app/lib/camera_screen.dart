@@ -54,7 +54,7 @@ class _RealtimeObjectDetectionScreenState
     _spawnIsolates()
         .then((_) {
           if (widget.cameras.isNotEmpty) {
-            initializeCamera(widget.cameras[0]);
+            _initializeCamera(widget.cameras[0]);
           }
         })
         .catchError((e, stacktrace) {
@@ -81,5 +81,16 @@ class _RealtimeObjectDetectionScreenState
     if (rootIsolateToken == null) {
       throw Exception("Root token null");
     }
+
+    _objectDetectionReceivePort = ReceivePort();
+    _objectDetectionIsolate = await Isolate.spawn(
+      detectObjectsIsolateEntry,
+      [_objectDetectionReceivePort.sendPort, rootIsolateToken],
+      onError: _objectDetectionReceivePort.sendPort,
+      onExit: _objectDetectionReceivePort.sendPort,
+    );
+    _objectDetectionSubscription = _objectDetectionReceivePort.listen(
+      _handleDetectionResult,
+    );
   }
 }
