@@ -128,4 +128,10 @@ class _RealtimeObjectDetectionScreenState
     _objectDetectionIsolateSendPort = null;
     _imageRotationIsolateSendPort = null;
   }
+
+  void _handleDetectionResult(dynamic message) {
+    if (_objectDetectionIsolateSendPort == null && message is SendPort) {
+      _objectDetectionIsolateSendPort = message;
+    }
+  }
 }
