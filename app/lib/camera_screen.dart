@@ -219,4 +219,14 @@ class _RealtimeObjectDetectionScreenState
     } on CameraException catch (e) {
     } catch (e) {}
   }
+
+  Future<void> _startCameraStream() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _cameraController!.value.isStreamingImages)
+      return;
+    try {
+      await _cameraController!.startImageStream(_processCameraImage);
+    } catch (e) {}
+  }
 }
