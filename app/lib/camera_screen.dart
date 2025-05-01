@@ -190,4 +190,13 @@ class _RealtimeObjectDetectionScreenState
       if (!_isWaitingForDetection) _isBusy = false;
     } else {}
   }
+
+  Future<void> _initializeCamera(CameraDescription cameraDescription) async {
+    if (_cameraController != null) {
+      await _stopCameraStream();
+      await _cameraController!.dispose();
+      _cameraController = null;
+      if (mounted) setState(() => _isCameraInitialized = false);
+    }
+  }
 }
