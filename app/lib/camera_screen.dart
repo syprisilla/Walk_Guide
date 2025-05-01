@@ -259,5 +259,11 @@ class _RealtimeObjectDetectionScreenState
        _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
        _pendingImageDataWidth = image.width; _pendingImageDataHeight = image.height;
        _pendingImageDataFormatRaw = image.format.raw; _pendingImageDataBytesPerRow = image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
-  } catch () {}
+
+       final camera = widget.cameras[_cameraIndex];
+       final orientation = MediaQuery.of(context).orientation;
+       final DeviceOrientation deviceRotation = (orientation == Orientation.landscape) ? DeviceOrientation.landscapeLeft : DeviceOrientation.portraitUp;
+
+       _imageRotationIsolateSendPort!.send([camera.sensorOrientation, deviceRotation]);
+  } catch (e, stacktrace) {print("****** Error processing image: $e"); _pendingImageDataBytes = null; _isWaitingForRotation = false; _isBusy = false;}
 }
