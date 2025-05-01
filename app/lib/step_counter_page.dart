@@ -41,6 +41,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   void initState() {
     super.initState();
     flutterTts = FlutterTts();
+    flutterTts.setSpeechRate(0.5);
     requestPermission();
     loadSessions();
   }
@@ -115,6 +116,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void onObjectDetected() {
+    guideWhenObjectDetected();
     final double avgSpeed = _sessionHistory.isNotEmpty
         ? _sessionHistory.map((s) => s.averageSpeed).reduce((a, b) => a + b) /
             _sessionHistory.length
@@ -208,6 +210,22 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _previousSteps = null;
     _startTime = null;
     _recentSteps.clear();
+  }
+
+  void guideWhenObjectDetected() async {
+    if (_sessionHistory.isEmpty) {
+      debugPrint("❗ 안내 실패: 세션 데이터가 없습니다.");
+      return;
+    }
+
+    final latestSession = _sessionHistory.last;
+    final delay = getGuidanceDelay(latestSession.averageSpeed);
+
+    debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
+    await Future.delayed(delay);
+
+    await flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
+    debugPrint("🔊 안내 완료: 앞에 장애물이 있습니다.");
   }
 
   void startCheckingMovement() {
