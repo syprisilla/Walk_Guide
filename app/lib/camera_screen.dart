@@ -156,8 +156,28 @@ class _RealtimeObjectDetectionScreenState
   void _handleRotationResult(dynamic message) {
     if (_imageRotationIsolateSendPort == null && message is SendPort) {
       _imageRotationIsolateSendPort = message;
-    } else if (message is List<DetectedObject>) {
+    } else if (message is InputImageRotation?) {
       _isWaitingForDetection = false;
+      _lastCalculatedRotation = message;
+
+      if (_pendingImageDataBytes != null &&
+          _objectDetectionIsolateSendPort != null &&
+          message != null) {
+        _isWaitingForDetection = true;
+        _lastImageSize = Size(
+          _pendingImageDataWidth!.toDouble(),
+          _pendingImageDataHeight!.toDouble(),
+        );
+        _objectDetectionIsolateSendPort!.send([
+          _pendingImageDataBytes!,
+          _pendingImageDataWidth!,
+          _pendingImageDataHeight!,
+          message,
+          _pendingImageDataFormatRaw!,
+          _pendingImageDataBytesPerRow!,
+        ]);
+        _pendingImageDataBytes = null;
+      }
     }
   }
 }
