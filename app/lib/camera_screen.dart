@@ -198,5 +198,15 @@ class _RealtimeObjectDetectionScreenState
       _cameraController = null;
       if (mounted) setState(() => _isCameraInitialized = false);
     }
+
+    _cameraController = CameraController(
+      cameraDescription,
+      ResolutionPreset.medium,
+      enableAudio: false,
+      imageFormatGroup:
+          Platform.isAndroid
+              ? ImageFormatGroup.nv21
+              : ImageFormatGroup.bgra8888,
+    );
   }
 }
