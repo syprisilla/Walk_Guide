@@ -208,5 +208,15 @@ class _RealtimeObjectDetectionScreenState
               ? ImageFormatGroup.nv21
               : ImageFormatGroup.bgra8888,
     );
+    try {
+      await _cameraController!.initialize();
+      await _startCameraStream();
+      if (mounted)
+        setState(() {
+          _isCameraInitialized = true;
+          _cameraIndex = widget.cameras.indexOf(cameraDescription);
+        });
+    } on CameraException catch (e) {
+    } catch (e) {}
   }
 }
