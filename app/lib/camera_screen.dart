@@ -243,4 +243,14 @@ class _RealtimeObjectDetectionScreenState
     _isWaitingForDetection = false;
     _pendingImageDataBytes = null;
   }
+
+  void _processCameraImage(CameraImage image) {
+    if (_isBusy ||
+        _imageRotationIsolateSendPort == null ||
+        _objectDetectionIsolateSendPort == null)
+      return;
+    _isBusy = true;
+    _isWaitingForRotation = true;
+    _isWaitingForDetection = false;
+  }
 }
