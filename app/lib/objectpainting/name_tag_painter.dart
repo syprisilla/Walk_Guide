@@ -23,3 +23,6 @@ class NameTagUtils {
     textPainter.layout(minWidth: 0, maxWidth: canvasSize.width);
 
     double textY = boundingBoxRect.top - textPainter.height;
+     if (textY < 0) {
+      textY = boundingBoxRect.top + 2;
+      if (textY + textPainter.height > canvasSize.height) {
