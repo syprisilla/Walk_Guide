@@ -229,4 +229,18 @@ class _RealtimeObjectDetectionScreenState
       await _cameraController!.startImageStream(_processCameraImage);
     } catch (e) {}
   }
+
+  Future<void> _stopCameraStream() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isStreamingImages)
+      return;
+    try {
+      await _cameraController!.stopImageStream();
+    } catch (e) {}
+
+    _isBusy = false;
+    _isWaitingForRotation = false;
+    _isWaitingForDetection = false;
+    _pendingImageDataBytes = null;
+  }
 }
