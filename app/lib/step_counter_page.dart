@@ -6,10 +6,13 @@ import 'package:pedometer/pedometer.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+
 import 'walk_session.dart';
 
 class StepCounterPage extends StatefulWidget {
   const StepCounterPage({super.key});
+
   @override
   State<StepCounterPage> createState() => _StepCounterPageState();
 }
@@ -19,6 +22,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   StreamSubscription<StepCount>? _stepCountSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   Timer? _checkTimer;
+  late FlutterTts flutterTts;
 
   int _steps = 0;
   int? _initialSteps;
@@ -36,8 +40,9 @@ class _StepCounterPageState extends State<StepCounterPage> {
   @override
   void initState() {
     super.initState();
+    flutterTts = FlutterTts();
     requestPermission();
-    loadSessions(); // ✅ 앱 실행 시 세션 불러오기
+    loadSessions();
   }
 
   Future<void> requestPermission() async {
@@ -101,12 +106,26 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   Duration getGuidanceDelay(double avgSpeed) {
     if (avgSpeed < 0.5) {
-      return const Duration(seconds: 2); // 느린 보행자
+      return const Duration(seconds: 2);
     } else if (avgSpeed < 1.2) {
-      return const Duration(milliseconds: 1500); // 보통 보행자
+      return const Duration(milliseconds: 1500);
     } else {
-      return const Duration(seconds: 1); // 빠른 보행자
+      return const Duration(seconds: 1);
     }
+  }
+
+  void onObjectDetected() {
+    final double avgSpeed = _sessionHistory.isNotEmpty
+        ? _sessionHistory.map((s) => s.averageSpeed).reduce((a, b) => a + b) /
+            _sessionHistory.length
+        : 1.0;
+
+    final delay = getGuidanceDelay(avgSpeed);
+
+    Future.delayed(delay, () {
+      flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
+      debugPrint("🔊 안내 음성 출력 완료 (지연: ${delay.inMilliseconds}ms)");
+    });
   }
 
   void onStepCount(StepCount event) {
@@ -267,34 +286,22 @@ class _StepCounterPageState extends State<StepCounterPage> {
               children: [
                 Text(
                   _isMoving ? '움직이는 중' : '정지 상태',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Color.fromARGB(255, 0, 0, 0),
-                  ),
+                  style: const TextStyle(fontSize: 18, color: Colors.black),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   '걸음 수: $_steps',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Color.fromARGB(255, 0, 0, 0),
-                  ),
+                  style: const TextStyle(fontSize: 18, color: Colors.black),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   '평균 속도: ${getAverageSpeed().toStringAsFixed(2)} m/s',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Color.fromARGB(255, 0, 0, 0),
-                  ),
+                  style: const TextStyle(fontSize: 18, color: Colors.black),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   '3초 속도: ${getRealTimeSpeed().toStringAsFixed(2)} m/s',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Color.fromARGB(255, 0, 0, 0),
-                  ),
+                  style: const TextStyle(fontSize: 18, color: Colors.black),
                 ),
               ],
             ),
@@ -323,6 +330,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: onObjectDetected,
+        child: const Icon(Icons.volume_up),
       ),
     );
   }

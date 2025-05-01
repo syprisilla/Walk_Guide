@@ -28,6 +28,9 @@ dependencies:
   hive_flutter: ^1.1.0
   path_provider: ^2.0.15
 
+   # 음성 안내 기능 추가
+  flutter_tts: ^3.8.2  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
