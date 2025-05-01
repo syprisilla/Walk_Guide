@@ -15,3 +15,11 @@ class NameTagUtils {
           color: Colors.white,
           fontSize: 12.0,
           backgroundColor: Colors.black54,
+          ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout(minWidth: 0, maxWidth: canvasSize.width);
+
+    double textY = boundingBoxRect.top - textPainter.height;
