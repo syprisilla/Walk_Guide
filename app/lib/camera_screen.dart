@@ -157,7 +157,7 @@ class _RealtimeObjectDetectionScreenState
     if (_imageRotationIsolateSendPort == null && message is SendPort) {
       _imageRotationIsolateSendPort = message;
     } else if (message is InputImageRotation?) {
-      _isWaitingForDetection = false;
+      _isWaitingForRotation = false;
       _lastCalculatedRotation = message;
 
       if (_pendingImageDataBytes != null &&
@@ -177,7 +177,17 @@ class _RealtimeObjectDetectionScreenState
           _pendingImageDataBytesPerRow!,
         ]);
         _pendingImageDataBytes = null;
+      } else {
+        if (!_isWaitingForDetection && _isBusy) _isBusy = false;
       }
-    }
+    } else if (message is List &&
+        message.length == 2 &&
+        message[0] is String &&
+        message[0].contains('Error')) {
+      print('****** Image Rotation Isolate Error: ${message[1]}');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection) _isBusy = false;
+    } else {}
   }
 }
