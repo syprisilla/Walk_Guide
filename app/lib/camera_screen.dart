@@ -252,5 +252,12 @@ class _RealtimeObjectDetectionScreenState
     _isBusy = true;
     _isWaitingForRotation = true;
     _isWaitingForDetection = false;
-  }
+
+     try {
+       final WriteBuffer allBytes = WriteBuffer();
+       for (final Plane plane in image.planes) allBytes.putUint8List(plane.bytes);
+       _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
+       _pendingImageDataWidth = image.width; _pendingImageDataHeight = image.height;
+       _pendingImageDataFormatRaw = image.format.raw; _pendingImageDataBytesPerRow = image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
+  } catch () {}
 }
