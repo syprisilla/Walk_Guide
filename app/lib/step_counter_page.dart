@@ -100,6 +100,9 @@ class _StepCounterPageState extends State<StepCounterPage> {
             _isMoving = true;
           });
           debugPrint("움직임 감지!");
+
+          // ✅ 물체 감지된 것으로 간주하고 자동 안내 실행 (테스트용)
+          onObjectDetected();
         }
       }
     });
@@ -117,17 +120,27 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   void onObjectDetected() {
     guideWhenObjectDetected();
-    final double avgSpeed = _sessionHistory.isNotEmpty
-        ? _sessionHistory.map((s) => s.averageSpeed).reduce((a, b) => a + b) /
-            _sessionHistory.length
-        : 1.0;
+  }
+
+  void guideWhenObjectDetected() async {
+    if (_sessionHistory.isEmpty) {
+      debugPrint("❗ 안내 실패: 세션 데이터가 없습니다.");
+      return;
+    }
+
+    final recentSessions = _sessionHistory.takeLast(7);
+
+    double avgSpeed =
+        recentSessions.map((s) => s.averageSpeed).reduce((a, b) => a + b) /
+            recentSessions.length;
 
     final delay = getGuidanceDelay(avgSpeed);
 
-    Future.delayed(delay, () {
-      flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
-      debugPrint("🔊 안내 음성 출력 완료 (지연: ${delay.inMilliseconds}ms)");
-    });
+    debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
+    await Future.delayed(delay);
+
+    await flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
+    debugPrint("🔊 안내 완료: 앞에 장애물이 있습니다.");
   }
 
   void onStepCount(StepCount event) {
@@ -210,22 +223,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _previousSteps = null;
     _startTime = null;
     _recentSteps.clear();
-  }
-
-  void guideWhenObjectDetected() async {
-    if (_sessionHistory.isEmpty) {
-      debugPrint("❗ 안내 실패: 세션 데이터가 없습니다.");
-      return;
-    }
-
-    final latestSession = _sessionHistory.last;
-    final delay = getGuidanceDelay(latestSession.averageSpeed);
-
-    debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
-    await Future.delayed(delay);
-
-    await flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
-    debugPrint("🔊 안내 완료: 앞에 장애물이 있습니다.");
   }
 
   void startCheckingMovement() {
@@ -349,10 +346,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: onObjectDetected,
-        child: const Icon(Icons.volume_up),
-      ),
     );
   }
 
@@ -362,5 +355,12 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _accelerometerSubscription?.cancel();
     _checkTimer?.cancel();
     super.dispose();
+  }
+}
+
+extension TakeLastExtension<T> on List<T> {
+  List<T> takeLast(int n) {
+    if (length <= n) return this;
+    return sublist(length - n);
   }
 }
