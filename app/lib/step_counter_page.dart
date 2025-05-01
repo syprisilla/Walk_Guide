@@ -99,6 +99,16 @@ class _StepCounterPageState extends State<StepCounterPage> {
     });
   }
 
+  Duration getGuidanceDelay(double avgSpeed) {
+    if (avgSpeed < 0.5) {
+      return const Duration(seconds: 2); // 느린 보행자
+    } else if (avgSpeed < 1.2) {
+      return const Duration(milliseconds: 1500); // 보통 보행자
+    } else {
+      return const Duration(seconds: 1); // 빠른 보행자
+    }
+  }
+
   void onStepCount(StepCount event) {
     debugPrint("걸음 수 이벤트 발생: ${event.steps}");
 
