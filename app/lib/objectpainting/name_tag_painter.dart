@@ -11,3 +11,7 @@ class NameTagUtils {
     final TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: ' ${label.text} (${(label.confidence * 100).toStringAsFixed(0)}%) ',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12.0,
+          backgroundColor: Colors.black54,
