@@ -26,3 +26,12 @@ class NameTagUtils {
      if (textY < 0) {
       textY = boundingBoxRect.top + 2;
       if (textY + textPainter.height > canvasSize.height) {
+        textY = boundingBoxRect.bottom - textPainter.height - 2;
+      }
+    }
+    final Offset textOffset = Offset(boundingBoxRect.left, textY.clamp(0.0, canvasSize.height - textPainter.height));
+
+
+    textPainter.paint(canvas, textOffset);
+  }
+}
