@@ -152,4 +152,12 @@ class _RealtimeObjectDetectionScreenState
       if (!_isWaitingForRotation) _isBusy = false;
     } else {}
   }
+
+  void _handleRotationResult(dynamic message) {
+    if (_imageRotationIsolateSendPort == null && message is SendPort) {
+      _imageRotationIsolateSendPort = message;
+    } else if (message is List<DetectedObject>) {
+      _isWaitingForDetection = false;
+    }
+  }
 }
