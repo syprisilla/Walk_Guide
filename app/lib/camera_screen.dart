@@ -253,17 +253,41 @@ class _RealtimeObjectDetectionScreenState
     _isWaitingForRotation = true;
     _isWaitingForDetection = false;
 
-     try {
-       final WriteBuffer allBytes = WriteBuffer();
-       for (final Plane plane in image.planes) allBytes.putUint8List(plane.bytes);
-       _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
-       _pendingImageDataWidth = image.width; _pendingImageDataHeight = image.height;
-       _pendingImageDataFormatRaw = image.format.raw; _pendingImageDataBytesPerRow = image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
+    try {
+      final WriteBuffer allBytes = WriteBuffer();
+      for (final Plane plane in image.planes)
+        allBytes.putUint8List(plane.bytes);
+      _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
+      _pendingImageDataWidth = image.width;
+      _pendingImageDataHeight = image.height;
+      _pendingImageDataFormatRaw = image.format.raw;
+      _pendingImageDataBytesPerRow =
+          image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
 
-       final camera = widget.cameras[_cameraIndex];
-       final orientation = MediaQuery.of(context).orientation;
-       final DeviceOrientation deviceRotation = (orientation == Orientation.landscape) ? DeviceOrientation.landscapeLeft : DeviceOrientation.portraitUp;
+      final camera = widget.cameras[_cameraIndex];
+      final orientation = MediaQuery.of(context).orientation;
+      final DeviceOrientation deviceRotation =
+          (orientation == Orientation.landscape)
+              ? DeviceOrientation.landscapeLeft
+              : DeviceOrientation.portraitUp;
 
-       _imageRotationIsolateSendPort!.send([camera.sensorOrientation, deviceRotation]);
-  } catch (e, stacktrace) {print("****** Error processing image: $e"); _pendingImageDataBytes = null; _isWaitingForRotation = false; _isBusy = false;}
+      _imageRotationIsolateSendPort!.send([
+        camera.sensorOrientation,
+        deviceRotation,
+      ]);
+    } catch (e, stacktrace) {
+      print("****** Error processing image: $e");
+      _pendingImageDataBytes = null;
+      _isWaitingForRotation = false;
+      _isBusy = false;
+    }
+  }
+
+  void _switchCamera() {
+    if (widget.cameras.length < 2 || _isBusy) return;
+    final newIndex = (_cameraIndex + 1) % widget.cameras.length;
+    _stopCameraStream().then((_) {
+      _initializeCamera(widget.cameras[newIndex]);
+    });
+  }
 }
