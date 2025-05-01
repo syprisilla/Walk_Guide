@@ -101,7 +101,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
           });
           debugPrint("움직임 감지!");
 
-          // ✅ 물체 감지된 것으로 간주하고 자동 안내 실행 (테스트용)
           onObjectDetected();
         }
       }
@@ -123,17 +122,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void guideWhenObjectDetected() async {
-    if (_sessionHistory.isEmpty) {
-      debugPrint("❗ 안내 실패: 세션 데이터가 없습니다.");
-      return;
-    }
-
-    final recentSessions = _sessionHistory.takeLast(7);
-
-    double avgSpeed =
-        recentSessions.map((s) => s.averageSpeed).reduce((a, b) => a + b) /
-            recentSessions.length;
-
+    double avgSpeed = getRealTimeSpeed();
     final delay = getGuidanceDelay(avgSpeed);
 
     debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
@@ -355,12 +344,5 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _accelerometerSubscription?.cancel();
     _checkTimer?.cancel();
     super.dispose();
-  }
-}
-
-extension TakeLastExtension<T> on List<T> {
-  List<T> takeLast(int n) {
-    if (length <= n) return this;
-    return sublist(length - n);
   }
 }
