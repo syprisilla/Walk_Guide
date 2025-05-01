@@ -29,6 +29,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   int? _previousSteps;
   DateTime? _startTime;
   DateTime? _lastMovementTime;
+  DateTime? _lastGuidanceTime;
 
   bool _isMoving = false;
   List<DateTime> _recentSteps = [];
@@ -122,6 +123,14 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void guideWhenObjectDetected() async {
+    final now = DateTime.now();
+
+    if (_lastGuidanceTime != null &&
+        now.difference(_lastGuidanceTime!).inSeconds < 2) {
+      debugPrint("⏳ 쿨다운 중 - 음성 안내 생략");
+      return;
+    }
+
     double avgSpeed = getRealTimeSpeed();
     final delay = getGuidanceDelay(avgSpeed);
 
