@@ -37,6 +37,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   void initState() {
     super.initState();
     requestPermission();
+    loadSessions(); // ✅ 앱 실행 시 세션 불러오기
   }
 
   Future<void> requestPermission() async {
@@ -53,17 +54,16 @@ class _StepCounterPageState extends State<StepCounterPage> {
       if (context.mounted) {
         showDialog(
           context: context,
-          builder:
-              (_) => AlertDialog(
-                title: const Text('권한 필요'),
-                content: const Text('걸음 측정을 위해 권한을 허용해 주세요.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('확인'),
-                  ),
-                ],
+          builder: (_) => AlertDialog(
+            title: const Text('권한 필요'),
+            content: const Text('걸음 측정을 위해 권한을 허용해 주세요.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('확인'),
               ),
+            ],
+          ),
         );
       }
     }
@@ -172,6 +172,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
     debugPrint("🟢 저장된 세션: $session");
     debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");
 
+    analyzeWalkingPattern();
+
     _steps = 0;
     _initialSteps = null;
     _previousSteps = null;
@@ -193,6 +195,42 @@ class _StepCounterPageState extends State<StepCounterPage> {
         }
       }
     });
+  }
+
+  void loadSessions() {
+    final box = Hive.box<WalkSession>('walk_sessions');
+    setState(() {
+      _sessionHistory = box.values.toList();
+    });
+    debugPrint("📦 불러온 세션 수: ${_sessionHistory.length}");
+
+    analyzeWalkingPattern();
+  }
+
+  void analyzeWalkingPattern() {
+    if (_sessionHistory.isEmpty) {
+      debugPrint("⚠️ 보행 데이터가 없습니다.");
+      return;
+    }
+
+    double totalSpeed = 0;
+    int totalSteps = 0;
+    int totalDuration = 0;
+
+    for (var session in _sessionHistory) {
+      totalSpeed += session.averageSpeed;
+      totalSteps += session.stepCount;
+      totalDuration += session.endTime.difference(session.startTime).inSeconds;
+    }
+
+    double avgSpeed = totalSpeed / _sessionHistory.length;
+    double avgSteps = totalSteps / _sessionHistory.length;
+    double avgDuration = totalDuration / _sessionHistory.length;
+
+    debugPrint("📊 보행 패턴 분석 결과:");
+    debugPrint("- 평균 속도: ${avgSpeed.toStringAsFixed(2)} m/s");
+    debugPrint("- 평균 걸음 수: ${avgSteps.toStringAsFixed(1)} 걸음");
+    debugPrint("- 평균 세션 시간: ${avgDuration.toStringAsFixed(1)} 초");
   }
 
   @override

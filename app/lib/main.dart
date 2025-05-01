@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:walk_guide/walk_session.dart'; // WalkSession 정의된 파일
-import 'package:walk_guide/splash_screen.dart'; // 앱 시작 화면
+import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
