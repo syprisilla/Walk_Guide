@@ -321,6 +321,38 @@ class _RealtimeObjectDetectionScreenState
             ),
         ],
       ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Center(child: cameraPreviewWidget),
+          if (_isCameraInitialized &&
+              _detectedObjects.isNotEmpty &&
+              _lastImageSize != null &&
+              _imageRotation != null)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return CustomPaint(
+                  size: constraints.biggest,
+                  painter: ObjectPainter(
+                    objects: _detectedObjects,
+                    imageSize: _lastImageSize!,
+                    rotation: _imageRotation!,
+                    cameraLensDirection:
+                        widget.cameras[_cameraIndex].lensDirection,
+                  ),
+                );
+              },
+            ),
+
+          if (_isBusy)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
