@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "976445872828",
+    "project_id": "walkguide",
+    "storage_bucket": "walkguide.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:976445872828:android:7b140472f1465207cb4eb9",
+        "android_client_info": {
+          "package_name": "com.oss.walk_guide"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmgRIaTjGCmteGhpdevV-UqF8dlrwZHCI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
