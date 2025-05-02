@@ -290,4 +290,19 @@ class _RealtimeObjectDetectionScreenState
       _initializeCamera(widget.cameras[newIndex]);
     });
   }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget cameraPreviewWidget;
+    if (_isCameraInitialized &&
+        _cameraController != null &&
+        _cameraController!.value.isInitialized) {
+      cameraPreviewWidget = AspectRatio(
+        aspectRatio: _cameraController!.value.aspectRatio,
+        child: CameraPreview(_cameraController!),
+      );
+    } else {
+      cameraPreviewWidget = const Center(child: CircularProgressIndicator());
+    }
+  }
 }
