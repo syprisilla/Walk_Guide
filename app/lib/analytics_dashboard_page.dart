@@ -18,14 +18,18 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     super.initState();
 
     _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      double simulatedSpeed = (2.0 + (speedData.length % 5) * 0.3);
+      double currentSpeed = getRealTimeSpeed();
       setState(() {
-        speedData.add(simulatedSpeed);
+        speedData.add(currentSpeed);
         if (speedData.length > 30) {
           speedData.removeAt(0);
         }
       });
     });
+  }
+
+  double getRealTimeSpeed() {
+    return 1.2 + (speedData.length % 5) * 0.2;
   }
 
   @override
