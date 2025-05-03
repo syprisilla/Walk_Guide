@@ -12,3 +12,8 @@ class ObjectPainter extends CustomPainter {
   final CameraLensDirection cameraLensDirection;
 
   ObjectPainter({
+     required this.objects,
+    required this.imageSize,
+    required this.rotation,
+    required this.cameraLensDirection,
+  });
