@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:walk_guide/walk_session.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   final double Function()? onGetSpeed;
@@ -78,7 +79,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final dates = weeklyAverages.keys.toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📊 보행 데이터 분석'),
+        title: const Text('📊 보헝 데이터 분석'),
         backgroundColor: Colors.amber,
         centerTitle: true,
       ),
@@ -178,7 +179,37 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               '세션 다시보기',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 80, child: Center(child: Text('🔁 세션 리스트'))),
+            SizedBox(
+              height: 200,
+              child: ValueListenableBuilder(
+                valueListenable:
+                    Hive.box<WalkSession>('walk_sessions').listenable(),
+                builder: (context, Box<WalkSession> box, _) {
+                  if (box.isEmpty) {
+                    return const Center(child: Text('저장된 세션이 없습니다.'));
+                  }
+
+                  final sessions = box.values.toList().reversed.toList();
+
+                  return ListView.builder(
+                    itemCount: sessions.length,
+                    itemBuilder: (context, index) {
+                      final session = sessions[index];
+                      final date = getDateKey(session.startTime);
+                      return ListTile(
+                        title: Text(date),
+                        subtitle: Text(
+                          '걸음 수: ${session.stepCount} / 평균 속도: ${session.averageSpeed.toStringAsFixed(2)} m/s',
+                        ),
+                        leading: const Icon(Icons.directions_walk),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {},
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 16),
             const Text(
               '데이터 초기화 및 백업',
