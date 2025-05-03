@@ -21,3 +21,9 @@ class ObjectPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (imageSize.isEmpty) return;
+    
+    for (final DetectedObject detectedObject in objects) {
+      // 1. 바운딩 박스 화면 좌표 계산
+      final Rect canvasRect = BoundingBoxUtils.scaleAndTranslateRect(
+        boundingBox: detectedObject.boundingBox,
+        imageSize: imageSize,
