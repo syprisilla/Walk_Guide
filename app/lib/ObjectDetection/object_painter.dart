@@ -27,3 +27,7 @@ class ObjectPainter extends CustomPainter {
       final Rect canvasRect = BoundingBoxUtils.scaleAndTranslateRect(
         boundingBox: detectedObject.boundingBox,
         imageSize: imageSize,
+        canvasSize: size,
+        rotation: rotation,
+        cameraLensDirection: cameraLensDirection,
+      );
