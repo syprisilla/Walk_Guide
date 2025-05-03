@@ -37,3 +37,6 @@ class ObjectPainter extends CustomPainter {
       // 3. 네임태그 그리기 (위임)
       if (detectedObject.labels.isNotEmpty) {
         NameTagUtils.paintNameTag(
+           canvas: canvas,
+          label: detectedObject.labels.first,
+          boundingBoxRect: canvasRect, 
