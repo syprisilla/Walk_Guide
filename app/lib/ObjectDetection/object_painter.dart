@@ -8,3 +8,7 @@ import 'package:google_mlkit_commons/google_mlkit_commons.dart'; // InputImageRo
 class ObjectPainter extends CustomPainter {
   final List<DetectedObject> objects;
   final Size imageSize;
+  final InputImageRotation rotation;
+  final CameraLensDirection cameraLensDirection;
+
+  ObjectPainter({
