@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:walk_guide/walk_session.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:walk_guide/session_detail_page.dart';
@@ -25,7 +28,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     super.initState();
     speedData.clear();
     speedData.add(0);
-
     _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       double currentSpeed = widget.onGetSpeed?.call() ?? 0;
       setState(() {
@@ -33,7 +35,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         if (speedData.length > 30) speedData.removeAt(0);
       });
     });
-
     loadWeeklyAverages();
   }
 
@@ -46,7 +47,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   Future<void> loadWeeklyAverages() async {
     final box = Hive.box<WalkSession>('walk_sessions');
     final allSessions = box.values.toList();
-
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 6));
 
@@ -73,6 +73,23 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
+  Future<void> clearAllSessions() async {
+    final box = Hive.box<WalkSession>('walk_sessions');
+    await box.clear();
+    setState(() {});
+  }
+
+  Future<void> backupSessionsToJson() async {
+    final box = Hive.box<WalkSession>('walk_sessions');
+    final sessions = box.values.toList();
+    final jsonList = sessions.map((s) => s.toJson()).toList();
+    final jsonString = jsonEncode(jsonList);
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/walk_sessions_backup.json');
+    await file.writeAsString(jsonString);
+    debugPrint('✅ 백업 완료: ${file.path}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final dates = weeklyAverages.keys.toList();
@@ -87,10 +104,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '실시간 속도 그래프',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text('실시간 속도 그래프',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 120,
               child: Padding(
@@ -101,10 +116,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
-                        spots: List.generate(
-                          speedData.length,
-                          (i) => FlSpot(i.toDouble(), speedData[i]),
-                        ),
+                        spots: List.generate(speedData.length,
+                            (i) => FlSpot(i.toDouble(), speedData[i])),
                         isCurved: true,
                         barWidth: 3,
                         dotData: FlDotData(show: false),
@@ -116,10 +129,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '최근 일주일 평균 속도 변화',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text('최근 일주일 평균 속도 변화',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 160,
               child: BarChart(
@@ -131,10 +142,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                         if (group.x.toInt() >= dates.length) return null;
                         final date = dates[group.x.toInt()];
                         final speed = rod.toY.toStringAsFixed(2);
-                        return BarTooltipItem(
-                          '$date\n속도: $speed m/s',
-                          const TextStyle(color: Colors.white, fontSize: 14),
-                        );
+                        return BarTooltipItem('$date\n속도: $speed m/s',
+                            const TextStyle(color: Colors.white, fontSize: 14));
                       },
                     ),
                   ),
@@ -163,10 +172,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       x: index,
                       barRods: [
                         BarChartRodData(
-                          toY: speed,
-                          width: 12,
-                          color: Colors.teal,
-                        ),
+                            toY: speed, width: 12, color: Colors.teal),
                       ],
                     );
                   }),
@@ -174,10 +180,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '세션 다시보기',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text('세션 다시보기',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 200,
               child: ValueListenableBuilder(
@@ -187,9 +191,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                   if (box.isEmpty) {
                     return const Center(child: Text('저장된 세션이 없습니다.'));
                   }
-
                   final sessions = box.values.toList().reversed.toList();
-
                   return ListView.builder(
                     itemCount: sessions.length,
                     itemBuilder: (context, index) {
@@ -198,17 +200,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       return ListTile(
                         title: Text(date),
                         subtitle: Text(
-                          '걸음 수: ${session.stepCount} / 평균 속도: ${session.averageSpeed.toStringAsFixed(2)} m/s',
-                        ),
+                            '걸음 수: ${session.stepCount} / 평균 속도: ${session.averageSpeed.toStringAsFixed(2)} m/s'),
                         leading: const Icon(Icons.directions_walk),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  SessionDetailPage(session: session),
-                            ),
+                                builder: (context) =>
+                                    SessionDetailPage(session: session)),
                           );
                         },
                       );
@@ -218,15 +218,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '데이터 초기화 및 백업',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text('데이터 초기화 및 백업',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Row(
               children: [
-                ElevatedButton(onPressed: null, child: const Text('초기화')),
+                ElevatedButton(
+                    onPressed: clearAllSessions, child: const Text('초기화')),
                 const SizedBox(width: 10),
-                ElevatedButton(onPressed: null, child: const Text('백업')),
+                ElevatedButton(
+                    onPressed: backupSessionsToJson, child: const Text('백업')),
               ],
             ),
           ],
@@ -234,4 +234,13 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       ),
     );
   }
+}
+
+extension WalkSessionJson on WalkSession {
+  Map<String, dynamic> toJson() => {
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+        'stepCount': stepCount,
+        'averageSpeed': averageSpeed,
+      };
 }
