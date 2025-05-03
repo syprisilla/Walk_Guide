@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:hive/hive.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:walk_guide/walk_session.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
@@ -36,6 +36,12 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     loadWeeklyAverages();
   }
 
+  @override
+  void dispose() {
+    _speedTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> loadWeeklyAverages() async {
     final box = Hive.box<WalkSession>('walk_sessions');
     final allSessions = box.values.toList();
@@ -68,13 +74,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   }
 
   @override
-  void dispose() {
-    _speedTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final dates = weeklyAverages.keys.toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('📊 보행 데이터 분석'),
@@ -120,60 +121,64 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(
-              height: 120,
-              child: weeklyAverages.isEmpty
-                  ? const Center(child: Text('📅 데이터 없음'))
-                  : BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        barTouchData: BarTouchData(enabled: false),
-                        titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                final keyList = weeklyAverages.keys.toList();
-                                final index = value.toInt();
-                                if (index < 0 || index >= keyList.length)
-                                  return const SizedBox.shrink();
-                                final label =
-                                    keyList[index].substring(5); // MM-DD
-                                return Text(label,
-                                    style: const TextStyle(fontSize: 10));
-                              },
-                            ),
-                          ),
-                          leftTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        barGroups: List.generate(weeklyAverages.length, (i) {
-                          final key = weeklyAverages.keys.toList()[i];
-                          final value = weeklyAverages[key] ?? 0;
-                          return BarChartGroupData(
-                            x: i,
-                            barRods: [
-                              BarChartRodData(
-                                  toY: value, width: 12, color: Colors.orange),
-                            ],
-                          );
-                        }),
+              height: 160,
+              child: BarChart(
+                BarChartData(
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        if (group.x.toInt() >= dates.length) return null;
+                        final date = dates[group.x.toInt()];
+                        final speed = rod.toY.toStringAsFixed(2);
+                        return BarTooltipItem(
+                          '$date\n속도: $speed m/s',
+                          const TextStyle(color: Colors.white, fontSize: 14),
+                        );
+                      },
+                    ),
+                  ),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(),
+                    rightTitles: AxisTitles(),
+                    topTitles: AxisTitles(),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index >= dates.length)
+                            return const SizedBox();
+                          final date = dates[index];
+                          return Text(date.substring(5),
+                              style: const TextStyle(fontSize: 10));
+                        },
                       ),
                     ),
+                  ),
+                  barGroups: List.generate(dates.length, (index) {
+                    final date = dates[index];
+                    final speed = weeklyAverages[date]!;
+                    return BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: speed,
+                          width: 12,
+                          color: Colors.teal,
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
               '세션 다시보기',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(
-              height: 80,
-              child: Center(child: Text('🔁 세션 리스트')),
-            ),
+            const SizedBox(height: 80, child: Center(child: Text('🔁 세션 리스트'))),
             const SizedBox(height: 16),
             const Text(
               '데이터 초기화 및 백업',
