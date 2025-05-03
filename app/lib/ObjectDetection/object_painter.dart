@@ -48,3 +48,9 @@ class ObjectPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant ObjectPainter oldDelegate) {
+    return oldDelegate.objects != objects ||
+        oldDelegate.imageSize != imageSize ||
+        oldDelegate.rotation != rotation ||
+        oldDelegate.cameraLensDirection != cameraLensDirection;
+  }
+}
