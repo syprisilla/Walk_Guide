@@ -84,12 +84,40 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final sessions = box.values.toList();
     final jsonList = sessions.map((s) => s.toJson()).toList();
     final jsonString = jsonEncode(jsonList);
-
     final directory = await getApplicationDocumentsDirectory();
     final file = File('${directory.path}/walk_sessions_backup.json');
     await file.writeAsString(jsonString);
-
     debugPrint('✅ 백업 완료: ${file.path}');
+  }
+
+  Future<void> restoreSessionsFromJson() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/walk_sessions_backup.json');
+
+      if (!await file.exists()) {
+        debugPrint('⚠️ 백업 파일이 존재하지 않습니다');
+        return;
+      }
+
+      final jsonString = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+
+      final restoredSessions = jsonList.map((json) => WalkSession(
+            startTime: DateTime.parse(json['startTime']),
+            endTime: DateTime.parse(json['endTime']),
+            stepCount: json['stepCount'],
+            averageSpeed: (json['averageSpeed'] as num).toDouble(),
+          ));
+
+      final box = Hive.box<WalkSession>('walk_sessions');
+      await box.clear();
+      await box.addAll(restoredSessions);
+
+      debugPrint('✅ 복원 완료: ${restoredSessions.length}개의 세션 복구됨');
+    } catch (e) {
+      debugPrint('❌ 복원 중 오류 발생: $e');
+    }
   }
 
   @override
@@ -150,9 +178,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                     ),
                   ),
                   titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(),
-                    rightTitles: AxisTitles(),
-                    topTitles: AxisTitles(),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
@@ -174,7 +199,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       x: index,
                       barRods: [
                         BarChartRodData(
-                            toY: speed, width: 12, color: Colors.teal),
+                            toY: speed, width: 12, color: Colors.teal)
                       ],
                     );
                   }),
@@ -209,9 +234,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  SessionDetailPage(session: session),
-                            ),
+                                builder: (context) =>
+                                    SessionDetailPage(session: session)),
                           );
                         },
                       );
@@ -247,6 +271,19 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                     }
                   },
                   child: const Text('백업'),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () async {
+                    await restoreSessionsFromJson();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('✅ 백업 데이터에서 세션을 복원했습니다')),
+                      );
+                      setState(() {});
+                    }
+                  },
+                  child: const Text('복원'),
                 ),
               ],
             ),
