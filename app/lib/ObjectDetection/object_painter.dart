@@ -17,3 +17,7 @@ class ObjectPainter extends CustomPainter {
     required this.rotation,
     required this.cameraLensDirection,
   });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (imageSize.isEmpty) return;
