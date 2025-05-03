@@ -31,3 +31,9 @@ class ObjectPainter extends CustomPainter {
         rotation: rotation,
         cameraLensDirection: cameraLensDirection,
       );
+
+      BoundingBoxUtils.paintBoundingBox(canvas, canvasRect);
+
+      // 3. 네임태그 그리기 (위임)
+      if (detectedObject.labels.isNotEmpty) {
+        NameTagUtils.paintNameTag(
