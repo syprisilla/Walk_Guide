@@ -11,7 +11,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'walk_session.dart';
 
 class StepCounterPage extends StatefulWidget {
-  const StepCounterPage({super.key});
+  final void Function(Function() getSpeed)? onInitialized;
+
+  const StepCounterPage({super.key, this.onInitialized});
 
   @override
   State<StepCounterPage> createState() => _StepCounterPageState();
@@ -45,6 +47,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
     flutterTts.setSpeechRate(0.5);
     requestPermission();
     loadSessions();
+
+    widget.onInitialized?.call(getRealTimeSpeed);
   }
 
   Future<void> requestPermission() async {
