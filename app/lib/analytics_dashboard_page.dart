@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:walk_guide/walk_session.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:walk_guide/session_detail_page.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   final double Function()? onGetSpeed;
@@ -22,7 +23,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   @override
   void initState() {
     super.initState();
-
     speedData.clear();
     speedData.add(0);
 
@@ -53,7 +53,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final Map<String, List<double>> grouped = {};
     for (final session in allSessions) {
       if (session.startTime.isBefore(sevenDaysAgo)) continue;
-
       final dateKey = getDateKey(session.startTime);
       grouped.putIfAbsent(dateKey, () => []);
       grouped[dateKey]!.add(session.averageSpeed);
@@ -79,7 +78,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final dates = weeklyAverages.keys.toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📊 보헝 데이터 분석'),
+        title: const Text('📊 보행 데이터 분석'),
         backgroundColor: Colors.amber,
         centerTitle: true,
       ),
@@ -203,7 +202,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                         ),
                         leading: const Icon(Icons.directions_walk),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  SessionDetailPage(session: session),
+                            ),
+                          );
+                        },
                       );
                     },
                   );
