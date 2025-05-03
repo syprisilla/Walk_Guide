@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
-  const AnalyticsDashboardPage({super.key});
+  final double Function()? onGetSpeed;
+
+  const AnalyticsDashboardPage({super.key, this.onGetSpeed});
 
   @override
   State<AnalyticsDashboardPage> createState() => _AnalyticsDashboardPageState();

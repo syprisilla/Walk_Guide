@@ -3,8 +3,15 @@ import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  late double Function() _getSpeed = () => 0; // 기본 콜백
 
   @override
   Widget build(BuildContext context) {
@@ -46,28 +53,40 @@ class MainScreen extends StatelessWidget {
               icon: Icon(Icons.directions_walk),
               label: '보행시작하기',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '분석'),
-            BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: '분석',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: '설정',
+            ),
           ],
           onTap: (index) {
             if (index == 0) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const StepCounterPage(),
+                  builder: (context) => StepCounterPage(
+                    onInitialized: (fn) {
+                      _getSpeed = fn as double Function();
+                    },
+                  ),
                 ),
               );
             } else if (index == 1) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AnalyticsDashboardPage(),
+                  builder: (context) => AnalyticsDashboardPage(
+                    onGetSpeed: _getSpeed,
+                  ),
                 ),
               );
             } else if (index == 2) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('설정 페이지는 준비 중입니다')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('설정 페이지는 준비 중입니다')),
+              );
             }
           },
         ),
