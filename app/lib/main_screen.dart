@@ -11,7 +11,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late double Function() _getSpeed = () => 0; // 기본 콜백
+  late double Function() _getSpeed = () => 0;
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +68,8 @@ class _MainScreenState extends State<MainScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => StepCounterPage(
-                    onInitialized: (fn) {
-                      _getSpeed = fn as double Function();
+                    onInitialized: (double Function() fn) {
+                      _getSpeed = fn;
                     },
                   ),
                 ),

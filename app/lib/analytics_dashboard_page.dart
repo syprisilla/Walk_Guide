@@ -19,6 +19,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   void initState() {
     super.initState();
 
+    speedData.clear();
+
+    speedData.add(0);
+
     _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       double currentSpeed = getRealTimeSpeed();
       setState(() {

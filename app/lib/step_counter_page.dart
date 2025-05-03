@@ -11,7 +11,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'walk_session.dart';
 
 class StepCounterPage extends StatefulWidget {
-  final void Function(Function() getSpeed)? onInitialized;
+  final void Function(double Function())? onInitialized;
 
   const StepCounterPage({super.key, this.onInitialized});
 
