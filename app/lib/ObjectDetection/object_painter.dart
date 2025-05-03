@@ -40,3 +40,11 @@ class ObjectPainter extends CustomPainter {
            canvas: canvas,
           label: detectedObject.labels.first,
           boundingBoxRect: canvasRect, 
+          canvasSize: size,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ObjectPainter oldDelegate) {
