@@ -30,6 +30,7 @@ dependencies:
 
    # 음성 안내 기능 추가
   flutter_tts: ^3.8.2  
+  fl_chart: ^0.71.0
 
 dev_dependencies:
   flutter_test:
