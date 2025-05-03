@@ -84,9 +84,11 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final sessions = box.values.toList();
     final jsonList = sessions.map((s) => s.toJson()).toList();
     final jsonString = jsonEncode(jsonList);
+
     final directory = await getApplicationDocumentsDirectory();
     final file = File('${directory.path}/walk_sessions_backup.json');
     await file.writeAsString(jsonString);
+
     debugPrint('✅ 백업 완료: ${file.path}');
   }
 
@@ -207,8 +209,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    SessionDetailPage(session: session)),
+                              builder: (context) =>
+                                  SessionDetailPage(session: session),
+                            ),
                           );
                         },
                       );
@@ -223,10 +226,28 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             Row(
               children: [
                 ElevatedButton(
-                    onPressed: clearAllSessions, child: const Text('초기화')),
+                  onPressed: () async {
+                    await clearAllSessions();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('🗑️ 모든 세션이 삭제되었습니다')),
+                      );
+                    }
+                  },
+                  child: const Text('초기화'),
+                ),
                 const SizedBox(width: 10),
                 ElevatedButton(
-                    onPressed: backupSessionsToJson, child: const Text('백업')),
+                  onPressed: () async {
+                    await backupSessionsToJson();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('✅ 데이터가 JSON으로 백업되었습니다')),
+                      );
+                    }
+                  },
+                  child: const Text('백업'),
+                ),
               ],
             ),
           ],
