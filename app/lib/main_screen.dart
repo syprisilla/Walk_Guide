@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
+import 'package:walk_guide/login_screen.dart'; // 경로는 실제 위치에 따라 조정
 
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
@@ -29,11 +30,25 @@ class MainScreen extends StatelessWidget {
     body: Center(
       child: Container(
         color: Colors.grey[300],
-        child: const Center(
-          child: Text('지도', style: TextStyle(fontSize: 24)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('지도', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              child: const Text('로그인 화면으로 이동'),
+            ),
+          ],
         ),
       ),
     ),
+
     bottomNavigationBar: BottomNavigationBar(
       selectedFontSize: 16,
       unselectedFontSize: 14,
