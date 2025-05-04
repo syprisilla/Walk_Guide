@@ -30,6 +30,8 @@ class MainScreen extends StatelessWidget {
     body: Center(
       child: Container(
         color: Colors.grey[300],
+         width: double.infinity,
+        height: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
