@@ -33,6 +33,9 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Platform-specific generated files
+macos/Flutter/
+windows/flutter/
 # Symbolication related
 app.*.symbols
 
