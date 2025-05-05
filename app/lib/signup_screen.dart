@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:walk_guide/login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -12,18 +13,33 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final nicknameController = TextEditingController(); 
 
   Future<void> _signUp() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final nickname = nicknameController.text.trim();
+
+    if (nickname.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('닉네임을 입력해주세요')),
+      );
+      return;
+    }
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
-      // 회원가입 성공 후 로그인 화면으로 이동
+      final uid = credential.user?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'email': email,
+          'nickname': nickname,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
@@ -41,6 +57,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    nicknameController.dispose();
     super.dispose();
   }
 
@@ -52,6 +69,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            TextField(
+              controller: nicknameController,
+              decoration: const InputDecoration(labelText: '닉네임'),
+            ),
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: '이메일'),
