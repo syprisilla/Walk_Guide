@@ -29,8 +29,23 @@ class MainScreen extends StatelessWidget {
     body: Center(
       child: Container(
         color: Colors.grey[300],
-        child: const Center(
-          child: Text('지도', style: TextStyle(fontSize: 24)),
+         width: double.infinity,
+         height: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('지도', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              child: const Text('로그인 화면으로 이동'),
+            ),
+          ],
         ),
       ),
     ),
