@@ -60,4 +60,15 @@ Future<List<DetectedObject>> _detectObjectsImpl(
     multipleObjects: true,
   );
   final ObjectDetector objectDetector = ObjectDetector(options: options);
+
+  final inputImage = InputImage.fromBytes(
+    bytes: bytes,
+    metadata: InputImageMetadata(
+      size: Size(width.toDouble(), height.toDouble()),
+      rotation: rotation,
+      format: InputImageFormatValue.fromRawValue(formatRaw) ??
+          InputImageFormat.nv21,
+      bytesPerRow: bytesPerRow,
+    ),
+  );
 }
