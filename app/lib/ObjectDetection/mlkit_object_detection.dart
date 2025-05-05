@@ -84,3 +84,25 @@ Future<List<DetectedObject>> _detectObjectsImpl(
     await objectDetector.close();
   }
 }
+
+@pragma('vm:entry-point')
+void getImageRotationIsolateEntry(SendPort sendPort) {
+  final ReceivePort receivePort = ReceivePort();
+  sendPort.send(receivePort.sendPort);
+
+  receivePort.listen((message) {
+    if (message is List && message.length == 2) {
+      try {
+        final int sensorOrientation = message[0];
+        final DeviceOrientation deviceOrientation = message[1];
+        final InputImageRotation? rotation =
+            _getImageRotationImpl(sensorOrientation, deviceOrientation);
+        sendPort.send(rotation);
+      } catch (e, stacktrace) {
+        print("****** Error in getImageRotationIsolateEntry listen: $e");
+        print(stacktrace);
+        sendPort.send(['Error from Rotation Isolate', e.toString()]);
+      }
+    }
+  });
+}
