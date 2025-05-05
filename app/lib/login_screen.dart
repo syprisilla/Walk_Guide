@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/services/auth_service.dart'; 
 import 'package:walk_guide/main_screen.dart';
+import 'package:walk_guide/signup_screen.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -60,6 +61,16 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: _login,
               child: const Text('로그인'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                    context,
+                  MaterialPageRoute(builder: (_) => const SignUpScreen()), // ✅ 이동
+                );
+              },
+              child: const Text('회원가입'),
             ),
           ],
         ),
