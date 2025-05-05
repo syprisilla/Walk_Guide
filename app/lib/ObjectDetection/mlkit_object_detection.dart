@@ -71,4 +71,16 @@ Future<List<DetectedObject>> _detectObjectsImpl(
       bytesPerRow: bytesPerRow,
     ),
   );
+
+  try {
+    final List<DetectedObject> objects =
+        await objectDetector.processImage(inputImage);
+    return objects;
+  } catch (e, stacktrace) {
+    print("****** Error processing image in _detectObjectsImpl: $e");
+    print(stacktrace);
+    return <DetectedObject>[];
+  } finally {
+    await objectDetector.close();
+  }
 }
