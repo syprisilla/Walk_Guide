@@ -14,3 +14,14 @@ ObjectDetector initializeObjectDetector() {
   );
   return ObjectDetector(options: options);
 }
+
+@pragma('vm:entry-point')
+void detectObjectsIsolateEntry(List<Object> args) {
+  final SendPort mainSendPort = args[0] as SendPort;
+  final RootIsolateToken rootIsolateToken = args[1] as RootIsolateToken;
+
+  BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+
+  final ReceivePort receivePort = ReceivePort();
+  mainSendPort.send(receivePort.sendPort);
+}
