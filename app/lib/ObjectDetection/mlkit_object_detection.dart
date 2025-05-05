@@ -106,3 +106,50 @@ void getImageRotationIsolateEntry(SendPort sendPort) {
     }
   });
 }
+
+InputImageRotation? _getImageRotationImpl(
+    int sensorOrientation, DeviceOrientation deviceOrientation) {
+  if (Platform.isIOS) {
+    int deviceOrientationAngle = 0;
+    switch (deviceOrientation) {
+      case DeviceOrientation.portraitUp:
+        deviceOrientationAngle = 0;
+        break;
+      case DeviceOrientation.landscapeLeft:
+        deviceOrientationAngle = 90;
+        break;
+      case DeviceOrientation.portraitDown:
+        deviceOrientationAngle = 180;
+        break;
+      case DeviceOrientation.landscapeRight:
+        deviceOrientationAngle = 270;
+        break;
+      default:
+        break;
+    }
+    var compensatedRotation =
+        (sensorOrientation + deviceOrientationAngle) % 360;
+    return _rotationIntToInputImageRotation(compensatedRotation);
+  } else {
+    int deviceOrientationAngle = 0;
+    switch (deviceOrientation) {
+      case DeviceOrientation.portraitUp:
+        deviceOrientationAngle = 0;
+        break;
+      case DeviceOrientation.landscapeLeft:
+        deviceOrientationAngle = 90;
+        break;
+      case DeviceOrientation.portraitDown:
+        deviceOrientationAngle = 180;
+        break;
+      case DeviceOrientation.landscapeRight:
+        deviceOrientationAngle = 270;
+        break;
+      default:
+        break;
+    }
+    var compensatedRotation =
+        (sensorOrientation - deviceOrientationAngle + 360) % 360;
+    return _rotationIntToInputImageRotation(compensatedRotation);
+  }
+}
