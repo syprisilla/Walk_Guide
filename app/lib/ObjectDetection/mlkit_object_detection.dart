@@ -46,3 +46,18 @@ void detectObjectsIsolateEntry(List<Object> args) {
     }
   });
 }
+
+Future<List<DetectedObject>> _detectObjectsImpl(
+    Uint8List bytes,
+    int width,
+    int height,
+    InputImageRotation rotation,
+    int formatRaw,
+    int bytesPerRow) async {
+  final options = ObjectDetectorOptions(
+    mode: DetectionMode.single,
+    classifyObjects: true,
+    multipleObjects: true,
+  );
+  final ObjectDetector objectDetector = ObjectDetector(options: options);
+}
