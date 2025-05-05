@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:walk_guide/services/auth_service.dart'; // 경로 맞게 조정
+import 'package:walk_guide/services/auth_service.dart'; 
+import 'package:walk_guide/main_screen.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -27,7 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final user = await AuthService().signInWithEmail(email, password);
 
     if (user != null) {
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainScreen()),
+    );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('로그인 실패')),
