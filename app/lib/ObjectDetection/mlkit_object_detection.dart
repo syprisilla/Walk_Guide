@@ -24,4 +24,25 @@ void detectObjectsIsolateEntry(List<Object> args) {
 
   final ReceivePort receivePort = ReceivePort();
   mainSendPort.send(receivePort.sendPort);
+
+  receivePort.listen((message) async {
+    if (message is List) {
+      try {
+        final Uint8List bytes = message[0];
+        final int width = message[1];
+        final int height = message[2];
+        final InputImageRotation rotation = message[3];
+        final int formatRaw = message[4];
+        final int bytesPerRow = message[5];
+
+        final List<DetectedObject> objects = await _detectObjectsImpl(
+            bytes, width, height, rotation, formatRaw, bytesPerRow);
+        mainSendPort.send(objects);
+      } catch (e, stacktrace) {
+        print("****** Error in detectObjectsIsolateEntry listen: $e");
+        print(stacktrace);
+        mainSendPort.send(['Error from Detection Isolate', e.toString()]);
+      }
+    }
+  });
 }
