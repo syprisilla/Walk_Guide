@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
 import 'package:walk_guide/login_screen.dart';
-
+import 'package:walk_guide/splash_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
@@ -18,14 +19,27 @@ class MainScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.info_outline,
              size: 28),
-          tooltip: '설명 보기',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DescriptionPage()),
-            );
-          },
-        ),
+            tooltip: '설명 보기',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DescriptionPage()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: '로그아웃',
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut(); // ✅ 로그아웃
+              if (context.mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SplashScreen()),
+                );
+              }
+            },
+          )  
       ],
     ),
     body: Center(
