@@ -34,6 +34,7 @@ dependencies:
   # firebase 로그인 기능용 패키지 추가
   firebase_core: ^2.27.0
   firebase_auth: ^4.17.4
+  cloud_firestore: ^4.13.3
 
 dev_dependencies:
   flutter_test:
