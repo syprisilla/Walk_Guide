@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walk_guide/main_screen.dart';
+import 'package:walk_guide/login_screen.dart';
 
 // 시작 화면 (로딩 화면)
 class SplashScreen extends StatefulWidget {
@@ -12,14 +14,25 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // 3초 후에 MainScreen으로 이동
-    Future.delayed(Duration(seconds: 10), () {
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    await Future.delayed(const Duration(seconds: 10)); // 10초간 로고 보여주기
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
       Navigator.pushReplacement(
-        // ignore: use_build_context_synchronously
         context,
-        MaterialPageRoute(builder: (context) => MainScreen()),
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
-    });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 
   @override
