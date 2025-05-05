@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:walk_guide/services/auth_service.dart'; // 경로 맞게 조정
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +18,21 @@ class _LoginScreenState extends State<LoginScreen> {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  void _login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    final user = await AuthService().signInWithEmail(email, password);
+
+    if (user != null) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인 실패')),
+      );
+    }
   }
 
   @override
@@ -37,9 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // TODO: 로그인 함수 호출
-              },
+              onPressed: _login,
               child: const Text('로그인'),
             ),
           ],
