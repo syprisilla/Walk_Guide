@@ -103,7 +103,43 @@ class PrivacyPolicyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('보행 데이터 관리')),
-      body: Center(child: Text('보행 데이터 관리 내용')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: const [
+          ListTile(
+            leading: Icon(Icons.storage_outlined, size: 30),
+            title: Text('데이터 저장 위치'),
+            subtitle:
+                Text('모든 보행 데이터는 로컬(Hive)에 안전하게 저장됩니다. 인터넷 연결 없이도 사용 가능합니다.'),
+          ),
+          Divider(),
+          ListTile(
+            leading: Icon(Icons.backup_outlined, size: 30),
+            title: Text('백업 및 복원'),
+            subtitle: Text('보행 데이터는 JSON 파일 형식으로 백업할 수 있으며, 필요시 복원할 수 있습니다.'),
+          ),
+          Divider(),
+          ListTile(
+            leading: Icon(Icons.delete_outline, size: 30),
+            title: Text('데이터 초기화'),
+            subtitle:
+                Text('설정에서 전체 보행 데이터를 삭제하여 초기화할 수 있습니다. 되돌릴 수 없으니 주의하세요.'),
+          ),
+          Divider(),
+          ListTile(
+            leading: Icon(Icons.security_outlined, size: 30),
+            title: Text('보안 안내'),
+            subtitle: Text(
+                '데이터는 사용자 로컬 저장소에만 저장되며 외부 서버로 전송되지 않아 개인 정보가 안전하게 보호됩니다.'),
+          ),
+          Divider(),
+          ListTile(
+            leading: Icon(Icons.settings_backup_restore, size: 30),
+            title: Text('세션별 데이터 관리'),
+            subtitle: Text('각 보행 세션은 구분되어 저장되며, 원하는 세션만 삭제 또는 복원할 수 있습니다.'),
+          ),
+        ],
+      ),
     );
   }
 }
