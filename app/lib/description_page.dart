@@ -13,9 +13,9 @@ class DescriptionPage extends StatelessWidget {
   final List<Widget> detailPages = [
     AccountInfoPage(),
     PrivacyPolicyPage(),
-    AppGuidePage(), // 변경된 부분
+    AppGuidePage(),
     CompanyInfoPage(),
-    OpenSourcePage(),
+    TechnologyPage(),
     AppUpdatePage(),
   ];
 
@@ -102,8 +102,8 @@ class PrivacyPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('개인정보처리방침')),
-      body: Center(child: Text('개인정보처리방침 내용')),
+      appBar: AppBar(title: Text('보행 데이터 관리')),
+      body: Center(child: Text('보행 데이터 관리 내용')),
     );
   }
 }
@@ -175,20 +175,55 @@ class CompanyInfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('사업자 정보')),
-      body: Center(child: Text('사업자 정보 내용')),
+      appBar: AppBar(title: Text('앱 제작자 소개')),
+      body: Center(child: Text('앱 제작자 소개 내용')),
     );
   }
 }
 
-class OpenSourcePage extends StatelessWidget {
-  const OpenSourcePage({super.key});
+class TechnologyPage extends StatelessWidget {
+  const TechnologyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('오픈 소스 라이브러리')),
-      body: Center(child: Text('오픈 소스 라이브러리 내용')),
+      appBar: AppBar(title: Text('사용된 기술 및 기능')),
+      body: ListView(
+        children: const [
+          ExpansionTile(
+            title: Text('센서 사용'),
+            children: [
+              Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('걸음 수 측정을 위해 sensors_plus 사용'))
+            ],
+          ),
+          ExpansionTile(
+            title: Text('AI 기반 안내'),
+            children: [
+              Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('보행 속도를 학습하여 맞춤 안내 제공'))
+            ],
+          ),
+          ExpansionTile(
+            title: Text('음성 안내'),
+            children: [
+              Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('Flutter TTS를 통해 음성 피드백 제공'))
+            ],
+          ),
+          ExpansionTile(
+            title: Text('로컬 저장소 Hive'),
+            children: [
+              Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('보행 데이터를 Hive에 저장하고 복원'))
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -199,8 +234,8 @@ class AppUpdatePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('앱 업데이트')),
-      body: Center(child: Text('앱 업데이트 내용')),
+      appBar: AppBar(title: Text('자주 묻는 질문')),
+      body: Center(child: Text('자주 묻는 질문 내용')),
     );
   }
 }
