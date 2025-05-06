@@ -3,6 +3,12 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+<<<<<<< Updated upstream
+=======
+  cloud_firestore
+  firebase_auth
+  firebase_core
+>>>>>>> Stashed changes
   flutter_tts
   permission_handler_windows
 )
