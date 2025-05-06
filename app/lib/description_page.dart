@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 class DescriptionPage extends StatelessWidget {
   final List<String> titles = [
     '계정 정보',
-    '개인정보처리방침',
+    '보행 데이터 관리',
     '앱 사용법',
-    '사업자 정보',
-    '오픈 소스 라이브러리',
-    '앱 업데이트',
+    '앱 제작자 소개',
+    '사용된 기술 및 기능',
+    '자주 묻는 질문',
   ];
 
   final List<Widget> detailPages = [
