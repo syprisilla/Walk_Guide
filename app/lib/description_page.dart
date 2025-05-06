@@ -212,7 +212,42 @@ class CompanyInfoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('앱 제작자 소개')),
-      body: Center(child: Text('앱 제작자 소개 내용')),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        children: const [
+          Text('충북대학교',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          SizedBox(height: 12),
+          Text('팀명: SCORE', style: TextStyle(fontSize: 16)),
+          Divider(height: 32),
+          ListTile(
+            leading: Icon(Icons.person),
+            title: Text('김병우'),
+            subtitle: Text('~~~~~'),
+          ),
+          ListTile(
+            leading: Icon(Icons.person),
+            title: Text('권오섭'),
+            subtitle: Text('~~~~~'),
+          ),
+          ListTile(
+            leading: Icon(Icons.person),
+            title: Text('전수영'),
+            subtitle: Text('~~~~~'),
+          ),
+          ListTile(
+            leading: Icon(Icons.person),
+            title: Text('김선영'),
+            subtitle: Text('~~~~~'),
+          ),
+          Divider(height: 32),
+          Text(
+            '제작 배경:\n시각장애인의 보행 안전을 돕기 위해 WalkGuide 앱을 개발했습니다. '
+            '사용자의 보행 데이터를 수집하고 AI 분석을 통해 맞춤형 음성 피드백을 제공하는 것이 핵심 기능입니다.',
+            style: TextStyle(fontSize: 15),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -230,32 +265,36 @@ class TechnologyPage extends StatelessWidget {
             title: Text('센서 사용'),
             children: [
               Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('걸음 수 측정을 위해 sensors_plus 사용'))
+                padding: EdgeInsets.all(8),
+                child: Text('걸음 수 측정을 위해 sensors_plus 사용'),
+              )
             ],
           ),
           ExpansionTile(
             title: Text('AI 기반 안내'),
             children: [
               Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('보행 속도를 학습하여 맞춤 안내 제공'))
+                padding: EdgeInsets.all(8),
+                child: Text('보행 속도를 학습하여 맞춤 안내 제공'),
+              )
             ],
           ),
           ExpansionTile(
             title: Text('음성 안내'),
             children: [
               Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('Flutter TTS를 통해 음성 피드백 제공'))
+                padding: EdgeInsets.all(8),
+                child: Text('Flutter TTS를 통해 음성 피드백 제공'),
+              )
             ],
           ),
           ExpansionTile(
             title: Text('로컬 저장소 Hive'),
             children: [
               Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('보행 데이터를 Hive에 저장하고 복원'))
+                padding: EdgeInsets.all(8),
+                child: Text('보행 데이터를 Hive에 저장하고 복원'),
+              )
             ],
           ),
         ],
