@@ -4,7 +4,7 @@ class DescriptionPage extends StatelessWidget {
   final List<String> titles = [
     '계정 정보',
     '개인정보처리방침',
-    '이용 약관',
+    '앱 사용법',
     '사업자 정보',
     '오픈 소스 라이브러리',
     '앱 업데이트',
@@ -13,7 +13,7 @@ class DescriptionPage extends StatelessWidget {
   final List<Widget> detailPages = [
     AccountInfoPage(),
     PrivacyPolicyPage(),
-    TermsPage(),
+    AppGuidePage(), // 변경된 부분
     CompanyInfoPage(),
     OpenSourcePage(),
     AppUpdatePage(),
@@ -66,8 +66,7 @@ class AccountInfoPage extends StatelessWidget {
           children: [
             const CircleAvatar(
               radius: 48,
-              backgroundImage:
-                  AssetImage('assets/images/profile.jpg'), // 프로필 이미지 경로
+              backgroundImage: AssetImage('assets/images/profile.jpg'),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -109,14 +108,63 @@ class PrivacyPolicyPage extends StatelessWidget {
   }
 }
 
-class TermsPage extends StatelessWidget {
-  const TermsPage({super.key});
+class AppGuidePage extends StatelessWidget {
+  const AppGuidePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('이용 약관')),
-      body: Center(child: Text('이용 약관 내용')),
+      appBar: AppBar(title: Text('앱 사용법')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: ListView(
+          children: const [
+            Text(
+              'WalkGuide 앱에 오신 것을 환영합니다!',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Divider(height: 24, thickness: 1.2),
+            Text(
+              'WalkGuide는 시각장애인의 안전한 보행을 돕기 위해 설계된 앱입니다.\n'
+              '이 앱을 통해 사용자는 실시간으로 장애물 정보를 음성으로 안내받고, '
+              '자신의 걸음 속도에 맞는 맞춤형 피드백을 받을 수 있습니다.',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 24),
+            Text(
+              '1. 실시간 안내 기능',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            ),
+            SizedBox(height: 6),
+            Text(
+              '- 사용자의 보행 속도에 맞춰 음성 안내 제공\n'
+              '- 장애물이 감지되면 즉시 경고\n'
+              '- AI가 패턴을 학습하여 최적화된 타이밍 안내',
+            ),
+            SizedBox(height: 24),
+            Text(
+              '2. 보행 데이터 분석',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            ),
+            SizedBox(height: 6),
+            Text(
+              '- 걸음 수, 속도, 정지 구간 등을 시각화하여 보여줌\n'
+              '- 최근 일주일 평균 속도 그래프 제공\n'
+              '- 보행 데이터 백업 및 복원 기능 지원',
+            ),
+            SizedBox(height: 24),
+            Text(
+              '3. 기타',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            ),
+            SizedBox(height: 6),
+            Text(
+              '- 로그인 시 사용자 이름 호출 기능\n'
+              '- 설정에서 음성 속도 조절 가능',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
