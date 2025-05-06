@@ -16,7 +16,7 @@ class DescriptionPage extends StatelessWidget {
     AppGuidePage(),
     CompanyInfoPage(),
     TechnologyPage(),
-    AppUpdatePage(),
+    FAQPage(),
   ];
 
   DescriptionPage({super.key});
@@ -228,14 +228,62 @@ class TechnologyPage extends StatelessWidget {
   }
 }
 
-class AppUpdatePage extends StatelessWidget {
-  const AppUpdatePage({super.key});
+class FAQPage extends StatelessWidget {
+  const FAQPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('자주 묻는 질문')),
-      body: Center(child: Text('자주 묻는 질문 내용')),
+      body: ListView(
+        children: const [
+          ExpansionTile(
+            title: Text('앱을 실행했는데 아무 안내도 들리지 않아요.'),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('음성 안내 설정이 꺼져있을 수 있습니다. 설정에서 음성 안내를 켜주세요.'),
+              ),
+            ],
+          ),
+          ExpansionTile(
+            title: Text('보행 데이터가 초기화되었어요.'),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('로그인 방식이 바뀌었는지 확인해 주세요. 동일한 계정으로 다시 로그인해보세요.'),
+              ),
+            ],
+          ),
+          ExpansionTile(
+            title: Text('앱이 갑자기 종료돼요.'),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('최신 버전으로 업데이트하거나, 오류가 지속되면 고객센터로 문의해주세요.'),
+              ),
+            ],
+          ),
+          ExpansionTile(
+            title: Text('피드백을 보내고 싶어요.'),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('앱 내 문의하기를 통해 피드백을 자유롭게 보내주세요.'),
+              ),
+            ],
+          ),
+          ExpansionTile(
+            title: Text('음성 속도를 조절하고 싶어요.'),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('설정에서 음성 속도를 조절할 수 있습니다.'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
