@@ -59,7 +59,40 @@ class AccountInfoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('계정 정보')),
-      body: Center(child: Text('계정 정보 내용')),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const CircleAvatar(
+              radius: 48,
+              backgroundImage:
+                  AssetImage('assets/images/profile.jpg'), // 프로필 이미지 경로
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'syprisilla',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 32),
+            const Row(
+              children: [
+                Icon(Icons.calendar_today_outlined, size: 20),
+                SizedBox(width: 8),
+                Text('가입한 날짜: 2017년 2월'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Row(
+              children: [
+                Icon(Icons.email_outlined, size: 20),
+                SizedBox(width: 8),
+                Text('이메일: syprisilla@example.com'),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
