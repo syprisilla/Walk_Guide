@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:walk_guide/main_screen.dart';
-import 'package:walk_guide/login_screen.dart';
+import 'package:walk_guide/main_page.dart';
+import 'package:walk_guide/login_page.dart';
 
 // 시작 화면 (로딩 화면)
 class SplashScreen extends StatefulWidget {
