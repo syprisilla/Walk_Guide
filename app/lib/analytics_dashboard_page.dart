@@ -28,14 +28,33 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     super.initState();
     speedData.clear();
     speedData.add(0);
+    if (widget.onGetSpeed != null) {
+      _startSpeedTracking();
+    } else {
+      debugPrint("⚠️ 실시간 속도 함수가 null입니다.");
+    }
+    loadWeeklyAverages();
+  }
+
+  void _startSpeedTracking() {
+    _speedTimer?.cancel();
+
     _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      double currentSpeed = widget.onGetSpeed?.call() ?? 0;
+      if (widget.onGetSpeed == null) {
+        debugPrint("❌ onGetSpeed 콜백이 null입니다.");
+        return;
+      }
+
+      final currentSpeed = widget.onGetSpeed!();
+      debugPrint("📈 측정된 실시간 속도: $currentSpeed");
+
       setState(() {
         speedData.add(currentSpeed);
-        if (speedData.length > 30) speedData.removeAt(0);
+        if (speedData.length > 30) {
+          speedData.removeAt(0);
+        }
       });
     });
-    loadWeeklyAverages();
   }
 
   @override
