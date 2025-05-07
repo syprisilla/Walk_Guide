@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:walk_guide/services/auth_service.dart';
 
 class DescriptionPage extends StatelessWidget {
   final List<String> titles = [
@@ -90,6 +91,20 @@ class AccountInfoPage extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: SizedBox(
+          width:double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: () => signOut(context),
+            child: const Text(
+              '로그아웃',
+              style: TextStyle(fontSize: 16),
+              ),
+          ),
         ),
       ),
     );
