@@ -94,15 +94,22 @@ class AccountInfoPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.fromLTRB(20,0,20,30),
         child: SizedBox(
           width:double.infinity,
           height: 50,
           child: ElevatedButton(
             onPressed: () => signOut(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white, // 배경 색
+              foregroundColor: Colors.redAccent,     // 글자 색
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10), // 둥근 모서리
+              ),
+            ),
             child: const Text(
               '로그아웃',
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
           ),
         ),
