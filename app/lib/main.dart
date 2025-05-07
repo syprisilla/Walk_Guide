@@ -8,8 +8,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  Hive.registerAdapter(WalkSessionAdapter());
-
+  Hive.registerAdapter(WalkSessionAdapter()); // 어댑터 등록
   await Hive.openBox<WalkSession>('walk_sessions');
 
   await Firebase.initializeApp();

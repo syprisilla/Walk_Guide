@@ -7,7 +7,7 @@ import 'package:walk_guide/login_screen.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
- State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 10)); // 10초간 로고 보여주기
+    await Future.delayed(const Duration(seconds: 3)); // 10초간 로고 보여주기
 
     final user = FirebaseAuth.instance.currentUser;
 
@@ -36,30 +36,30 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 노란 배경색
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            'assets/images/logo1.png',
-            width: 150,
-            height: 150,
-          ),
-          const SizedBox(height: 16), // 이미지와 텍스트 사이 여백
-          const Text(
-            'WalkGuide',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 노란 배경색
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/logo1.png',
+              width: 150,
+              height: 150,
             ),
-          ),
-        ],
+            const SizedBox(height: 16), // 이미지와 텍스트 사이 여백
+            const Text(
+              'WalkGuide',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
