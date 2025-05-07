@@ -26,4 +26,8 @@ class WalkSession {
   String toString() {
     return 'WalkSession(start: $startTime, end: $endTime, steps: $stepCount, avgSpeed: ${averageSpeed.toStringAsFixed(2)} m/s)';
   }
+
+  String getDateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
 }

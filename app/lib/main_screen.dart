@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
-import 'package:walk_guide/login_screen.dart';
-import 'package:walk_guide/splash_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -19,49 +23,21 @@ class MainScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.info_outline,
              size: 28),
-            tooltip: '설명 보기',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DescriptionPage()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: '로그아웃',
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut(); // ✅ 로그아웃
-              if (context.mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SplashScreen()),
-                );
-              }
-            },
-          )  
+          tooltip: '설명 보기',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DescriptionPage()),
+            );
+          },
+        ),
       ],
     ),
     body: Center(
       child: Container(
         color: Colors.grey[300],
-         width: double.infinity,
-         height: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('지도', style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              child: const Text('로그인 화면으로 이동'),
-            ),
-          ],
+        child: const Center(
+          child: Text('지도', style: TextStyle(fontSize: 24)),
         ),
       ),
     ),
