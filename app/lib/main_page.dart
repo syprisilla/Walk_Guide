@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
-<<<<<<< HEAD
-import 'package:walk_guide/login_screen.dart'; // 경로는 실제 위치에 따라 조정
-=======
-import 'package:walk_guide/analytics_dashboard_page.dart'; // 만약 없으면 추가 필요
->>>>>>> a6ca8c7cb53c24bd79eb97042ee32cc1b9ac9276
+import 'package:walk_guide/login_page.dart';
+import 'package:walk_guide/analytics_dashboard_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -40,12 +37,25 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        body: Center(
-          child: Container(
-            color: Colors.grey[300],
-            child: const Center(
-              child: Text('지도', style: TextStyle(fontSize: 24)),
-            ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.grey[300],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('지도', style: TextStyle(fontSize: 24)),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                },
+                child: const Text('로그인 화면으로 이동'),
+              ),
+            ],
           ),
         ),
         bottomNavigationBar: BottomNavigationBar(
@@ -94,70 +104,7 @@ class _MainScreenState extends State<MainScreen> {
             }
           },
         ),
-<<<<<<< HEAD
-      ],
-    ),
-    body: Center(
-      child: Container(
-        color: Colors.grey[300],
-         width: double.infinity,
-        height: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('지도', style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              child: const Text('로그인 화면으로 이동'),
-            ),
-          ],
-        ),
-      ),
-    ),
-
-    bottomNavigationBar: BottomNavigationBar(
-      selectedFontSize: 16,
-      unselectedFontSize: 14,
-      iconSize: 32,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.directions_walk),
-          label: '보행시작하기',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
-          label: '설정',
-        ),
-      ],
-      onTap: (index) {
-        if (index == 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const DescriptionPage()),
-          );
-        } else if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StepCounterPage()),
-          );
-        } else if (index == 2) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('설정 페이지는 준비 중입니다')),
-          );
-        }
-      },
-    ),
-  ),
-);
-=======
       ),
     );
   }
->>>>>>> a6ca8c7cb53c24bd79eb97042ee32cc1b9ac9276
 }
