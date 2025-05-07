@@ -28,9 +28,14 @@ dependencies:
   hive_flutter: ^1.1.0
   path_provider: ^2.0.15
 
-   # 음성 안내 기능 추가
+  # 음성 안내 기능 추가
   flutter_tts: ^3.8.2  
   fl_chart: ^0.71.0
+
+  # firebase 로그인 기능용 패키지 추가
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.17.4
+  cloud_firestore: ^4.13.3
 
 dev_dependencies:
   flutter_test:

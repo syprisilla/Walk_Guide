@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
-import 'package:walk_guide/analytics_dashboard_page.dart';
+import 'package:walk_guide/analytics_dashboard_page.dart'; // 만약 없으면 추가 필요
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -11,7 +11,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late double Function() _getSpeed = () => 0;
+  double Function()? _getSpeed;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +79,7 @@ class _MainScreenState extends State<MainScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => AnalyticsDashboardPage(
-                    onGetSpeed: _getSpeed,
+                    onGetSpeed: _getSpeed ?? () => 0.0,
                   ),
                 ),
               );
