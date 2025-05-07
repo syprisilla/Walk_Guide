@@ -11,7 +11,7 @@ import 'dart:io';
 class RealtimeObjectDetectionScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
   const RealtimeObjectDetectionScreen({Key? key, required this.cameras})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _RealtimeObjectDetectionScreenState createState() =>
@@ -51,15 +51,13 @@ class _RealtimeObjectDetectionScreenState
   void initState() {
     super.initState();
     _objectDetector = initializeObjectDetector();
-    _spawnIsolates()
-        .then((_) {
-          if (widget.cameras.isNotEmpty) {
-            _initializeCamera(widget.cameras[0]);
-          }
-        })
-        .catchError((e, stacktrace) {
-          print("****** initState: Error spawning isolates: $e");
-        });
+    _spawnIsolates().then((_) {
+      if (widget.cameras.isNotEmpty) {
+        _initializeCamera(widget.cameras[0]);
+      }
+    }).catchError((e, stacktrace) {
+      print("****** initState: Error spawning isolates: $e");
+    });
   }
 
   @override
@@ -203,10 +201,9 @@ class _RealtimeObjectDetectionScreenState
       cameraDescription,
       ResolutionPreset.medium,
       enableAudio: false,
-      imageFormatGroup:
-          Platform.isAndroid
-              ? ImageFormatGroup.nv21
-              : ImageFormatGroup.bgra8888,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
     try {
       await _cameraController!.initialize();
@@ -223,8 +220,7 @@ class _RealtimeObjectDetectionScreenState
   Future<void> _startCameraStream() async {
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized ||
-        _cameraController!.value.isStreamingImages)
-      return;
+        _cameraController!.value.isStreamingImages) return;
     try {
       await _cameraController!.startImageStream(_processCameraImage);
     } catch (e) {}
@@ -232,8 +228,7 @@ class _RealtimeObjectDetectionScreenState
 
   Future<void> _stopCameraStream() async {
     if (_cameraController == null ||
-        !_cameraController!.value.isStreamingImages)
-      return;
+        !_cameraController!.value.isStreamingImages) return;
     try {
       await _cameraController!.stopImageStream();
     } catch (e) {}
@@ -247,8 +242,7 @@ class _RealtimeObjectDetectionScreenState
   void _processCameraImage(CameraImage image) {
     if (_isBusy ||
         _imageRotationIsolateSendPort == null ||
-        _objectDetectionIsolateSendPort == null)
-      return;
+        _objectDetectionIsolateSendPort == null) return;
     _isBusy = true;
     _isWaitingForRotation = true;
     _isWaitingForDetection = false;
@@ -343,7 +337,6 @@ class _RealtimeObjectDetectionScreenState
                 );
               },
             ),
-
           if (_isBusy)
             Container(
               color: Colors.black.withOpacity(0.3),

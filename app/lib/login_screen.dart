@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:walk_guide/services/auth_service.dart'; 
+import 'package:walk_guide/main_screen.dart';
+import 'package:walk_guide/signup_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-  
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -18,8 +22,22 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    // 여기에서 Firebase 로그인 함수 호출할 예정
+  void _login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    final user = await AuthService().signInWithEmail(email, password);
+
+    if (user != null) {
+      Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainScreen()),
+    );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인 실패')),
+      );
+    }
   }
 
   @override
@@ -32,17 +50,27 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: '이메일'),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(labelText: '비밀번호'),
+              decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _login,
               child: const Text('로그인'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                    context,
+                  MaterialPageRoute(builder: (_) => const SignUpScreen()), // ✅ 이동
+                );
+              },
+              child: const Text('회원가입'),
             ),
           ],
         ),
