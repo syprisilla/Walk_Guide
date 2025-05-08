@@ -43,13 +43,14 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start, // 세로 가운데 정렬
           crossAxisAlignment: CrossAxisAlignment.stretch, // 너비 최대
           children: [
-            const SizedBox(height: 100),
+            const SizedBox(height: 150),
             const Text(
               'WalkGuide',
               textAlign: TextAlign.center,
@@ -59,34 +60,55 @@ class _LoginScreenState extends State<LoginScreen> {
                 letterSpacing: 1.0,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 30),
             TextField(
               controller: emailController,
               decoration: InputDecoration(
                     hintText: '이메일',
                     filled: true,
-                      fillColor: Colors.grey[850],
+                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                       border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color:Colors.black,
+                        width: 0.8,
+                        )
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.black,
+                          width: 1.0,
+                          ), // 포커스 시
                       ),
                     ),
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.black),
                   ),
+                  SizedBox(height: 10),
             TextField(
               controller: passwordController,
               decoration: InputDecoration(
                 hintText: '비밀번호',
                 filled: true,
-                fillColor: Colors.grey[850],
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(
+                    color:Colors.black,
+                    width: 0.8,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 1.0,                    
+                    ), // 포커스 시
                 ),
               ),
-              style: const TextStyle(color: Colors.white),  
+              style: const TextStyle(color: Colors.black),  
               obscureText: true,
             ),
             const SizedBox(height: 20),
