@@ -113,18 +113,35 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _login,
-              child: const Text('로그인'),
+              style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 버튼 배경색
+              foregroundColor: Colors.black,  
+              shape: RoundedRectangleBorder(  
+                borderRadius: BorderRadius.zero,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 12),
+            onPressed: _login,
+            child: const Text('로그인'),
+            ),
+            const SizedBox(height: 8),
             TextButton(
               onPressed: () {
                 Navigator.push(
                     context,
-                  MaterialPageRoute(builder: (_) => const SignUpScreen()), // ✅ 이동
+                  MaterialPageRoute(builder: (_) => const SignUpScreen()), 
                 );
               },
-              child: const Text('회원가입'),
+              child: const Text(
+                '회원가입',
+                style: TextStyle(
+                color: Colors.black,
+                ),
+              ),
             ),
           ],
         ),
