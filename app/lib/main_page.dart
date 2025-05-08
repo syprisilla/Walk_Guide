@@ -46,15 +46,6 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               const Text('지도', style: TextStyle(fontSize: 24)),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  );
-                },
-                child: const Text('로그인 화면으로 이동'),
-              ),
             ],
           ),
         ),

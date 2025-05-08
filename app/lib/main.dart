@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:walk_guide/walk_session.dart';
-import 'package:walk_guide/splash_screen.dart';
+import 'package:walk_guide/splash_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
