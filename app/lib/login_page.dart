@@ -62,11 +62,31 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: '이메일'),
-            ),
+              decoration: InputDecoration(
+                    hintText: '이메일',
+                    filled: true,
+                      fillColor: Colors.grey[850],
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                      ),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(labelText: '비밀번호'),
+              decoration: InputDecoration(
+                hintText: '비밀번호',
+                filled: true,
+                fillColor: Colors.grey[850],
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),  
               obscureText: true,
             ),
             const SizedBox(height: 20),
