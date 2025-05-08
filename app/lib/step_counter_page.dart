@@ -9,6 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'walk_session.dart';
+import 'package:walk_guide/real_time_speed_service.dart';
 
 class StepCounterPage extends StatefulWidget {
   final void Function(double Function())? onInitialized;
@@ -34,7 +35,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
   DateTime? _lastGuidanceTime;
 
   bool _isMoving = false;
-  List<DateTime> _recentSteps = [];
 
   List<WalkSession> _sessionHistory = [];
 
@@ -48,7 +48,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     requestPermission();
     loadSessions();
 
-    widget.onInitialized?.call(getRealTimeSpeed);
+    widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
   }
 
   Future<void> requestPermission() async {
@@ -135,7 +135,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       return;
     }
 
-    double avgSpeed = getRealTimeSpeed();
+    double avgSpeed = RealTimeSpeedService.getSpeed();
     final delay = getGuidanceDelay(avgSpeed);
 
     debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
@@ -153,7 +153,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       _previousSteps = event.steps;
       _startTime = DateTime.now();
       _lastMovementTime = DateTime.now();
-      _recentSteps.clear();
+      RealTimeSpeedService.clear();
       setState(() {});
       return;
     }
@@ -163,7 +163,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       if (stepDelta > 0) {
         _steps += stepDelta;
         for (int i = 0; i < stepDelta; i++) {
-          _recentSteps.add(DateTime.now());
+          RealTimeSpeedService.recordStep();
         }
       }
       _previousSteps = event.steps;
@@ -189,14 +189,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   double getRealTimeSpeed() {
-    if (_recentSteps.isEmpty) return 0;
-    DateTime now = DateTime.now();
-    _recentSteps =
-        _recentSteps.where((t) => now.difference(t).inSeconds <= 3).toList();
-    int stepsInLast3Seconds = _recentSteps.length;
-    double stepLength = 0.7;
-    double distance = stepsInLast3Seconds * stepLength;
-    return distance / 3;
+    return RealTimeSpeedService.getSpeed();
   }
 
   void _saveSessionData() {
@@ -224,7 +217,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _initialSteps = null;
     _previousSteps = null;
     _startTime = null;
-    _recentSteps.clear();
+    RealTimeSpeedService.clear();
   }
 
   void startCheckingMovement() {

@@ -12,4 +12,8 @@ class RealTimeSpeedService {
   static void recordStep() {
     recentSteps.add(DateTime.now());
   }
+
+  static void clear() {
+    recentSteps.clear();
+  }
 }
