@@ -35,7 +35,24 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인 실패')),
+        SnackBar(
+          content: const Text(
+            '로그인 실패: 다시 시도해 주세요.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+             fontWeight: FontWeight.bold,
+             color: Colors.red, // 텍스트 색
+            ),
+          ),
+          backgroundColor: Colors.white, // 배경색
+          behavior: SnackBarBehavior.floating, // 화면 아래에 띄우는 스타일
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12), // 모서리 둥글게
+          ),
+          margin: const EdgeInsets.all(16), // 주변 여백 (floating일 때만 적용됨)
+          duration: const Duration(seconds: 2), // 표시 시간
+        ),
       );
     }
   }
