@@ -71,15 +71,77 @@ class _SignUpScreenState extends State<SignUpScreen> {
           children: [
             TextField(
               controller: nicknameController,
-              decoration: const InputDecoration(labelText: '닉네임'),
+              decoration: InputDecoration(
+                hintText: '닉네임',
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 0.8,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 1.0,
+                  ),
+                ),
+              ),
+              style: const TextStyle(color: Colors.black),        
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: '이메일'),
+              decoration: InputDecoration(
+                hintText: '이메일',
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 0.8,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 1.0,
+                  ),
+                ),
+              ),
+              style: const TextStyle(color: Colors.black),
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(labelText: '비밀번호'),
+              decoration: InputDecoration(
+                hintText: '비밀번호',
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 0.8,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black,
+                    width: 1.0,
+                  ),
+                ),
+              ),
+              style: const TextStyle(color: Colors.black),
               obscureText: true,
             ),
             const SizedBox(height: 20),
