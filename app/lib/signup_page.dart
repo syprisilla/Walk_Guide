@@ -81,11 +81,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('회원가입')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('회원가입'),
+         backgroundColor:  Colors.white,
+        ),  
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 16),
             TextField(
               controller: nicknameController,
               decoration: InputDecoration(
@@ -110,7 +116,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               style: const TextStyle(color: Colors.black),        
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             TextField(
               controller: emailController,
               decoration: InputDecoration(
@@ -135,7 +141,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               style: const TextStyle(color: Colors.black),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             TextField(
               controller: passwordController,
               decoration: InputDecoration(
@@ -163,8 +169,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _signUp,
-              child: const Text('회원가입'),
+              style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 버튼 배경색
+              foregroundColor: Colors.black,  
+              shape: RoundedRectangleBorder(  
+                borderRadius: BorderRadius.zero,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onPressed: _signUp,
+            child: const Text('회원가입'),
             ),
           ],
         ),
