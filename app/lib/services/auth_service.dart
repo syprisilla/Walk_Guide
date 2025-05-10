@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:walk_guide/splash_screen.dart';
+import 'package:walk_guide/splash_page.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
