@@ -6,6 +6,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import './mlkit_object_detection.dart';
+import './object_painter.dart';
 import 'dart:io';
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
@@ -306,7 +308,7 @@ class _RealtimeObjectDetectionScreenState
           if (widget.cameras.length > 1)
             IconButton(
               icon: Icon(
-                _cameras[_cameraIndex].lensDirection ==
+                widget.cameras[_cameraIndex].lensDirection ==
                         CameraLensDirection.front
                     ? Icons.camera_front
                     : Icons.camera_rear,

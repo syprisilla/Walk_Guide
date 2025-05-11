@@ -6,7 +6,7 @@ import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart
 import 'dart:io';
 
 ObjectDetector initializeObjectDetector() {
-  print("Initializing ML Kit detector...");
+  print("ML Kit 감지기를 초기화하는 중입니다...");
   final options = ObjectDetectorOptions(
     mode: DetectionMode.stream,
     classifyObjects: true,
@@ -39,9 +39,9 @@ void detectObjectsIsolateEntry(List<Object> args) {
             bytes, width, height, rotation, formatRaw, bytesPerRow);
         mainSendPort.send(objects);
       } catch (e, stacktrace) {
-        print("****** Error in detectObjectsIsolateEntry listen: $e");
+        print("****** 객체 감지 Isolate 리스닝 중 오류 발생 : $e");
         print(stacktrace);
-        mainSendPort.send(['Error from Detection Isolate', e.toString()]);
+        mainSendPort.send(['객체 감지 Isolate 오류', e.toString()]);
       }
     }
   });
@@ -77,7 +77,7 @@ Future<List<DetectedObject>> _detectObjectsImpl(
         await objectDetector.processImage(inputImage);
     return objects;
   } catch (e, stacktrace) {
-    print("****** Error processing image in _detectObjectsImpl: $e");
+    print("****** 이미지 처리 중 오류 발생 (_detectObjectsImpl) : $e");
     print(stacktrace);
     return <DetectedObject>[];
   } finally {
@@ -99,9 +99,9 @@ void getImageRotationIsolateEntry(SendPort sendPort) {
             _getImageRotationImpl(sensorOrientation, deviceOrientation);
         sendPort.send(rotation);
       } catch (e, stacktrace) {
-        print("****** Error in getImageRotationIsolateEntry listen: $e");
+        print("****** 이미지 회전 Isolate 리스닝 중 오류 발생 : $e");
         print(stacktrace);
-        sendPort.send(['Error from Rotation Isolate', e.toString()]);
+        sendPort.send(['이미지 회전 Isolate 오류', e.toString()]);
       }
     }
   });
