@@ -6,6 +6,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import './mlkit_object_detection.dart';
+import './object_painter.dart';
 import 'dart:io';
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
@@ -56,7 +58,7 @@ class _RealtimeObjectDetectionScreenState
         _initializeCamera(widget.cameras[0]);
       }
     }).catchError((e, stacktrace) {
-      print("****** initState: Error spawning isolates: $e");
+      print("****** 초기화 중 Isolate 생성 오류 : $e");
     });
   }
 
@@ -145,7 +147,7 @@ class _RealtimeObjectDetectionScreenState
         message.length == 2 &&
         message[0] is String &&
         message[0].contains('Error')) {
-      print('****** Object Detection Isolate Error: ${message[1]}');
+      print('****** 객체 감지 Isolate 오류 : ${message[1]}');
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation) _isBusy = false;
     } else {}
@@ -182,7 +184,7 @@ class _RealtimeObjectDetectionScreenState
         message.length == 2 &&
         message[0] is String &&
         message[0].contains('Error')) {
-      print('****** Image Rotation Isolate Error: ${message[1]}');
+      print('****** 이미지 회전 Isolate 오류 : ${message[1]}');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (!_isWaitingForDetection) _isBusy = false;
@@ -270,7 +272,7 @@ class _RealtimeObjectDetectionScreenState
         deviceRotation,
       ]);
     } catch (e, stacktrace) {
-      print("****** Error processing image: $e");
+      print("****** 이미지 처리 중 오류 : $e");
       _pendingImageDataBytes = null;
       _isWaitingForRotation = false;
       _isBusy = false;
@@ -301,12 +303,12 @@ class _RealtimeObjectDetectionScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('실시간 객체 탐지'),
+        title: const Text('실시간 객체 감지 중입니다'),
         actions: [
           if (widget.cameras.length > 1)
             IconButton(
               icon: Icon(
-                _cameras[_cameraIndex].lensDirection ==
+                widget.cameras[_cameraIndex].lensDirection ==
                         CameraLensDirection.front
                     ? Icons.camera_front
                     : Icons.camera_rear,
