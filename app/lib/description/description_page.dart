@@ -21,7 +21,9 @@ class DescriptionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.amber,
         title: const Text('소개', style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -33,7 +35,10 @@ class DescriptionPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final item = items[index];
           return ListTile(
-            title: Text(item.title),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+            title: Text(item.title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(
               context,
