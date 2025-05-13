@@ -157,6 +157,12 @@ class _RealtimeObjectDetectionScreenState
     } catch (e) {
       print("Error killing object detection isolate: $e");
     }
+    try {
+      _imageRotationIsolate?.kill(priority: Isolate.immediate);
+      print("Image Rotation Isolate kill signal sent."); // 디버그 로그
+    } catch (e) {
+      print("Error killing image rotation isolate: $e");
+    }
 
     _objectDetectionIsolate = null;
     _imageRotationIsolate = null;
