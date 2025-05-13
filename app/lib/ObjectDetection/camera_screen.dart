@@ -195,41 +195,13 @@ class _RealtimeObjectDetectionScreenState
   }
 
   void _handleRotationResult(dynamic message) {
-    if (_imageRotationIsolateSendPort == null && message is SendPort) {
-      _imageRotationIsolateSendPort = message;
-    } else if (message is InputImageRotation?) {
-      _isWaitingForRotation = false;
-      _lastCalculatedRotation = message;
+    if (!mounted) return; // 위젯 unmount 시 처리 중단
 
-      if (_pendingImageDataBytes != null &&
-          _objectDetectionIsolateSendPort != null &&
-          message != null) {
-        _isWaitingForDetection = true;
-        _lastImageSize = Size(
-          _pendingImageDataWidth!.toDouble(),
-          _pendingImageDataHeight!.toDouble(),
-        );
-        _objectDetectionIsolateSendPort!.send([
-          _pendingImageDataBytes!,
-          _pendingImageDataWidth!,
-          _pendingImageDataHeight!,
-          message,
-          _pendingImageDataFormatRaw!,
-          _pendingImageDataBytesPerRow!,
-        ]);
-        _pendingImageDataBytes = null;
-      } else {
-        if (!_isWaitingForDetection && _isBusy) _isBusy = false;
-      }
-    } else if (message is List &&
-        message.length == 2 &&
-        message[0] is String &&
-        message[0].contains('Error')) {
-      print('****** Image Rotation Isolate Error: ${message[1]}');
-      _isWaitingForRotation = false;
-      _pendingImageDataBytes = null;
-      if (!_isWaitingForDetection) _isBusy = false;
-    } else {}
+    if (_objectDetectionIsolateSendPort == null && message is SendPort) {
+      print("Object Detection Isolate SendPort received via message."); // 디버그 로그
+      _objectDetectionIsolateSendPort = message;
+    } else if (message is List<DetectedObject>) {
+      List<DetectedObject> objectsToShow = [];
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
