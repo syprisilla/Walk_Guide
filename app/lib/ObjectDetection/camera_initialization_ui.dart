@@ -24,10 +24,10 @@ class _MyAppState extends State<MyApp> {
     try {
       return await availableCameras();
     } on CameraException catch (e) {
-      print('Error finding cameras: ${e.code}, ${e.description}');
+      print('사용할 카메라를 찾는 중 오류 발생 : ${e.code}, ${e.description}');
       return [];
     } catch (e) {
-      print('Unexpected error finding cameras: $e');
+      print('사용할 카메라를 찾는 중 예기치 않은 오류 발생 : $e');
       return [];
     }
   }
@@ -35,7 +35,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Realtime Object Detection',
+      title: 'WalkGuide',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -51,7 +51,11 @@ class _MyAppState extends State<MyApp> {
               snapshot.data == null ||
               snapshot.data!.isEmpty) {
             return const Scaffold(
-              body: Center(child: Text('사용 가능한 카메라를 찾을 수 없습니다.')),
+              body: Center(
+                  child: Text(
+                '사용할 수 있는 카메라를 찾을 수 없습니다!\n카메라 권한 설정을 확인 후 다시 실행해주세요!',
+                textAlign: TextAlign.center,
+              )),
             );
           } else {
             return RealtimeObjectDetectionScreen(cameras: snapshot.data!);

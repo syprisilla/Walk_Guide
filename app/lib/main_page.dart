@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
-import 'package:walk_guide/analytics_dashboard_page.dart'; // 만약 없으면 추가 필요
+import 'package:walk_guide/login_page.dart';
+import 'package:walk_guide/analytics_dashboard_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -36,12 +37,16 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        body: Center(
-          child: Container(
-            color: Colors.grey[300],
-            child: const Center(
-              child: Text('지도', style: TextStyle(fontSize: 24)),
-            ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.grey[300],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('지도', style: TextStyle(fontSize: 24)),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
         bottomNavigationBar: BottomNavigationBar(
