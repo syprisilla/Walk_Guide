@@ -59,10 +59,18 @@ class _RealtimeObjectDetectionScreenState
   @override
   void initState() {
     super.initState();
+    print("RealtimeObjectDetectionScreen: initState called");
     _objectDetector = initializeObjectDetector();
     _spawnIsolates().then((_) {
       if (widget.cameras.isNotEmpty) {
         _initializeCamera(widget.cameras[0]);
+      }else {
+        print("****** No cameras available!");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('사용 가능한 카메라가 없습니다.')),
+          );
+        }
       }
     }).catchError((e, stacktrace) {
       print("****** initState: Error spawning isolates: $e");
