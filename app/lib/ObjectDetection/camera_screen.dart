@@ -254,32 +254,97 @@ class _RealtimeObjectDetectionScreenState
     }
   }
 
-  Future<void> _initializeCamera(CameraDescription cameraDescription) async {
-    if (_cameraController != null) {
+   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
+
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+
+      print("Disposing previous camera controller before initializing a new one.");
+
       await _stopCameraStream();
       await _cameraController!.dispose();
       _cameraController = null;
-      if (mounted) setState(() => _isCameraInitialized = false);
     }
 
+     if (mounted) setState(() => _isCameraInitialized = false);
+
+
+
+    print("Initializing camera: ${cameraDescription.name} with lens direction ${cameraDescription.lensDirection}");
+
     _cameraController = CameraController(
+
       cameraDescription,
-      ResolutionPreset.medium,
+
+      ResolutionPreset.high,
       enableAudio: false,
+
       imageFormatGroup: Platform.isAndroid
+
           ? ImageFormatGroup.nv21
           : ImageFormatGroup.bgra8888,
     );
+
+
+
     try {
+
       await _cameraController!.initialize();
-      await _startCameraStream();
-      if (mounted)
+
+      print("Camera initialized. Preview size: ${_cameraController!.value.previewSize}, Aspect Ratio: ${_cameraController!.value.aspectRatio}");
+   
+
+      await _startCameraStream(); 
+
+
+
+      if (mounted) {
+
         setState(() {
+
           _isCameraInitialized = true;
+
           _cameraIndex = widget.cameras.indexOf(cameraDescription);
+
         });
+
+      }
+
     } on CameraException catch (e) {
-    } catch (e) {}
+
+      print('****** CameraException on initializeCamera for ${cameraDescription.name}: ${e.code} ${e.description}');
+
+      if (mounted) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+
+          SnackBar(content: Text('카메라 초기화 오류 (${cameraDescription.name}): ${e.description}')),
+
+        );
+
+        setState(() => _isCameraInitialized = false);
+
+      }
+
+    } catch (e, stacktrace) {
+
+      print('****** Other Exception on initializeCamera for ${cameraDescription.name}: $e');
+
+      print(stacktrace);
+
+      if (mounted) {
+
+         ScaffoldMessenger.of(context).showSnackBar(
+
+          SnackBar(content: Text('알 수 없는 카메라 오류 발생 (${cameraDescription.name}).')),
+
+        );
+
+        setState(() => _isCameraInitialized = false);
+
+      }
+
+    }
+
   }
 
   Future<void> _startCameraStream() async {
