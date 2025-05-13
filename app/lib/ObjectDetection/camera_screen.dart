@@ -104,19 +104,20 @@ class _RealtimeObjectDetectionScreenState
     }).catchError((e) {
       });
       _objectDetector.close().then((_) {
-    _cameraController?.dispose();
-    _objectDetector.close();
+      print("ObjectDetector closed");
+    }).catchError((e){
+      print("Error closing object detector: $e");
+    });
     super.dispose();
   }
 
   Future<void> _spawnIsolates() async {
-    Completer<void> rotationPortCompleter = Completer();
-    Completer<void> detectionPortCompleter = Completer();
+    print("Spawning Isolates...");
     final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
-
     if (rootIsolateToken == null) {
-      throw Exception("Root token null");
-    }
+      print("****** RootIsolateToken is null. ML Kit in Isolate might not work.");
+      return;
+   }
 
     _objectDetectionReceivePort = ReceivePort();
     _objectDetectionIsolate = await Isolate.spawn(
