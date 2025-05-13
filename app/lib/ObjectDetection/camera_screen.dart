@@ -197,53 +197,60 @@ class _RealtimeObjectDetectionScreenState
   void _handleRotationResult(dynamic message) {
     if (!mounted) return; // 위젯 unmount 시 처리 중단
 
-    if (_objectDetectionIsolateSendPort == null && message is SendPort) {
-      print("Object Detection Isolate SendPort received via message."); // 디버그 로그
-      _objectDetectionIsolateSendPort = message;
-    } else if (message is List<DetectedObject>) {
-      List<DetectedObject> objectsToShow = [];
-      if (message.isNotEmpty) {
-        DetectedObject closestObject = message.reduce((curr, next) {
-          final double areaCurr = curr.boundingBox.width * curr.boundingBox.height;
-          final double areaNext = next.boundingBox.width * next.boundingBox.height;
-          return areaCurr > areaNext ? curr : next;
-        });
-        objectsToShow.add(closestObject);
-      }
-      _isWaitingForDetection = false;
-      if (mounted) {
-        setState(() {
-          _detectedObjects = objectsToShow;
-          _imageRotation = _lastCalculatedRotation;
-        });
-      }
-      if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
-        _isBusy = false;
+    if (_imageRotationIsolateSendPort == null && message is SendPort) {
+      print("Image Rotation Isolate SendPort received via message."); // 디버그 로그
+      _imageRotationIsolateSendPort = message;
+    } else if (message is InputImageRotation?) {
+      _isWaitingForRotation = false;
+      _lastCalculatedRotation = message;
+      _imageRotation = message;
+
+      if (_pendingImageDataBytes != null &&
+          _objectDetectionIsolateSendPort != null &&
+          message != null) {
+        _isWaitingForDetection = true;
+        _lastImageSize = Size(_pendingImageDataWidth!.toDouble(),
+        _pendingImageDataHeight!.toDouble());
+        final Map<String, dynamic> payload = {
+          'bytes': _pendingImageDataBytes!,
+          'width': _pendingImageDataWidth!,
+          'height': _pendingImageDataHeight!,
+          'rotation': message,
+          'formatRaw': _pendingImageDataFormatRaw!,
+          'bytesPerRow': _pendingImageDataBytesPerRow!,
+        };
+        _objectDetectionIsolateSendPort!.send(payload);
+        _pendingImageDataBytes = null;
+      } else {
+        if (message == null) print("Rotation calculation resulted in null, not sending to detection isolate.");
+
+        if (!_isWaitingForDetection && _isBusy) _isBusy = false;
       }
     } else if (message is List &&
         message.length == 2 &&
         message[0] is String &&
         message[0].toString().contains('Error')) {
-      print('****** Object Detection Isolate Error: ${message[1]}');
-      _isWaitingForDetection = false;
-      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
-    } else if (message == null || (message is List && message.isEmpty && message is! List<DetectedObject>)) {
-      print('****** Object Detection Isolate exited or sent empty/null message.');
-       _isWaitingForDetection = false;
-      if (_objectDetectionIsolateSendPort != null && message == null) {
-          _objectDetectionIsolateSendPort = null;
-          print("Object Detection Isolate SendPort invalidated due to Isolate exit.");
+      print('****** Image Rotation Isolate Error: ${message[1]}');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    } else if (message == null || (message is List && message.isEmpty && message is! InputImageRotation)) {
+       print('****** Image Rotation Isolate exited or sent empty/null message.');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (_imageRotationIsolateSendPort != null && message == null) {
+          _imageRotationIsolateSendPort = null;
+          print("Image Rotation Isolate SendPort invalidated due to Isolate exit.");
       }
-      if (_detectedObjects.isNotEmpty && mounted) {
-        setState(() {
-          _detectedObjects = [];
-        });
-      }
-      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
-    } else {
-      print('****** Unexpected message from Object Detection Isolate: $message, type: ${message.runtimeType}');
-      _isWaitingForDetection = false;
-      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    }
+     else {
+
+      print('****** Unexpected message from Image Rotation Isolate: $message, type: ${message.runtimeType}');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
     }
   }
 
