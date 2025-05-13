@@ -7,6 +7,15 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'dart:io';
+import 'mlkit_object_detection.dart';
+import 'object_painter.dart';
+import 'dart:io';
+
+class IsolateDataHolder {
+  final SendPort mainSendPort;
+  final RootIsolateToken? rootIsolateToken;
+  IsolateDataHolder(this.mainSendPort, this.rootIsolateToken);
+}
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
