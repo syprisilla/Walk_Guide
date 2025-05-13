@@ -73,8 +73,23 @@ class _RealtimeObjectDetectionScreenState
         }
       }
     }).catchError((e, stacktrace) {
-      print("****** initState: Error spawning isolates: $e");
+
+      print("****** initState: Error spawning isolates or initializing camera: $e");
+
+      print(stacktrace);
+
+      if (mounted) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+
+          SnackBar(content: Text('초기화 중 오류 발생: $e')),
+
+        );
+
+      }
+
     });
+
   }
 
   @override
