@@ -94,10 +94,16 @@ class _RealtimeObjectDetectionScreenState
 
   @override
   void dispose() {
+    print("RealtimeObjectDetectionScreen: dispose called");
     _stopCameraStream();
     _objectDetectionSubscription?.cancel();
     _imageRotationSubscription?.cancel();
     _killIsolates();
+    _cameraController?.dispose().then((_) {
+      print("CameraController disposed");
+    }).catchError((e) {
+      });
+      _objectDetector.close().then((_) {
     _cameraController?.dispose();
     _objectDetector.close();
     super.dispose();
