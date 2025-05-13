@@ -12,9 +12,9 @@ import 'object_painter.dart';
 import 'dart:io';
 
 class IsolateDataHolder {
-  final SendPort mainSendPort;
-  final RootIsolateToken? rootIsolateToken;
-  IsolateDataHolder(this.mainSendPort, this.rootIsolateToken);
+ final SendPort mainSendPort;
+ final RootIsolateToken? rootIsolateToken;
+ IsolateDataHolder(this.mainSendPort, this.rootIsolateToken);
 }
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
