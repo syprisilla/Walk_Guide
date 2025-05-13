@@ -217,6 +217,34 @@ class _RealtimeObjectDetectionScreenState
           _imageRotation = _lastCalculatedRotation;
         });
       }
+      if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
+        _isBusy = false;
+      }
+    } else if (message is List &&
+        message.length == 2 &&
+        message[0] is String &&
+        message[0].toString().contains('Error')) {
+      print('****** Object Detection Isolate Error: ${message[1]}');
+      _isWaitingForDetection = false;
+      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    } else if (message == null || (message is List && message.isEmpty && message is! List<DetectedObject>)) {
+      print('****** Object Detection Isolate exited or sent empty/null message.');
+       _isWaitingForDetection = false;
+      if (_objectDetectionIsolateSendPort != null && message == null) {
+          _objectDetectionIsolateSendPort = null;
+          print("Object Detection Isolate SendPort invalidated due to Isolate exit.");
+      }
+      if (_detectedObjects.isNotEmpty && mounted) {
+        setState(() {
+          _detectedObjects = [];
+        });
+      }
+      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    } else {
+      print('****** Unexpected message from Object Detection Isolate: $message, type: ${message.runtimeType}');
+      _isWaitingForDetection = false;
+      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    }
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
