@@ -210,6 +210,13 @@ class _RealtimeObjectDetectionScreenState
         });
         objectsToShow.add(closestObject);
       }
+      _isWaitingForDetection = false;
+      if (mounted) {
+        setState(() {
+          _detectedObjects = objectsToShow;
+          _imageRotation = _lastCalculatedRotation;
+        });
+      }
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
