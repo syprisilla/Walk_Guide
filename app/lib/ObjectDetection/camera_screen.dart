@@ -122,13 +122,14 @@ class _RealtimeObjectDetectionScreenState
     _objectDetectionReceivePort = ReceivePort();
     _objectDetectionIsolate = await Isolate.spawn(
       detectObjectsIsolateEntry,
-      [_objectDetectionReceivePort.sendPort, rootIsolateToken],
+      IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken),
       onError: _objectDetectionReceivePort.sendPort,
       onExit: _objectDetectionReceivePort.sendPort,
+      debugName: "ObjectDetectionIsolate"
     );
-    _objectDetectionSubscription = _objectDetectionReceivePort.listen(
-      _handleDetectionResult,
-    );
+    _objectDetectionSubscription =
+        _objectDetectionReceivePort.listen(_handleDetectionResult);
+    print("Object Detection Isolate spawned and listener attached.");
 
     _imageRotationReceivePort = ReceivePort();
     _imageRotationIsolate = await Isolate.spawn(
