@@ -202,6 +202,14 @@ class _RealtimeObjectDetectionScreenState
       _objectDetectionIsolateSendPort = message;
     } else if (message is List<DetectedObject>) {
       List<DetectedObject> objectsToShow = [];
+      if (message.isNotEmpty) {
+        DetectedObject closestObject = message.reduce((curr, next) {
+          final double areaCurr = curr.boundingBox.width * curr.boundingBox.height;
+          final double areaNext = next.boundingBox.width * next.boundingBox.height;
+          return areaCurr > areaNext ? curr : next;
+        });
+        objectsToShow.add(closestObject);
+      }
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
