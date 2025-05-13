@@ -150,12 +150,13 @@ class _RealtimeObjectDetectionScreenState
   }
 
   void _killIsolates() {
+    print("Killing Isolates...");
     try {
       _objectDetectionIsolate?.kill(priority: Isolate.immediate);
-    } catch (e) {}
-    try {
-      _imageRotationIsolate?.kill(priority: Isolate.immediate);
-    } catch (e) {}
+      print("Object Detection Isolate kill signal sent.");
+    } catch (e) {
+      print("Error killing object detection isolate: $e");
+    }
 
     _objectDetectionIsolate = null;
     _imageRotationIsolate = null;
