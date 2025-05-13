@@ -112,12 +112,12 @@ class _RealtimeObjectDetectionScreenState
   }
 
   Future<void> _spawnIsolates() async {
-    print("Spawning Isolates...");
+    print("Spawning Isolates..."); 
     final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
     if (rootIsolateToken == null) {
       print("****** RootIsolateToken is null. ML Kit in Isolate might not work.");
       return;
-   }
+    }
 
     _objectDetectionReceivePort = ReceivePort();
     _objectDetectionIsolate = await Isolate.spawn(
@@ -129,28 +129,24 @@ class _RealtimeObjectDetectionScreenState
     );
     _objectDetectionSubscription =
         _objectDetectionReceivePort.listen(_handleDetectionResult);
-    print("Object Detection Isolate spawned and listener attached.");
+    print("Object Detection Isolate spawned and listener attached."); // 디버그 로그
 
     _imageRotationReceivePort = ReceivePort();
     _imageRotationIsolate = await Isolate.spawn(
       getImageRotationIsolateEntry,
+
       _imageRotationReceivePort.sendPort,
       onError: _imageRotationReceivePort.sendPort,
       onExit: _imageRotationReceivePort.sendPort,
-    );
-    _imageRotationSubscription = _imageRotationReceivePort.listen(
-      _handleRotationResult,
-    );
 
-    try {
-      await Future.wait([
-        rotationPortCompleter.future.timeout(const Duration(seconds: 5)),
-        detectionPortCompleter.future.timeout(const Duration(seconds: 5)),
-      ]);
-    } catch (e) {
-      _killIsolates();
-      throw e;
-    }
+      debugName: "ImageRotationIsolate"
+    );
+    _imageRotationSubscription =
+        _imageRotationReceivePort.listen(_handleRotationResult);
+
+    print("Image Rotation Isolate spawned and listener attached."); // 디버그 로그
+
+    
   }
 
   void _killIsolates() {
