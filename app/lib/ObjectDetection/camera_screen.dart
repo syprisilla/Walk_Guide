@@ -416,6 +416,14 @@ class _RealtimeObjectDetectionScreenState
         'sensorOrientation': camera.sensorOrientation,
         'deviceOrientationIndex': deviceRotation.index, 
       };
+      _imageRotationIsolateSendPort!.send(rotationPayload); 
+    } catch (e, stacktrace) {
+      print("****** Error preparing image for rotation isolate: $e");
+      print(stacktrace);
+      _pendingImageDataBytes = null; 
+      _isWaitingForRotation = false;
+      _isBusy = false; 
+    }
   }
 
   void _switchCamera() {
