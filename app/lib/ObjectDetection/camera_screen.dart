@@ -450,5 +450,20 @@ class _RealtimeObjectDetectionScreenState
         ],
       );
     }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('실시간 객체 탐지'),
+        actions: [
+          if (widget.cameras.length > 1)
+            IconButton(
+              icon: Icon(
+                widget.cameras[_cameraIndex].lensDirection == CameraLensDirection.front
+                    ? Icons.camera_front
+                    : Icons.camera_rear,
+              ),
+              onPressed: _isBusy ? null : _switchCamera, 
+            ),
+        ],
+      ),
     
 }
