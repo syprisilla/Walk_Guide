@@ -406,6 +406,16 @@ class _RealtimeObjectDetectionScreenState
       _pendingImageDataHeight = image.height;
       _pendingImageDataFormatRaw = image.format.raw; 
       _pendingImageDataBytesPerRow = image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
+      final camera = widget.cameras[_cameraIndex];
+      final orientation = MediaQuery.of(context).orientation; 
+      final DeviceOrientation deviceRotation = (orientation == Orientation.landscape)
+          ? (Platform.isIOS ? DeviceOrientation.landscapeRight : DeviceOrientation.landscapeLeft) 
+          : DeviceOrientation.portraitUp;
+
+      final Map<String, dynamic> rotationPayload = {
+        'sensorOrientation': camera.sensorOrientation,
+        'deviceOrientationIndex': deviceRotation.index, 
+      };
   }
 
   void _switchCamera() {
