@@ -1,19 +1,20 @@
+// lib/ui/object_painter.dart
+import 'dart:ui' as ui; // ui.Image 사용 위함 (현재 코드에서는 직접 사용 안 함)
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
-import 'package:camera/camera.dart';
-import 'bounding_box_painter.dart'; // 바운딩 박스 유틸리티 임포트
-import 'name_tag_painter.dart';   // 네임태그 유틸리티 임포트
-import 'package:google_mlkit_commons/google_mlkit_commons.dart'; // InputImageRotation
+import 'package:camera/camera.dart'; // CameraLensDirection
 
 class ObjectPainter extends CustomPainter {
   final List<DetectedObject> objects;
-  final Size imageSize;
-  final InputImageRotation rotation;
+  final Size imageSize; // ML Kit이 처리한 원본 이미지의 크기 (회전 전 기준)
+  final Size screenSize; // CustomPaint 위젯이 그려지는 실제 화면상의 크기
+  final InputImageRotation rotation; // ML Kit 처리 시 사용된 이미지 회전
   final CameraLensDirection cameraLensDirection;
 
   ObjectPainter({
-     required this.objects,
+    required this.objects,
     required this.imageSize,
+    required this.screenSize,
     required this.rotation,
     required this.cameraLensDirection,
   });
