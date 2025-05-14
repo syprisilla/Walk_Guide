@@ -346,14 +346,16 @@ class _RealtimeObjectDetectionScreenState
     }
 
   }
-
+//여기부터 하면 됨
   Future<void> _startCameraStream() async {
-    if (_cameraController == null ||
-        !_cameraController!.value.isInitialized ||
-        _cameraController!.value.isStreamingImages) return;
-    try {
-      await _cameraController!.startImageStream(_processCameraImage);
-    } catch (e) {}
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      print("Cannot start stream: Camera not initialized.");
+      return;
+    }
+    if (_cameraController!.value.isStreamingImages) {
+      print("Stream already started.");
+      return;
+    }
   }
 
   Future<void> _stopCameraStream() async {
