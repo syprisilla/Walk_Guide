@@ -371,16 +371,23 @@ class _RealtimeObjectDetectionScreenState
   }
 
   Future<void> _stopCameraStream() async {
-    if (_cameraController == null ||
-        !_cameraController!.value.isStreamingImages) return;
+    if (_cameraController == null || !_cameraController!.value.isInitialized || !_cameraController!.value.isStreamingImages) {
+      return;
+    }
     try {
       await _cameraController!.stopImageStream();
-    } catch (e) {}
-
-    _isBusy = false;
-    _isWaitingForRotation = false;
-    _isWaitingForDetection = false;
-    _pendingImageDataBytes = null;
+      print("Camera image stream stopped.");
+    } catch (e, stacktrace) {
+      print('****** Exception on stopCameraStream: $e');
+      print(stacktrace);
+    } finally { 
+      if(mounted) { 
+        _isBusy = false;
+        _isWaitingForRotation = false;
+        _isWaitingForDetection = false;
+        _pendingImageDataBytes = null;
+      }
+    }
   }
 
   void _processCameraImage(CameraImage image) {
