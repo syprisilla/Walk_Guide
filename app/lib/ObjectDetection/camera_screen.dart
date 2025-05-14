@@ -465,5 +465,55 @@ class _RealtimeObjectDetectionScreenState
             ),
         ],
       ),
+      body: SafeArea( 
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_isCameraInitialized && _cameraController != null && _cameraController!.value.isInitialized)
+              Center( 
+                child: AspectRatio(
+                  aspectRatio: _cameraController!.value.aspectRatio,
+                  child: cameraPreviewWidget,
+                ),
+              )
+            else
+              Center(child: cameraPreviewWidget), 
+
+            if (_isCameraInitialized && _detectedObjects.isNotEmpty && _lastImageSize != null && _imageRotation != null)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return CustomPaint(
+                    size: constraints.biggest, 
+                    painter: ObjectPainter(
+                      objects: _detectedObjects,
+                      imageSize: _lastImageSize!, 
+                      screenSize: constraints.biggest, 
+                      rotation: _imageRotation!,
+                      cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
+                    ),
+                  );
+                }
+              ),
+
+            // "처리 중..." 오버레이 표시 로직 제거
+            // if (_isBusy && _isCameraInitialized) 
+            //   Container(
+            //     color: Colors.black.withOpacity(0.5),
+            //     child: const Center(
+            //       child: Column(
+            //         mainAxisSize: MainAxisSize.min,
+            //         children: [
+            //           CircularProgressIndicator(color: Colors.white),
+            //           SizedBox(height: 8),
+            //           Text("처리 중...", style: TextStyle(color: Colors.white, fontSize: 16)),
+            //         ],
+            //       )
+            //     ),
+            //   ),
+          ],
+        ),
+      ),
+    );
+  }
     
 }
