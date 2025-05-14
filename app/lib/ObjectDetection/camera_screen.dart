@@ -356,6 +356,18 @@ class _RealtimeObjectDetectionScreenState
       print("Stream already started.");
       return;
     }
+    try {
+      await _cameraController!.startImageStream(_processCameraImage); 
+      print("Camera image stream started.");
+    } catch (e, stacktrace) {
+      print('****** Exception on startCameraStream: $e');
+      print(stacktrace);
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('카메라 스트림 시작 오류.')),
+        );
+      }
+    }
   }
 
   Future<void> _stopCameraStream() async {
