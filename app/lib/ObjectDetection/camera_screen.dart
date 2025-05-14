@@ -438,64 +438,17 @@ class _RealtimeObjectDetectionScreenState
   @override
   Widget build(BuildContext context) {
     Widget cameraPreviewWidget;
-    if (_isCameraInitialized &&
-        _cameraController != null &&
-        _cameraController!.value.isInitialized) {
-      cameraPreviewWidget = AspectRatio(
-        aspectRatio: _cameraController!.value.aspectRatio,
-        child: CameraPreview(_cameraController!),
-      );
+    if (_isCameraInitialized && _cameraController != null && _cameraController!.value.isInitialized) {
+      cameraPreviewWidget = CameraPreview(_cameraController!);
     } else {
-      cameraPreviewWidget = const Center(child: CircularProgressIndicator());
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('실시간 객체 탐지'),
-        actions: [
-          if (widget.cameras.length > 1)
-            IconButton(
-              icon: Icon(
-                _cameras[_cameraIndex].lensDirection ==
-                        CameraLensDirection.front
-                    ? Icons.camera_front
-                    : Icons.camera_rear,
-              ),
-              onPressed: _switchCamera,
-            ),
-        ],
-      ),
-      body: Stack(
-        fit: StackFit.expand,
+      cameraPreviewWidget = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Center(child: cameraPreviewWidget),
-          if (_isCameraInitialized &&
-              _detectedObjects.isNotEmpty &&
-              _lastImageSize != null &&
-              _imageRotation != null)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return CustomPaint(
-                  size: constraints.biggest,
-                  painter: ObjectPainter(
-                    objects: _detectedObjects,
-                    imageSize: _lastImageSize!,
-                    rotation: _imageRotation!,
-                    cameraLensDirection:
-                        widget.cameras[_cameraIndex].lensDirection,
-                  ),
-                );
-              },
-            ),
-          if (_isBusy)
-            Container(
-              color: Colors.black.withOpacity(0.3),
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 10),
+          Text(widget.cameras.isEmpty ? '카메라 없음' : '카메라 초기화 중...'),
         ],
-      ),
-    );
-  }
+      );
+    }
+    
 }
