@@ -427,7 +427,8 @@ class _RealtimeObjectDetectionScreenState
   }
 
   void _switchCamera() {
-    if (widget.cameras.length < 2 || _isBusy) return;
+    if (widget.cameras.length < 2 || _isBusy) return; 
+    print("Switching camera...");
     final newIndex = (_cameraIndex + 1) % widget.cameras.length;
     _stopCameraStream().then((_) {
       _initializeCamera(widget.cameras[newIndex]);
