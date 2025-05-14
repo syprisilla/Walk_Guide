@@ -1,12 +1,18 @@
+// lib/logic/mlkit_logic.dart
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'dart:ui';
+import 'dart:io' show Platform;
+
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
-import 'dart:io';
+import '../camera_screen.dart';
+
 
 ObjectDetector initializeObjectDetector() {
-  print("Initializing ML Kit detector...");
+  print("Logic: Initializing ObjectDetector...");
   final options = ObjectDetectorOptions(
     mode: DetectionMode.stream,
     classifyObjects: true,
@@ -15,147 +21,59 @@ ObjectDetector initializeObjectDetector() {
   return ObjectDetector(options: options);
 }
 
-@pragma('vm:entry-point')
-void detectObjectsIsolateEntry(List<Object> args) {
-  final SendPort mainSendPort = args[0] as SendPort;
-  final RootIsolateToken rootIsolateToken = args[1] as RootIsolateToken;
+void getImageRotationIsolateEntry(SendPort mainSendPort) {
+  final ReceivePort isolateReceivePort = ReceivePort();
+  mainSendPort.send(isolateReceivePort.sendPort);
 
-  BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+  isolateReceivePort.listen((dynamic message) {
+    try {
+      if (message is Map<String, dynamic>) {
+        final int sensorOrientation = message['sensorOrientation'];
+        final int deviceOrientationIndex = message['deviceOrientationIndex'];
+        final DeviceOrientation deviceOrientation = DeviceOrientation.values[deviceOrientationIndex];
 
-  final ReceivePort receivePort = ReceivePort();
-  mainSendPort.send(receivePort.sendPort);
-
-  receivePort.listen((message) async {
-    if (message is List) {
-      try {
-        final Uint8List bytes = message[0];
-        final int width = message[1];
-        final int height = message[2];
-        final InputImageRotation rotation = message[3];
-        final int formatRaw = message[4];
-        final int bytesPerRow = message[5];
-
-        final List<DetectedObject> objects = await _detectObjectsImpl(
-            bytes, width, height, rotation, formatRaw, bytesPerRow);
-        mainSendPort.send(objects);
-      } catch (e, stacktrace) {
-        print("****** Error in detectObjectsIsolateEntry listen: $e");
-        print(stacktrace);
-        mainSendPort.send(['Error from Detection Isolate', e.toString()]);
+        final InputImageRotation rotation = _calculateRotation(sensorOrientation, deviceOrientation);
+        mainSendPort.send(rotation);
+      } else {
+        throw Exception("Invalid message type for rotation isolate: ${message.runtimeType}");
       }
+    } catch (e, stacktrace) {
+      print('****** Rotation Isolate Error: $e\n$stacktrace');
+      mainSendPort.send(['Error from RotationIsolate', e.toString()]);
     }
   });
 }
 
-Future<List<DetectedObject>> _detectObjectsImpl(
-    Uint8List bytes,
-    int width,
-    int height,
-    InputImageRotation rotation,
-    int formatRaw,
-    int bytesPerRow) async {
-  final options = ObjectDetectorOptions(
-    mode: DetectionMode.single,
-    classifyObjects: true,
-    multipleObjects: true,
-  );
-  final ObjectDetector objectDetector = ObjectDetector(options: options);
-
-  final inputImage = InputImage.fromBytes(
-    bytes: bytes,
-    metadata: InputImageMetadata(
-      size: Size(width.toDouble(), height.toDouble()),
-      rotation: rotation,
-      format: InputImageFormatValue.fromRawValue(formatRaw) ??
-          InputImageFormat.nv21,
-      bytesPerRow: bytesPerRow,
-    ),
-  );
-
-  try {
-    final List<DetectedObject> objects =
-        await objectDetector.processImage(inputImage);
-    return objects;
-  } catch (e, stacktrace) {
-    print("****** Error processing image in _detectObjectsImpl: $e");
-    print(stacktrace);
-    return <DetectedObject>[];
-  } finally {
-    await objectDetector.close();
-  }
-}
-
-@pragma('vm:entry-point')
-void getImageRotationIsolateEntry(SendPort sendPort) {
-  final ReceivePort receivePort = ReceivePort();
-  sendPort.send(receivePort.sendPort);
-
-  receivePort.listen((message) {
-    if (message is List && message.length == 2) {
-      try {
-        final int sensorOrientation = message[0];
-        final DeviceOrientation deviceOrientation = message[1];
-        final InputImageRotation? rotation =
-            _getImageRotationImpl(sensorOrientation, deviceOrientation);
-        sendPort.send(rotation);
-      } catch (e, stacktrace) {
-        print("****** Error in getImageRotationIsolateEntry listen: $e");
-        print(stacktrace);
-        sendPort.send(['Error from Rotation Isolate', e.toString()]);
-      }
-    }
-  });
-}
-
-InputImageRotation? _getImageRotationImpl(
-    int sensorOrientation, DeviceOrientation deviceOrientation) {
+InputImageRotation _calculateRotation(int sensorOrientation, DeviceOrientation deviceOrientation) {
   if (Platform.isIOS) {
-    int deviceOrientationAngle = 0;
-    switch (deviceOrientation) {
-      case DeviceOrientation.portraitUp:
-        deviceOrientationAngle = 0;
-        break;
-      case DeviceOrientation.landscapeLeft:
-        deviceOrientationAngle = 90;
-        break;
-      case DeviceOrientation.portraitDown:
-        deviceOrientationAngle = 180;
-        break;
-      case DeviceOrientation.landscapeRight:
-        deviceOrientationAngle = 270;
-        break;
-      default:
-        break;
+    switch (sensorOrientation) {
+      case 0: return InputImageRotation.rotation0deg;
+      case 90: return InputImageRotation.rotation90deg;
+      case 180: return InputImageRotation.rotation180deg;
+      case 270: return InputImageRotation.rotation270deg;
+      default: return InputImageRotation.rotation0deg;
     }
-    var compensatedRotation =
-        (sensorOrientation + deviceOrientationAngle) % 360;
-    return _rotationIntToInputImageRotation(compensatedRotation);
-  } else {
-    int deviceOrientationAngle = 0;
-    switch (deviceOrientation) {
-      case DeviceOrientation.portraitUp:
-        deviceOrientationAngle = 0;
-        break;
-      case DeviceOrientation.landscapeLeft:
-        deviceOrientationAngle = 90;
-        break;
-      case DeviceOrientation.portraitDown:
-        deviceOrientationAngle = 180;
-        break;
-      case DeviceOrientation.landscapeRight:
-        deviceOrientationAngle = 270;
-        break;
-      default:
-        break;
-    }
-    var compensatedRotation =
-        (sensorOrientation - deviceOrientationAngle + 360) % 360;
-    return _rotationIntToInputImageRotation(compensatedRotation);
   }
-}
 
-InputImageRotation _rotationIntToInputImageRotation(int rotation) {
-  switch (rotation) {
+  int rotationCompensation = 0;
+  switch (deviceOrientation) {
+    case DeviceOrientation.portraitUp:
+      rotationCompensation = 0;
+      break;
+    case DeviceOrientation.landscapeRight:
+      rotationCompensation = 90;
+      break;
+    case DeviceOrientation.portraitDown:
+      rotationCompensation = 180;
+      break;
+    case DeviceOrientation.landscapeLeft:
+      rotationCompensation = 270;
+      break;
+  }
+
+  int resultRotationDegrees = (sensorOrientation - rotationCompensation + 360) % 360;
+
+  switch (resultRotationDegrees) {
     case 0:
       return InputImageRotation.rotation0deg;
     case 90:
@@ -165,6 +83,63 @@ InputImageRotation _rotationIntToInputImageRotation(int rotation) {
     case 270:
       return InputImageRotation.rotation270deg;
     default:
+      print('****** Unknown rotation degrees: $resultRotationDegrees. Defaulting to 0deg.');
       return InputImageRotation.rotation0deg;
   }
+}
+
+void detectObjectsIsolateEntry(IsolateDataHolder isolateDataHolder) {
+  final SendPort mainSendPort = isolateDataHolder.mainSendPort;
+  final RootIsolateToken? rootIsolateToken = isolateDataHolder.rootIsolateToken;
+
+  final ReceivePort isolateReceivePort = ReceivePort();
+  mainSendPort.send(isolateReceivePort.sendPort);
+
+  if (rootIsolateToken != null) {
+    BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+    print("DetectionIsolate: BackgroundIsolateBinaryMessenger initialized.");
+  } else {
+    print("****** Detection Isolate: RootIsolateToken is null. ML Kit might fail.");
+  }
+
+  final ObjectDetector objectDetector = initializeObjectDetector();
+  print("DetectionIsolate: ObjectDetector initialized.");
+
+  isolateReceivePort.listen((dynamic message) async {
+    if (message is Map<String, dynamic>) {
+      try {
+        final Uint8List bytes = message['bytes'];
+        final int width = message['width'];
+        final int height = message['height'];
+        final InputImageRotation rotation = message['rotation'];
+        final int formatRaw = message['formatRaw'];
+        final int bytesPerRowData = message['bytesPerRow'];
+
+        final InputImageFormat imageFormat =
+            InputImageFormatValue.fromRawValue(formatRaw) ?? InputImageFormat.nv21;
+
+        final InputImageMetadata metadata = InputImageMetadata(
+          size: Size(width.toDouble(), height.toDouble()),
+          rotation: rotation,
+          format: imageFormat,
+          bytesPerRow: bytesPerRowData,
+        );
+
+        final InputImage inputImage = InputImage.fromBytes(
+          bytes: bytes,
+          metadata: metadata,
+        );
+
+        final List<DetectedObject> objects =
+            await objectDetector.processImage(inputImage);
+        mainSendPort.send(objects);
+      } catch (e, stacktrace) {
+        print('****** Detection Isolate processImage Error: $e\n$stacktrace');
+        mainSendPort.send(['Error from DetectionIsolate', e.toString()]);
+      }
+    } else {
+        print('****** Detection Isolate received invalid message type: ${message.runtimeType}');
+        mainSendPort.send(['Error from DetectionIsolate', 'Invalid message type: ${message.runtimeType}']);
+    }
+  });
 }
