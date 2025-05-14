@@ -5,19 +5,19 @@ import 'camera_screen.dart'; // RealtimeObjectDetectionScreen 임포트
 class MyApp extends StatelessWidget {
   final List<CameraDescription> cameras;
 
-  // 생성자: cameras 매개변수는 필수입니다.
+  // 생성자: cameras 매개변수는 필수입니다. (feature_nearobject 브랜치 내용)
   const MyApp({Key? key, required this.cameras}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '실시간 객체 탐지 앱',
+      title: '실시간 객체 탐지 앱', // feature_nearobject 브랜치 내용
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true,
       ),
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // feature_nearobject 브랜치 내용
       home: cameras.isEmpty
           ? Scaffold(
               appBar: AppBar(title: const Text('카메라 오류')),
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
                 ),
               ),
             )
-          : RealtimeObjectDetectionScreen(cameras: cameras),
+          : RealtimeObjectDetectionScreen(cameras: cameras), // feature_nearobject 브랜치 내용
     );
   }
   // app.dart 파일 내에는 이 MyApp 클래스 정의 외에 다른 main() 함수나 runApp() 호출이 없어야 합니다.
