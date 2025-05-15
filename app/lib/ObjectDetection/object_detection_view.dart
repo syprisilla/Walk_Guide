@@ -247,4 +247,30 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       if (mounted) setState(() => _isCameraInitialized = false);
     }
   }
+
+  Future<void> _startCameraStream() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _cameraController!.value.isStreamingImages) return;
+    try {
+      await _cameraController!.startImageStream(_processCameraImage);
+    } catch (e) {}
+  }
+
+  Future<void> _stopCameraStream() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        !_cameraController!.value.isStreamingImages) return;
+    try {
+      await _cameraController!.stopImageStream();
+    } catch (e) {
+    } finally {
+      if (mounted) {
+        _isBusy = false;
+        _isWaitingForRotation = false;
+        _isWaitingForDetection = false;
+        _pendingImageDataBytes = null;
+      }
+    }
+  }
 }
