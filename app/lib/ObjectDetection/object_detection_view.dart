@@ -310,4 +310,57 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       _isBusy = false;
     }
   }
+
+  void _switchCamera() {
+    if (widget.cameras.length < 2 || _isBusy) return;
+    final newIndex = (_cameraIndex + 1) % widget.cameras.length;
+    _stopCameraStream().then((_) {
+      _initializeCamera(widget.cameras[newIndex]);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isCameraInitialized ||
+        _cameraController == null ||
+        !_cameraController!.value.isInitialized) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 10),
+            Text(widget.cameras.isEmpty ? '카메라 없음' : '카메라 로딩 중...'),
+          ],
+        ),
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Center(
+          child: AspectRatio(
+            aspectRatio: _cameraController!.value.aspectRatio,
+            child: CameraPreview(_cameraController!),
+          ),
+        ),
+        if (_detectedObjects.isNotEmpty &&
+            _lastImageSize != null &&
+            _imageRotation != null)
+          LayoutBuilder(builder: (context, constraints) {
+            return CustomPaint(
+              size: constraints.biggest,
+              painter: ObjectPainter(
+                objects: _detectedObjects,
+                imageSize: _lastImageSize!,
+                screenSize: constraints.biggest,
+                rotation: _imageRotation!,
+                cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
+              ),
+            );
+          }),
+      ],
+    );
+  }
 }
