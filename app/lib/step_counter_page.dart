@@ -306,7 +306,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
                   padding: const EdgeInsets.symmetric(
                       vertical: 8.0, horizontal: 12.0),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withOpacity(0.65),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
@@ -319,40 +319,61 @@ class _StepCounterPageState extends State<StepCounterPage> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _isMoving ? '보행 중' : '정지',
-                            style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            '$_steps 걸음',
-                            style: const TextStyle(
-                                fontSize: 20,
-                                color: Colors.amberAccent,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              _isMoving ? '보행 중' : '정지 상태',
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$_steps 걸음',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.amberAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('실시간 속도',
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white)),
-                          Text(
-                            '${getRealTimeSpeed().toStringAsFixed(2)} m/s',
-                            style: const TextStyle(
-                                fontSize: 20,
-                                color: Colors.lightGreenAccent,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text('평균 속도',
+                                style: TextStyle(
+                                    fontSize: 15, color: Colors.white)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${getAverageSpeed().toStringAsFixed(2)} m/s',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.lightGreenAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text('실시간 속도',
+                                style: TextStyle(
+                                    fontSize: 15, color: Colors.white)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${getRealTimeSpeed().toStringAsFixed(2)} m/s',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -371,10 +392,9 @@ class _StepCounterPageState extends State<StepCounterPage> {
                     color: Colors.grey[800],
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.black26)),
+                // _sessionHistory가 비어있으면 ListView.builder 대신 빈 Container를 반환하여 아무것도 표시하지 않음
                 child: _sessionHistory.isEmpty
-                    ? const Center(
-                        child: Text("이전 보행 기록이 없습니다.",
-                            style: TextStyle(color: Colors.white70)))
+                    ? Container() // 기록이 없으면 아무것도 표시하지 않음
                     : ListView.builder(
                         itemCount: _sessionHistory.length,
                         itemBuilder: (context, index) {
