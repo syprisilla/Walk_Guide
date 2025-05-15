@@ -24,3 +24,11 @@ class ObjectDetectionView extends StatefulWidget {
   @override
   _ObjectDetectionViewState createState() => _ObjectDetectionViewState();
 }
+
+class _ObjectDetectionViewState extends State<ObjectDetectionView> {
+  bool _isBusy = false;
+  List<DetectedObject> _detectedObjects = [];
+  InputImageRotation? _imageRotation;
+  Size? _lastImageSize;
+  InputImageRotation? _lastCalculatedRotation;
+}
