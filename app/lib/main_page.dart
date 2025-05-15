@@ -3,9 +3,12 @@ import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description_page.dart';
 import 'package:walk_guide/login_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
+import 'package:camera/camera.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final List<CameraDescription> cameras;
+
+  const MainScreen({super.key, required this.cameras});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -69,6 +72,12 @@ class _MainScreenState extends State<MainScreen> {
           ],
           onTap: (index) {
             if (index == 0) {
+              if (widget.cameras.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('사용 가능한 카메라가 없습니다.')),
+                );
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -76,6 +85,7 @@ class _MainScreenState extends State<MainScreen> {
                     onInitialized: (double Function() fn) {
                       _getSpeed = fn;
                     },
+                    cameras: widget.cameras,
                   ),
                 ),
               );

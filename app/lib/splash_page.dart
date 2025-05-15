@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walk_guide/main_page.dart';
 import 'package:walk_guide/login_page.dart';
+import 'package:camera/camera.dart';
 
 // 시작 화면 (로딩 화면)
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final List<CameraDescription> cameras;
+
+  const SplashScreen({super.key, required this.cameras});
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -20,12 +24,14 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkLoginStatus() async {
     await Future.delayed(const Duration(seconds: 3)); // 10초간 로고 보여주기
 
+    if (!mounted) return;
+
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainScreen()),
+        MaterialPageRoute(builder: (_) => MainScreen(cameras: widget.cameras)),
       );
     } else {
       Navigator.pushReplacement(
