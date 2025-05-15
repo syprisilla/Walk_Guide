@@ -104,4 +104,13 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     _imageRotationSubscription =
         _imageRotationReceivePort.listen(_handleRotationResult);
   }
+
+  void _killIsolates() {
+    _objectDetectionIsolate?.kill(priority: Isolate.immediate);
+    _imageRotationIsolate?.kill(priority: Isolate.immediate);
+    _objectDetectionIsolate = null;
+    _imageRotationIsolate = null;
+    _objectDetectionIsolateSendPort = null;
+    _imageRotationIsolateSendPort = null;
+  }
 }
