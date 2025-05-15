@@ -113,4 +113,57 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     _objectDetectionIsolateSendPort = null;
     _imageRotationIsolateSendPort = null;
   }
+
+  void _handleDetectionResult(dynamic message) {
+    if (!mounted) return;
+
+    if (_objectDetectionIsolateSendPort == null && message is SendPort) {
+      _objectDetectionIsolateSendPort = message;
+    } else if (message is List<DetectedObject>) {
+      List<DetectedObject> objectsToShow = [];
+      if (message.isNotEmpty) {
+        DetectedObject closestObject = message.reduce((curr, next) {
+          final double areaCurr =
+              curr.boundingBox.width * curr.boundingBox.height;
+          final double areaNext =
+              next.boundingBox.width * next.boundingBox.height;
+          return areaCurr > areaNext ? curr : next;
+        });
+        objectsToShow.add(closestObject);
+      }
+      widget.onObjectsDetected?.call(objectsToShow);
+      _isWaitingForDetection = false;
+      if (mounted) {
+        setState(() {
+          _detectedObjects = objectsToShow;
+          _imageRotation = _lastCalculatedRotation;
+        });
+      }
+      if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
+        _isBusy = false;
+      }
+    } else if (message is List &&
+        message.length == 2 &&
+        message[0] is String &&
+        message[0].toString().contains('Error')) {
+      widget.onObjectsDetected?.call([]);
+      _isWaitingForDetection = false;
+      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    } else if (message == null ||
+        (message is List &&
+            message.isEmpty &&
+            message is! List<DetectedObject>)) {
+      widget.onObjectsDetected?.call([]);
+      _isWaitingForDetection = false;
+      if (_objectDetectionIsolateSendPort != null && message == null)
+        _objectDetectionIsolateSendPort = null;
+      if (_detectedObjects.isNotEmpty && mounted)
+        setState(() => _detectedObjects = []);
+      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    } else {
+      widget.onObjectsDetected?.call([]);
+      _isWaitingForDetection = false;
+      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    }
+  }
 }
