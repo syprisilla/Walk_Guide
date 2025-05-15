@@ -26,9 +26,30 @@ class ObjectDetectionView extends StatefulWidget {
 }
 
 class _ObjectDetectionViewState extends State<ObjectDetectionView> {
+  CameraController? _cameraController;
+  int _cameraIndex = 0;
+  bool _isCameraInitialized = false;
   bool _isBusy = false;
   List<DetectedObject> _detectedObjects = [];
   InputImageRotation? _imageRotation;
+  late ObjectDetector _objectDetector;
   Size? _lastImageSize;
+
+  Isolate? _objectDetectionIsolate;
+  Isolate? _imageRotationIsolate;
+  late ReceivePort _objectDetectionReceivePort;
+  late ReceivePort _imageRotationReceivePort;
+  SendPort? _objectDetectionIsolateSendPort;
+  SendPort? _imageRotationIsolateSendPort;
+  StreamSubscription? _objectDetectionSubscription;
+  StreamSubscription? _imageRotationSubscription;
+
+  bool _isWaitingForRotation = false;
+  bool _isWaitingForDetection = false;
   InputImageRotation? _lastCalculatedRotation;
+  Uint8List? _pendingImageDataBytes;
+  int? _pendingImageDataWidth;
+  int? _pendingImageDataHeight;
+  int? _pendingImageDataFormatRaw;
+  int? _pendingImageDataBytesPerRow;
 }
