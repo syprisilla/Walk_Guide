@@ -217,4 +217,34 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
     }
   }
+
+  Future<void> _initializeCamera(CameraDescription cameraDescription) async {
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      await _stopCameraStream();
+      await _cameraController!.dispose();
+      _cameraController = null;
+    }
+    if (mounted) setState(() => _isCameraInitialized = false);
+
+    _cameraController = CameraController(
+      cameraDescription,
+      ResolutionPreset.high,
+      enableAudio: false,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
+    );
+    try {
+      await _cameraController!.initialize();
+      await _startCameraStream();
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+          _cameraIndex = widget.cameras.indexOf(cameraDescription);
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isCameraInitialized = false);
+    }
+  }
 }
