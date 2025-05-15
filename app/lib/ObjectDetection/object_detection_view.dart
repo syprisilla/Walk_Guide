@@ -273,4 +273,41 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       }
     }
   }
+
+  void _processCameraImage(CameraImage image) {
+    if (!mounted || _isBusy || _imageRotationIsolateSendPort == null) return;
+    _isBusy = true;
+    _isWaitingForRotation = true;
+
+    try {
+      final WriteBuffer allBytes = WriteBuffer();
+      for (final Plane plane in image.planes) {
+        allBytes.putUint8List(plane.bytes);
+      }
+      _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
+      _pendingImageDataWidth = image.width;
+      _pendingImageDataHeight = image.height;
+      _pendingImageDataFormatRaw = image.format.raw;
+      _pendingImageDataBytesPerRow =
+          image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
+
+      final camera = widget.cameras[_cameraIndex];
+      final orientation = MediaQuery.of(context).orientation;
+      final DeviceOrientation deviceRotation =
+          (orientation == Orientation.landscape)
+              ? (Platform.isIOS
+                  ? DeviceOrientation.landscapeRight
+                  : DeviceOrientation.landscapeLeft)
+              : DeviceOrientation.portraitUp;
+      final Map<String, dynamic> rotationPayload = {
+        'sensorOrientation': camera.sensorOrientation,
+        'deviceOrientationIndex': deviceRotation.index,
+      };
+      _imageRotationIsolateSendPort!.send(rotationPayload);
+    } catch (e) {
+      _pendingImageDataBytes = null;
+      _isWaitingForRotation = false;
+      _isBusy = false;
+    }
+  }
 }
