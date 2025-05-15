@@ -166,4 +166,55 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     }
   }
+
+  void _handleRotationResult(dynamic message) {
+    if (!mounted) return;
+
+    if (_imageRotationIsolateSendPort == null && message is SendPort) {
+      _imageRotationIsolateSendPort = message;
+    } else if (message is InputImageRotation?) {
+      _isWaitingForRotation = false;
+      _lastCalculatedRotation = message;
+
+      if (_pendingImageDataBytes != null &&
+          _objectDetectionIsolateSendPort != null &&
+          message != null) {
+        _isWaitingForDetection = true;
+        _lastImageSize = Size(_pendingImageDataWidth!.toDouble(),
+            _pendingImageDataHeight!.toDouble());
+        final Map<String, dynamic> payload = {
+          'bytes': _pendingImageDataBytes!,
+          'width': _pendingImageDataWidth!,
+          'height': _pendingImageDataHeight!,
+          'rotation': message,
+          'formatRaw': _pendingImageDataFormatRaw!,
+          'bytesPerRow': _pendingImageDataBytesPerRow!,
+        };
+        _objectDetectionIsolateSendPort!.send(payload);
+        _pendingImageDataBytes = null;
+      } else {
+        if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+      }
+    } else if (message is List &&
+        message.length == 2 &&
+        message[0] is String &&
+        message[0].toString().contains('Error')) {
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    } else if (message == null ||
+        (message is List &&
+            message.isEmpty &&
+            message is! InputImageRotation)) {
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (_imageRotationIsolateSendPort != null && message == null)
+        _imageRotationIsolateSendPort = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    } else {
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    }
+  }
 }
