@@ -77,4 +77,31 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     _objectDetector.close();
     super.dispose();
   }
+
+  Future<void> _spawnIsolates() async {
+    final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
+    if (rootIsolateToken == null) {
+      return;
+    }
+
+    _objectDetectionReceivePort = ReceivePort();
+    _objectDetectionIsolate = await Isolate.spawn(
+        detectObjectsIsolateEntry,
+        IsolateDataHolder(
+            _objectDetectionReceivePort.sendPort, rootIsolateToken),
+        onError: _objectDetectionReceivePort.sendPort,
+        onExit: _objectDetectionReceivePort.sendPort,
+        debugName: "ObjectDetectionIsolate_View");
+    _objectDetectionSubscription =
+        _objectDetectionReceivePort.listen(_handleDetectionResult);
+
+    _imageRotationReceivePort = ReceivePort();
+    _imageRotationIsolate = await Isolate.spawn(
+        getImageRotationIsolateEntry, _imageRotationReceivePort.sendPort,
+        onError: _imageRotationReceivePort.sendPort,
+        onExit: _imageRotationReceivePort.sendPort,
+        debugName: "ImageRotationIsolate_View");
+    _imageRotationSubscription =
+        _imageRotationReceivePort.listen(_handleRotationResult);
+  }
 }
