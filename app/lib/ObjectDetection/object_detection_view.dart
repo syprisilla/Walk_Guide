@@ -52,4 +52,29 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   int? _pendingImageDataHeight;
   int? _pendingImageDataFormatRaw;
   int? _pendingImageDataBytesPerRow;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.cameras.isEmpty) {
+      return;
+    }
+    _objectDetector = initializeObjectDetector();
+    _spawnIsolates().then((_) {
+      _initializeCamera(widget.cameras[_cameraIndex]);
+    }).catchError((e, stacktrace) {
+      print("****** ObjectDetectionView initState Error: $e");
+    });
+  }
+
+  @override
+  void dispose() {
+    _stopCameraStream();
+    _objectDetectionSubscription?.cancel();
+    _imageRotationSubscription?.cancel();
+    _killIsolates();
+    _cameraController?.dispose();
+    _objectDetector.close();
+    super.dispose();
+  }
 }
