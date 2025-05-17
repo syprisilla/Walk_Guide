@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'account_info_page.dart';
 import 'privacy_policy_page.dart';
@@ -6,8 +8,15 @@ import 'company_info_page.dart';
 import 'technology_page.dart';
 import 'faq_page.dart';
 
-class DescriptionPage extends StatelessWidget {
-  DescriptionPage({super.key});
+class DescriptionPage extends StatefulWidget {
+  const DescriptionPage({super.key});
+
+  @override
+  State<DescriptionPage> createState() => _DescriptionPageState();
+}
+
+class _DescriptionPageState extends State<DescriptionPage> {
+  String? nickname;
 
   final List<_DescriptionItem> items = [
     _DescriptionItem('보행 데이터 관리', PrivacyPolicyPage()),
@@ -16,6 +25,22 @@ class DescriptionPage extends StatelessWidget {
     _DescriptionItem('사용된 기술 및 기능', TechnologyPage()),
     _DescriptionItem('자주 묻는 질문', FAQPage()),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNickname();
+  }
+
+  Future<void> fetchNickname() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      setState(() {
+        nickname = doc.data()?['nickname'] ?? '사용자';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +59,7 @@ class DescriptionPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -42,21 +68,37 @@ class DescriptionPage extends StatelessWidget {
                 );
               },
               child: Row(
-                children: const [
-                  CircleAvatar(
-                    radius: 35,
-                    backgroundImage: AssetImage('assets/images/profile.jpg'),
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),  
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/profile.jpg'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                  SizedBox(width: 16),
-                  Text(
-                    '전수영님',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-                  ),
+                  const SizedBox(width: 16),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                            text: nickname ?? '로딩 중...',
+                            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                          ),
+                        const TextSpan(
+                          text: '님',
+                            style: TextStyle(fontSize: 25),
+                            ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-
             ...items.map((item) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: GestureDetector(

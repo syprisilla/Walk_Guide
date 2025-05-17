@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AccountInfoPage extends StatelessWidget {
+class AccountInfoPage extends StatefulWidget {
   const AccountInfoPage({super.key});
+
+  @override
+  State<AccountInfoPage> createState() => _AccountInfoPageState();
+}
+
+class _AccountInfoPageState extends State<AccountInfoPage> {
+  String? nickname;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNickname();
+  }
+
+  Future<void> fetchNickname() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      setState(() {
+        nickname = doc.data()?['nickname'] ?? '사용자';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,33 +48,24 @@ class AccountInfoPage extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                Stack(
-                  children: [
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundImage: AssetImage('assets/images/profile.jpg'),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/images/profile.jpg'), 
+                      fit: BoxFit.cover,
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        child: const Icon(Icons.camera_alt, size: 18),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '전수영님',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    Text(
+                      nickname != null ? '$nickname님' : '로딩 중...',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Container(
