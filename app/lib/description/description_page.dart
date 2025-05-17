@@ -7,8 +7,9 @@ import 'technology_page.dart';
 import 'faq_page.dart';
 
 class DescriptionPage extends StatelessWidget {
+  DescriptionPage({super.key});
+
   final List<_DescriptionItem> items = [
-    _DescriptionItem('계정 정보', AccountInfoPage()),
     _DescriptionItem('보행 데이터 관리', PrivacyPolicyPage()),
     _DescriptionItem('앱 사용법', AppGuidePage()),
     _DescriptionItem('앱 제작자 소개', CompanyInfoPage()),
@@ -16,36 +17,63 @@ class DescriptionPage extends StatelessWidget {
     _DescriptionItem('자주 묻는 질문', FAQPage()),
   ];
 
-  DescriptionPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.amber,
-        title: const Text('소개', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('소개'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView.builder(
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
-            title: Text(item.title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AccountInfoPage()),
+                );
+              },
+              child: Row(
+                children: const [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundImage: AssetImage('assets/images/profile.jpg'),
+                  ),
+                  SizedBox(width: 16),
+                  Text(
+                    '전수영님',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => item.page),
-            ),
-          );
-        },
+            const SizedBox(height: 20),
+
+            ...items.map((item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => item.page),
+                  );
+                },
+                child: Text(
+                  item.title,
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
+            )),
+          ],
+        ),
       ),
     );
   }
@@ -54,5 +82,6 @@ class DescriptionPage extends StatelessWidget {
 class _DescriptionItem {
   final String title;
   final Widget page;
-  const _DescriptionItem(this.title, this.page);
+
+  _DescriptionItem(this.title, this.page);
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:walk_guide/services/auth_service.dart';
 
 class AccountInfoPage extends StatelessWidget {
   const AccountInfoPage({super.key});
@@ -7,53 +6,76 @@ class AccountInfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('계정 정보')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('계정 정보'),
+        backgroundColor: Colors.amber,
+      ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: const [
-            CircleAvatar(
-              radius: 48,
-              backgroundImage: AssetImage('assets/images/profile.jpg'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '개인서비스',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
-            Text('syprisilla', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 32),
+            const SizedBox(height: 24),
             Row(
               children: [
-                Icon(Icons.calendar_today_outlined, size: 20),
-                SizedBox(width: 8),
-                Text('가입한 날짜: 2017년 2월'),
-              ],
-            ),
-            SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.email_outlined, size: 20),
-                SizedBox(width: 8),
-                Text('이메일: syprisilla@example.com'),
+                Stack(
+                  children: [
+                    const CircleAvatar(
+                      radius: 40,
+                      backgroundImage: AssetImage('assets/images/profile.jpg'),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(Icons.camera_alt, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '전수영님',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.amber[600],
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 10,
+                            backgroundColor: Colors.white,
+                            child: Text('10', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                          SizedBox(width: 4),
+                          Text('LEVEL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  ],
+                )
               ],
             ),
           ],
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: () => signOut(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('로그아웃', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
         ),
       ),
     );
