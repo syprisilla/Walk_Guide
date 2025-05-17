@@ -85,7 +85,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
                     TextSpan(
                       children: [
                         TextSpan(
-                            text: nickname ?? '로딩 중...',
+                            text: nickname ?? '...',
                             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                           ),
                         const TextSpan(
@@ -100,7 +100,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
             ),
             const SizedBox(height: 20),
             ...items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 18),
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -110,7 +110,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
                 },
                 child: Text(
                   item.title,
-                  style: const TextStyle(fontSize: 18),
+                  style: const TextStyle(fontSize: 22),
                 ),
               ),
             )),
