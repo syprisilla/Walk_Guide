@@ -82,9 +82,7 @@ class _MainScreenState extends State<MainScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AnalyticsDashboardPage(
-                    onGetSpeed: _getSpeed ?? () => 0.0,
-                  ),
+                  builder: (context) => AnalyticsDashboardPage(),
                 ),
               );
             } else if (index == 2) {

@@ -8,8 +8,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  Hive.registerAdapter(WalkSessionAdapter()); // 어댑터 등록
+  Hive.registerAdapter(WalkSessionAdapter());
+  Hive.registerAdapter(DateTimeAdapter()); // DateTime 어댑터 등록
+
   await Hive.openBox<WalkSession>('walk_sessions');
+  await Hive.openBox<DateTime>('recent_steps'); //  recent_steps 박스 열기
 
   await Firebase.initializeApp();
 
@@ -26,5 +29,21 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const SplashScreen(),
     );
+  }
+}
+
+// DateTimeAdapter 추가
+class DateTimeAdapter extends TypeAdapter<DateTime> {
+  @override
+  final int typeId = 99; // typeId는 고유해야 함
+
+  @override
+  DateTime read(BinaryReader reader) {
+    return DateTime.fromMillisecondsSinceEpoch(reader.readInt());
+  }
+
+  @override
+  void write(BinaryWriter writer, DateTime obj) {
+    writer.writeInt(obj.millisecondsSinceEpoch);
   }
 }

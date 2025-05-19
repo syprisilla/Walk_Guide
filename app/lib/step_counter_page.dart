@@ -9,6 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'walk_session.dart';
+import 'package:walk_guide/real_time_speed_service.dart';
 
 class StepCounterPage extends StatefulWidget {
   final void Function(double Function())? onInitialized;
@@ -34,8 +35,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
   DateTime? _lastGuidanceTime;
 
   bool _isMoving = false;
-  List<DateTime> _recentSteps = [];
-
   List<WalkSession> _sessionHistory = [];
 
   static const double movementThreshold = 1.5;
@@ -47,8 +46,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     flutterTts.setSpeechRate(0.5);
     requestPermission();
     loadSessions();
-
-    widget.onInitialized?.call(getRealTimeSpeed);
+    widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
   }
 
   Future<void> requestPermission() async {
@@ -93,9 +91,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
   void startAccelerometer() {
     _accelerometerSubscription?.cancel();
     _accelerometerSubscription = accelerometerEvents.listen((event) {
-      double totalAcceleration = sqrt(
-        event.x * event.x + event.y * event.y + event.z * event.z,
-      );
+      double totalAcceleration =
+          sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
       double movement = (totalAcceleration - 9.8).abs();
 
       if (movement > movementThreshold) {
@@ -105,7 +102,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
             _isMoving = true;
           });
           debugPrint("움직임 감지!");
-
           onObjectDetected();
         }
       }
@@ -128,14 +124,13 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   void guideWhenObjectDetected() async {
     final now = DateTime.now();
-
     if (_lastGuidanceTime != null &&
         now.difference(_lastGuidanceTime!).inSeconds < 2) {
       debugPrint("⏳ 쿨다운 중 - 음성 안내 생략");
       return;
     }
 
-    double avgSpeed = getRealTimeSpeed();
+    double avgSpeed = RealTimeSpeedService.getSpeed();
     final delay = getGuidanceDelay(avgSpeed);
 
     debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
@@ -145,7 +140,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     debugPrint("🔊 안내 완료: 앞에 장애물이 있습니다.");
   }
 
-  void onStepCount(StepCount event) {
+  void onStepCount(StepCount event) async {
     debugPrint("걸음 수 이벤트 발생: ${event.steps}");
 
     if (_initialSteps == null) {
@@ -153,7 +148,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       _previousSteps = event.steps;
       _startTime = DateTime.now();
       _lastMovementTime = DateTime.now();
-      _recentSteps.clear();
+      RealTimeSpeedService.clear();
       setState(() {});
       return;
     }
@@ -162,8 +157,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
       int stepDelta = event.steps - (_previousSteps ?? event.steps);
       if (stepDelta > 0) {
         _steps += stepDelta;
+        final now = DateTime.now();
         for (int i = 0; i < stepDelta; i++) {
-          _recentSteps.add(DateTime.now());
+          RealTimeSpeedService.recordStep(now);
+          Hive.box<DateTime>('recent_steps').add(now);
         }
       }
       _previousSteps = event.steps;
@@ -189,14 +186,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   double getRealTimeSpeed() {
-    if (_recentSteps.isEmpty) return 0;
-    DateTime now = DateTime.now();
-    _recentSteps =
-        _recentSteps.where((t) => now.difference(t).inSeconds <= 3).toList();
-    int stepsInLast3Seconds = _recentSteps.length;
-    double stepLength = 0.7;
-    double distance = stepsInLast3Seconds * stepLength;
-    return distance / 3;
+    return RealTimeSpeedService.getSpeed();
   }
 
   void _saveSessionData() {
@@ -211,7 +201,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
     );
 
     _sessionHistory.add(session);
-
     final box = Hive.box<WalkSession>('walk_sessions');
     box.add(session);
 
@@ -224,7 +213,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _initialSteps = null;
     _previousSteps = null;
     _startTime = null;
-    _recentSteps.clear();
   }
 
   void startCheckingMovement() {
@@ -249,7 +237,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
       _sessionHistory = box.values.toList();
     });
     debugPrint("📦 불러온 세션 수: ${_sessionHistory.length}");
-
     analyzeWalkingPattern();
   }
 
@@ -306,20 +293,13 @@ class _StepCounterPageState extends State<StepCounterPage> {
                   style: const TextStyle(fontSize: 18, color: Colors.black),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  '걸음 수: $_steps',
-                  style: const TextStyle(fontSize: 18, color: Colors.black),
-                ),
+                Text('걸음 수: $_steps', style: const TextStyle(fontSize: 18)),
                 const SizedBox(height: 5),
-                Text(
-                  '평균 속도: ${getAverageSpeed().toStringAsFixed(2)} m/s',
-                  style: const TextStyle(fontSize: 18, color: Colors.black),
-                ),
+                Text('평균 속도: ${getAverageSpeed().toStringAsFixed(2)} m/s',
+                    style: const TextStyle(fontSize: 18)),
                 const SizedBox(height: 5),
-                Text(
-                  '3초 속도: ${getRealTimeSpeed().toStringAsFixed(2)} m/s',
-                  style: const TextStyle(fontSize: 18, color: Colors.black),
-                ),
+                Text('3초 속도: ${getRealTimeSpeed().toStringAsFixed(2)} m/s',
+                    style: const TextStyle(fontSize: 18)),
               ],
             ),
           ),

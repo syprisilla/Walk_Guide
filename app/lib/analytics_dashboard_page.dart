@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:hive/hive.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:walk_guide/walk_session.dart';
+import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/session_detail_page.dart';
+import 'package:walk_guide/walk_session.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
-  final double Function()? onGetSpeed;
-
-  const AnalyticsDashboardPage({super.key, this.onGetSpeed});
+  const AnalyticsDashboardPage({super.key});
 
   @override
   State<AnalyticsDashboardPage> createState() => _AnalyticsDashboardPageState();
@@ -26,16 +25,38 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   @override
   void initState() {
     super.initState();
-    speedData.clear();
-    speedData.add(0);
-    _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      double currentSpeed = widget.onGetSpeed?.call() ?? 0;
+    _startSpeedTracking();
+    loadWeeklyAverages();
+  }
+
+  void _startSpeedTracking() {
+    _speedTimer?.cancel();
+
+    _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final box = Hive.box<DateTime>('recent_steps');
+      final now = DateTime.now();
+
+      // Hive에 저장된 전체 recent_steps 로그 수 출력
+      debugPrint("📦 Hive recent_steps 전체: ${box.length}");
+
+      // 유효한 걸음만 필터링 (5초 이내)
+      final validSteps =
+          box.values.where((t) => now.difference(t).inSeconds <= 5).toList();
+
+      for (final stepTime in box.values) {
+        final diff = now.difference(stepTime).inSeconds;
+        debugPrint("⏱️ 기록된 시간: $stepTime, 차이: ${diff}초");
+      }
+
+      final double speed = validSteps.length * 0.7 / 5;
+      debugPrint("📈 계산된 실시간 속도 (Hive 기반): $speed");
+
+      // speed가 0이더라도 항상 setState 호출
       setState(() {
-        speedData.add(currentSpeed);
+        speedData.add(speed);
         if (speedData.length > 30) speedData.removeAt(0);
       });
     });
-    loadWeeklyAverages();
   }
 
   @override
@@ -76,7 +97,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   Future<void> clearAllSessions() async {
     final box = Hive.box<WalkSession>('walk_sessions');
     await box.clear();
-    setState(() {});
+    setState(() {
+      speedData.clear();
+    });
   }
 
   Future<void> backupSessionsToJson() async {
@@ -183,8 +206,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
-                          if (index < 0 || index >= dates.length)
+                          if (index < 0 || index >= dates.length) {
                             return const SizedBox();
+                          }
                           final date = dates[index];
                           return Text(date.substring(5),
                               style: const TextStyle(fontSize: 10));
