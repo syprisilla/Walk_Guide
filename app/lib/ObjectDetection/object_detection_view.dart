@@ -1,14 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
+import 'dart:math';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+
 import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+
 import 'mlkit_object_detection.dart';
 import 'object_painter.dart';
-import 'dart:io';
 import 'camera_screen.dart' show IsolateDataHolder;
 
 class ObjectDetectionView extends StatefulWidget {
@@ -336,13 +340,22 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       );
     }
 
+    final screenSize = MediaQuery.of(context).size;
+    final cameraAspectRatio = _cameraController!.value.aspectRatio;
+
     return Stack(
       fit: StackFit.expand,
-      children: [
-        Center(
-          child: AspectRatio(
-            aspectRatio: _cameraController!.value.aspectRatio,
-            child: CameraPreview(_cameraController!),
+      children: <Widget>[
+        SizedBox(
+          width: screenSize.width,
+          height: screenSize.height,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: screenSize.width,
+              height: screenSize.width / cameraAspectRatio,
+              child: CameraPreview(_cameraController!),
+            ),
           ),
         ),
         if (_detectedObjects.isNotEmpty &&
