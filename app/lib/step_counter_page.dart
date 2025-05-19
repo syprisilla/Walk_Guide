@@ -12,6 +12,7 @@ import 'package:camera/camera.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 
 import 'walk_session.dart';
+import 'package:walk_guide/real_time_speed_service.dart';
 
 import './ObjectDetection/object_detection_view.dart';
 
@@ -44,8 +45,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
   DateTime? _lastGuidanceTime;
 
   bool _isMoving = false;
-  List<DateTime> _recentSteps = [];
   List<WalkSession> _sessionHistory = [];
+
   static const double movementThreshold = 1.5;
 
   @override
@@ -55,7 +56,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     flutterTts.setSpeechRate(0.5);
     requestPermission();
     loadSessions();
-    widget.onInitialized?.call(getRealTimeSpeed);
+    widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
   }
 
   void _handleDetectedObjects(List<DetectedObject> objects) {
@@ -70,6 +71,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     if (!status.isGranted) {
       status = await Permission.activityRecognition.request();
     }
+
     if (status.isGranted) {
       startPedometer();
       startAccelerometer();
@@ -106,10 +108,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
   void startAccelerometer() {
     _accelerometerSubscription?.cancel();
     _accelerometerSubscription = accelerometerEvents.listen((event) {
-      double totalAcceleration = sqrt(
-        event.x * event.x + event.y * event.y + event.z * event.z,
-      );
+      double totalAcceleration =
+          sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
       double movement = (totalAcceleration - 9.8).abs();
+
       if (movement > movementThreshold) {
         _lastMovementTime = DateTime.now();
         if (!_isMoving) {
@@ -118,6 +120,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
               _isMoving = true;
             });
           }
+          debugPrint("움직임 감지!");
           onObjectDetected();
         }
       }
@@ -142,42 +145,54 @@ class _StepCounterPageState extends State<StepCounterPage> {
     final now = DateTime.now();
     if (_lastGuidanceTime != null &&
         now.difference(_lastGuidanceTime!).inSeconds < 2) {
+      debugPrint("⏳ 쿨다운 중 - 음성 안내 생략");
       return;
     }
-    double avgSpeed = getRealTimeSpeed();
+    double avgSpeed = RealTimeSpeedService.getSpeed();
     final delay = getGuidanceDelay(avgSpeed);
+
+    debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정...");
     await Future.delayed(delay);
+
     await flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
+    debugPrint("🔊 안내 완료: 앞에 장애물이 있습니다.");
     _lastGuidanceTime = DateTime.now();
   }
 
-  void onStepCount(StepCount event) {
+  void onStepCount(StepCount event) async {
+    debugPrint("걸음 수 이벤트 발생: ${event.steps}");
+
     if (_initialSteps == null) {
       _initialSteps = event.steps;
       _previousSteps = event.steps;
       _startTime = DateTime.now();
       _lastMovementTime = DateTime.now();
-      _recentSteps.clear();
+      RealTimeSpeedService.clear();
       if (mounted) setState(() {});
       return;
     }
+
+    int stepDelta = event.steps - (_previousSteps ?? event.steps);
+    if (stepDelta > 0) {
+      _steps += stepDelta;
+      final now = DateTime.now();
+      for (int i = 0; i < stepDelta; i++) {
+        RealTimeSpeedService.recordStep(now);
+        Hive.box<DateTime>('recent_steps').add(now);
+      }
+    }
+    _previousSteps = event.steps;
+    _lastMovementTime = DateTime.now();
+
     if (mounted) {
-      setState(() {
-        int stepDelta = event.steps - (_previousSteps ?? event.steps);
-        if (stepDelta > 0) {
-          _steps += stepDelta;
-          for (int i = 0; i < stepDelta; i++) {
-            _recentSteps.add(DateTime.now());
-          }
-        }
-        _previousSteps = event.steps;
-        _lastMovementTime = DateTime.now();
-      });
+      setState(() {});
     }
   }
 
   void onStepCountError(error) {
+    debugPrint('걸음 수 측정 오류: $error');
     Future.delayed(const Duration(seconds: 2), () {
+      debugPrint('걸음 측정 재시도');
       if (mounted) startPedometer();
     });
   }
@@ -192,18 +207,12 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   double getRealTimeSpeed() {
-    if (_recentSteps.isEmpty) return 0;
-    DateTime now = DateTime.now();
-    _recentSteps =
-        _recentSteps.where((t) => now.difference(t).inSeconds <= 3).toList();
-    int stepsInLast3Seconds = _recentSteps.length;
-    double stepLength = 0.7;
-    double distance = stepsInLast3Seconds * stepLength;
-    return distance / 3;
+    return RealTimeSpeedService.getSpeed();
   }
 
   void _saveSessionData() {
     if (_startTime == null || _steps == 0) return;
+
     final endTime = DateTime.now();
     final session = WalkSession(
       startTime: _startTime!,
@@ -211,15 +220,20 @@ class _StepCounterPageState extends State<StepCounterPage> {
       stepCount: _steps,
       averageSpeed: getAverageSpeed(),
     );
+
     _sessionHistory.add(session);
     final box = Hive.box<WalkSession>('walk_sessions');
     box.add(session);
+
+    debugPrint("🟢 저장된 세션: $session");
+    debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");
+
     analyzeWalkingPattern();
+
     _steps = 0;
     _initialSteps = null;
     _previousSteps = null;
     _startTime = null;
-    _recentSteps.clear();
   }
 
   void startCheckingMovement() {
@@ -238,6 +252,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
               _isMoving = false;
             });
           }
+          debugPrint("정지 감지 → 걸음 수 초기화!");
         }
       }
     });
@@ -245,31 +260,42 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   void loadSessions() {
     final box = Hive.box<WalkSession>('walk_sessions');
+    final loadedSessions = box.values.toList();
     if (mounted) {
       setState(() {
-        _sessionHistory = box.values.toList();
+        _sessionHistory = loadedSessions;
       });
+    } else {
+      _sessionHistory = loadedSessions;
     }
+    debugPrint("📦 불러온 세션 수: ${_sessionHistory.length}");
     analyzeWalkingPattern();
   }
 
   void analyzeWalkingPattern() {
     if (_sessionHistory.isEmpty) {
+      debugPrint("⚠️ 보행 데이터가 없습니다.");
       return;
     }
+
     double totalSpeed = 0;
     int totalSteps = 0;
     int totalDuration = 0;
+
     for (var session in _sessionHistory) {
       totalSpeed += session.averageSpeed;
       totalSteps += session.stepCount;
       totalDuration += session.endTime.difference(session.startTime).inSeconds;
     }
-    if (_sessionHistory.isNotEmpty) {
-      double avgSpeed = totalSpeed / _sessionHistory.length;
-      double avgSteps = totalSteps / _sessionHistory.length;
-      double avgDuration = totalDuration / _sessionHistory.length;
-    }
+
+    double avgSpeed = totalSpeed / _sessionHistory.length;
+    double avgSteps = totalSteps / _sessionHistory.length;
+    double avgDuration = totalDuration / _sessionHistory.length;
+
+    debugPrint("📊 보행 패턴 분석 결과:");
+    debugPrint("- 평균 속도: ${avgSpeed.toStringAsFixed(2)} m/s");
+    debugPrint("- 평균 걸음 수: ${avgSteps.toStringAsFixed(1)} 걸음");
+    debugPrint("- 평균 세션 시간: ${avgDuration.toStringAsFixed(1)} 초");
   }
 
   @override
@@ -392,9 +418,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
                     color: Colors.grey[800],
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.black26)),
-                // _sessionHistory가 비어있으면 ListView.builder 대신 빈 Container를 반환하여 아무것도 표시하지 않음
                 child: _sessionHistory.isEmpty
-                    ? Container() // 기록이 없으면 아무것도 표시하지 않음
+                    ? Container()
                     : ListView.builder(
                         itemCount: _sessionHistory.length,
                         itemBuilder: (context, index) {

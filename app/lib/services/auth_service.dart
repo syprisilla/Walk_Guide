@@ -21,14 +21,14 @@ class AuthService {
       return null;
     }
   }
-}
 
-// 로그아웃 함수 (선택)
-Future<void> signOut(BuildContext context) async {
-  await FirebaseAuth.instance.signOut();
-  Navigator.pushAndRemoveUntil(
-    context,
-    MaterialPageRoute(builder: (_) => SplashScreen(cameras: camerasGlobal)),
-    (Route<dynamic> route) => false, // 이전 화면 모두 제거
-  );
+  // 로그아웃 함수 (선택)
+  Future<void> signOut(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => SplashScreen(cameras: camerasGlobal)),
+      (Route<dynamic> route) => false, // 이전 화면 모두 제거
+    );
+  }
 }

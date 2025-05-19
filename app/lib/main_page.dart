@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
-import 'package:walk_guide/description_page.dart';
-import 'package:walk_guide/login_page.dart';
+import 'package:walk_guide/description/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
 import 'package:camera/camera.dart';
 
@@ -27,7 +26,7 @@ class _MainScreenState extends State<MainScreen> {
           backgroundColor: Colors.amber,
           actions: [
             IconButton(
-              icon: const Icon(Icons.info_outline, size: 28),
+              icon: const Icon(Icons.menu),
               tooltip: '설명 보기',
               onPressed: () {
                 Navigator.push(
@@ -93,9 +92,7 @@ class _MainScreenState extends State<MainScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AnalyticsDashboardPage(
-                    onGetSpeed: _getSpeed ?? () => 0.0,
-                  ),
+                  builder: (context) => AnalyticsDashboardPage(),
                 ),
               );
             } else if (index == 2) {
