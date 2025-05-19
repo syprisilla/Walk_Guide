@@ -8,9 +8,9 @@ class RealTimeSpeedService {
   static double _lastSpeed = 0.0;
   static DateTime? _lastUpdateTime;
 
-  static void recordStep() {
+  static void recordStep([DateTime? time]) {
     final box = Hive.box<DateTime>(boxName);
-    box.add(DateTime.now());
+    box.add(time ?? DateTime.now()); // 외부에서 받은 시간 사용, 없으면 현재 시간
   }
 
   static double getSpeed() {

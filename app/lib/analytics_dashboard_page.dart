@@ -31,18 +31,27 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
 
   void _startSpeedTracking() {
     _speedTimer?.cancel();
+
     _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       final box = Hive.box<DateTime>('recent_steps');
       final now = DateTime.now();
 
-      // 3초 이내 걸음만 유지
+      // Hive에 저장된 전체 recent_steps 로그 수 출력
+      debugPrint("📦 Hive recent_steps 전체: ${box.length}");
+
+      // 유효한 걸음만 필터링 (5초 이내)
       final validSteps =
-          box.values.where((t) => now.difference(t).inSeconds <= 3).toList();
+          box.values.where((t) => now.difference(t).inSeconds <= 5).toList();
 
-      final double speed = validSteps.length * 0.7 / 3;
+      for (final stepTime in box.values) {
+        final diff = now.difference(stepTime).inSeconds;
+        debugPrint("⏱️ 기록된 시간: $stepTime, 차이: ${diff}초");
+      }
 
+      final double speed = validSteps.length * 0.7 / 5;
       debugPrint("📈 계산된 실시간 속도 (Hive 기반): $speed");
 
+      // speed가 0이더라도 항상 setState 호출
       setState(() {
         speedData.add(speed);
         if (speedData.length > 30) speedData.removeAt(0);
