@@ -46,10 +46,23 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  String getTimeBasedWelcomeMessage(String nickname) {
+    final hour = DateTime.now().hour;
+
+    if (hour < 12) {
+      return "$nickname님, 좋은 아침입니다. 오늘도 안전하게 보행 도와드릴게요.";
+    } else if (hour < 18) {
+      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
+    } else {
+      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+    }
+  }
+
   Future<void> _speakWelcome(String nickname) async {
+    final message = getTimeBasedWelcomeMessage(nickname);
     await _flutterTts.setLanguage("ko-KR");
     await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.speak("$nickname님 환영합니다. 오늘도 안전한 보행 도와드릴게요.");
+    await _flutterTts.speak(message);
   }
 
   @override
