@@ -8,13 +8,23 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:hive/hive.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import 'package:camera/camera.dart';
+import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+
 import 'walk_session.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 
+import './ObjectDetection/object_detection_view.dart';
+
 class StepCounterPage extends StatefulWidget {
   final void Function(double Function())? onInitialized;
+  final List<CameraDescription> cameras;
 
-  const StepCounterPage({super.key, this.onInitialized});
+  const StepCounterPage({
+    super.key,
+    this.onInitialized,
+    required this.cameras,
+  });
 
   @override
   State<StepCounterPage> createState() => _StepCounterPageState();
@@ -47,6 +57,13 @@ class _StepCounterPageState extends State<StepCounterPage> {
     requestPermission();
     loadSessions();
     widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
+  }
+
+  void _handleDetectedObjects(List<DetectedObject> objects) {
+    if (!mounted) return;
+    if (objects.isNotEmpty) {
+      guideWhenObjectDetected();
+    }
   }
 
   Future<void> requestPermission() async {
@@ -98,9 +115,11 @@ class _StepCounterPageState extends State<StepCounterPage> {
       if (movement > movementThreshold) {
         _lastMovementTime = DateTime.now();
         if (!_isMoving) {
-          setState(() {
-            _isMoving = true;
-          });
+          if (mounted) {
+            setState(() {
+              _isMoving = true;
+            });
+          }
           debugPrint("움직임 감지!");
           onObjectDetected();
         }
@@ -129,7 +148,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
       debugPrint("⏳ 쿨다운 중 - 음성 안내 생략");
       return;
     }
-
     double avgSpeed = RealTimeSpeedService.getSpeed();
     final delay = getGuidanceDelay(avgSpeed);
 
@@ -138,6 +156,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
     await flutterTts.speak("앞에 장애물이 있습니다. 조심하세요.");
     debugPrint("🔊 안내 완료: 앞에 장애물이 있습니다.");
+    _lastGuidanceTime = DateTime.now();
   }
 
   void onStepCount(StepCount event) async {
@@ -149,30 +168,32 @@ class _StepCounterPageState extends State<StepCounterPage> {
       _startTime = DateTime.now();
       _lastMovementTime = DateTime.now();
       RealTimeSpeedService.clear();
-      setState(() {});
+      if (mounted) setState(() {});
       return;
     }
 
-    setState(() {
-      int stepDelta = event.steps - (_previousSteps ?? event.steps);
-      if (stepDelta > 0) {
-        _steps += stepDelta;
-        final now = DateTime.now();
-        for (int i = 0; i < stepDelta; i++) {
-          RealTimeSpeedService.recordStep(now);
-          Hive.box<DateTime>('recent_steps').add(now);
-        }
+    int stepDelta = event.steps - (_previousSteps ?? event.steps);
+    if (stepDelta > 0) {
+      _steps += stepDelta;
+      final now = DateTime.now();
+      for (int i = 0; i < stepDelta; i++) {
+        RealTimeSpeedService.recordStep(now);
+        Hive.box<DateTime>('recent_steps').add(now);
       }
-      _previousSteps = event.steps;
-      _lastMovementTime = DateTime.now();
-    });
+    }
+    _previousSteps = event.steps;
+    _lastMovementTime = DateTime.now();
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void onStepCountError(error) {
     debugPrint('걸음 수 측정 오류: $error');
     Future.delayed(const Duration(seconds: 2), () {
       debugPrint('걸음 측정 재시도');
-      startPedometer();
+      if (mounted) startPedometer();
     });
   }
 
@@ -217,14 +238,20 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   void startCheckingMovement() {
     _checkTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       if (_lastMovementTime != null) {
         final diff =
             DateTime.now().difference(_lastMovementTime!).inMilliseconds;
         if (diff >= 1500 && _isMoving) {
           _saveSessionData();
-          setState(() {
-            _isMoving = false;
-          });
+          if (mounted) {
+            setState(() {
+              _isMoving = false;
+            });
+          }
           debugPrint("정지 감지 → 걸음 수 초기화!");
         }
       }
@@ -233,9 +260,14 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   void loadSessions() {
     final box = Hive.box<WalkSession>('walk_sessions');
-    setState(() {
-      _sessionHistory = box.values.toList();
-    });
+    final loadedSessions = box.values.toList();
+    if (mounted) {
+      setState(() {
+        _sessionHistory = loadedSessions;
+      });
+    } else {
+      _sessionHistory = loadedSessions;
+    }
     debugPrint("📦 불러온 세션 수: ${_sessionHistory.length}");
     analyzeWalkingPattern();
   }
@@ -269,60 +301,144 @@ class _StepCounterPageState extends State<StepCounterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('걸음 속도 측정')),
+      appBar: AppBar(title: const Text('보행 중')),
       body: Stack(
         children: [
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.black12,
-            alignment: Alignment.center,
-            child: const Text(
-              '카메라 영역',
-              style: TextStyle(fontSize: 24, color: Colors.black38),
-            ),
+          Positioned.fill(
+            child: (widget.cameras.isNotEmpty)
+                ? ObjectDetectionView(
+                    cameras: widget.cameras,
+                    onObjectsDetected: _handleDetectedObjects,
+                  )
+                : Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.grey[200],
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '카메라를 사용할 수 없습니다.\n앱 권한을 확인해주세요.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.redAccent),
+                    ),
+                  ),
           ),
           Positioned(
-            top: 30,
-            right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _isMoving ? '움직이는 중' : '정지 상태',
-                  style: const TextStyle(fontSize: 18, color: Colors.black),
+              top: 20,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.65),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              _isMoving ? '보행 중' : '정지 상태',
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$_steps 걸음',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.amberAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text('평균 속도',
+                                style: TextStyle(
+                                    fontSize: 15, color: Colors.white)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${getAverageSpeed().toStringAsFixed(2)} m/s',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.lightGreenAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text('실시간 속도',
+                                style: TextStyle(
+                                    fontSize: 15, color: Colors.white)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${getRealTimeSpeed().toStringAsFixed(2)} m/s',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Text('걸음 수: $_steps', style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 5),
-                Text('평균 속도: ${getAverageSpeed().toStringAsFixed(2)} m/s',
-                    style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 5),
-                Text('3초 속도: ${getRealTimeSpeed().toStringAsFixed(2)} m/s',
-                    style: const TextStyle(fontSize: 18)),
-              ],
-            ),
-          ),
+              )),
           Positioned(
             bottom: 20,
             left: 20,
             right: 20,
-            child: Container(
-              height: 180,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white70,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: ListView.builder(
-                itemCount: _sessionHistory.length,
-                itemBuilder: (context, index) {
-                  final session = _sessionHistory[index];
-                  return Text(
-                    '${index + 1}) ${session.stepCount}걸음, 평균속도: ${session.averageSpeed.toStringAsFixed(2)} m/s',
-                    style: const TextStyle(fontSize: 16),
-                  );
-                },
+            child: Opacity(
+              opacity: 0.85,
+              child: Container(
+                height: 150,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.black26)),
+                child: _sessionHistory.isEmpty
+                    ? Container()
+                    : ListView.builder(
+                        itemCount: _sessionHistory.length,
+                        itemBuilder: (context, index) {
+                          final session = _sessionHistory[
+                              _sessionHistory.length - 1 - index];
+                          return Card(
+                            color: Colors.grey[700],
+                            margin: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                '${_sessionHistory.length - index}) ${session.stepCount}걸음, 평균 ${session.averageSpeed.toStringAsFixed(2)} m/s (${(session.endTime.difference(session.startTime).inSeconds / 60).toStringAsFixed(1)}분)',
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.white),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ),
@@ -336,6 +452,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _stepCountSubscription?.cancel();
     _accelerometerSubscription?.cancel();
     _checkTimer?.cancel();
+    flutterTts.stop();
     super.dispose();
   }
 }
