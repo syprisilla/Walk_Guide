@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
+import 'package:walk_guide/settings_page.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,11 +31,12 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadNicknameAndGreet() async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-
       if (uid != null) {
         final doc =
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        if (doc.exists) {
+        final enabled = await isVoiceGuideEnabled();
+
+        if (doc.exists && enabled) {
           final nickname = doc['nickname'];
           _speakWelcome(nickname);
         }
@@ -65,7 +68,7 @@ class _MainScreenState extends State<MainScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DescriptionPage(),
+                    builder: (context) => const DescriptionPage(),
                   ),
                 );
               },
@@ -78,9 +81,9 @@ class _MainScreenState extends State<MainScreen> {
           color: Colors.grey[300],
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('지도', style: TextStyle(fontSize: 24)),
-              const SizedBox(height: 20),
+            children: const [
+              Text('지도', style: TextStyle(fontSize: 24)),
+              SizedBox(height: 20),
             ],
           ),
         ),
@@ -125,12 +128,15 @@ class _MainScreenState extends State<MainScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AnalyticsDashboardPage(),
+                  builder: (context) => const AnalyticsDashboardPage(),
                 ),
               );
             } else if (index == 2) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('설정 페이지는 준비 중입니다')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsPage(),
+                ),
               );
             }
           },
