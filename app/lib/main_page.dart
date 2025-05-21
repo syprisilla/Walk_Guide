@@ -3,6 +3,9 @@ import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -15,6 +18,36 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   double Function()? _getSpeed;
+  final FlutterTts _flutterTts = FlutterTts();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNicknameAndGreet();
+  }
+
+  Future<void> _loadNicknameAndGreet() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+
+      if (uid != null) {
+        final doc =
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (doc.exists) {
+          final nickname = doc['nickname'];
+          _speakWelcome(nickname);
+        }
+      }
+    } catch (e) {
+      print("닉네임 불러오기 실패: $e");
+    }
+  }
+
+  Future<void> _speakWelcome(String nickname) async {
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak("$nickname님 환영합니다. 오늘도 안전한 보행 도와드릴게요.");
+  }
 
   @override
   Widget build(BuildContext context) {
