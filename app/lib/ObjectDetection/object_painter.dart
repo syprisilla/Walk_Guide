@@ -1,8 +1,8 @@
-// lib/ui/object_painter.dart
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:camera/camera.dart';
+import 'dart:io';
 
 class ObjectPainter extends CustomPainter {
   final List<DetectedObject> objects;
@@ -10,6 +10,7 @@ class ObjectPainter extends CustomPainter {
   final Size screenSize;
   final InputImageRotation rotation;
   final CameraLensDirection cameraLensDirection;
+  final double cameraPreviewAspectRatio;
 
   ObjectPainter({
     required this.objects,
@@ -17,11 +18,12 @@ class ObjectPainter extends CustomPainter {
     required this.screenSize,
     required this.rotation,
     required this.cameraLensDirection,
+    required this.cameraPreviewAspectRatio,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (imageSize.isEmpty || size.isEmpty) {
+    if (imageSize.isEmpty || size.isEmpty || cameraPreviewAspectRatio <= 0) {
       return;
     }
 
@@ -30,103 +32,136 @@ class ObjectPainter extends CustomPainter {
       ..strokeWidth = 2.0
       ..color = Colors.lightGreenAccent;
 
-    final Paint backgroundPaint = Paint()..color = Colors.black.withOpacity(0.6);
+    final Paint backgroundPaint = Paint()
+      ..color = Colors.black.withOpacity(0.6);
+
+    Rect cameraViewRect;
+    final double screenAspectRatio = size.width / size.height;
+
+    if (screenAspectRatio > cameraPreviewAspectRatio) {
+      final double fittedHeight = size.height;
+      final double fittedWidth = fittedHeight * cameraPreviewAspectRatio;
+      final double offsetX = (size.width - fittedWidth) / 2;
+      cameraViewRect = Rect.fromLTWH(offsetX, 0, fittedWidth, fittedHeight);
+    } else {
+      final double fittedWidth = size.width;
+      final double fittedHeight = fittedWidth / cameraPreviewAspectRatio;
+      final double offsetY = (size.height - fittedHeight) / 2;
+      cameraViewRect = Rect.fromLTWH(0, offsetY, fittedWidth, fittedHeight);
+    }
 
     for (final DetectedObject detectedObject in objects) {
       final Rect boundingBox = detectedObject.boundingBox;
 
-      final bool IsImageRotatedSideways = rotation == InputImageRotation.rotation90deg ||
-          rotation == InputImageRotation.rotation270deg;
+      final bool isImageRotatedSideways =
+          rotation == InputImageRotation.rotation90deg ||
+              rotation == InputImageRotation.rotation270deg;
 
-      final double originalImageWidth = IsImageRotatedSideways ? imageSize.height : imageSize.width;
-      final double originalImageHeight = IsImageRotatedSideways ? imageSize.width : imageSize.height;
+      final double mlImageWidth =
+          isImageRotatedSideways ? imageSize.height : imageSize.width;
+      final double mlImageHeight =
+          isImageRotatedSideways ? imageSize.width : imageSize.height;
 
-      final double scaleX = size.width / originalImageWidth;
-      final double scaleY = size.height / originalImageHeight;
+      if (mlImageWidth == 0 || mlImageHeight == 0) continue;
 
-      final double scale = (originalImageWidth / originalImageHeight > size.width / size.height)
-          ? size.height / originalImageHeight
-          : size.width / originalImageWidth;
-
-      final double scaledImageWidth = originalImageWidth * scale;
-      final double scaledImageHeight = originalImageHeight * scale;
-
-      final double offsetX = (size.width - scaledImageWidth) / 2.0;
-      final double offsetY = (size.height - scaledImageHeight) / 2.0;
+      final double scaleX = cameraViewRect.width / mlImageWidth;
+      final double scaleY = cameraViewRect.height / mlImageHeight;
 
       Rect displayRect;
       double l, t, r, b;
 
       switch (rotation) {
         case InputImageRotation.rotation0deg:
-          l = boundingBox.left * scale + offsetX;
-          t = boundingBox.top * scale + offsetY;
-          r = boundingBox.right * scale + offsetX;
-          b = boundingBox.bottom * scale + offsetY;
-          if (cameraLensDirection == CameraLensDirection.front) {
-            final double tempL = l;
-            l = size.width - r;
-            r = size.width - tempL;
-          }
+          l = boundingBox.left * scaleX;
+          t = boundingBox.top * scaleY;
+          r = boundingBox.right * scaleX;
+          b = boundingBox.bottom * scaleY;
           break;
         case InputImageRotation.rotation90deg:
-          l = boundingBox.top * scale + offsetX;
-          t = (originalImageWidth - boundingBox.right) * scale + offsetY;
-          r = boundingBox.bottom * scale + offsetX;
-          b = (originalImageWidth - boundingBox.left) * scale + offsetY;
-          if (cameraLensDirection == CameraLensDirection.front) {
-            final double tempT = t;
-            t = size.height - b;
-            b = size.height - tempT;
-          }
+          l = boundingBox.top * scaleX;
+          t = (mlImageWidth - boundingBox.right) * scaleY;
+          r = boundingBox.bottom * scaleX;
+          b = (mlImageWidth - boundingBox.left) * scaleY;
           break;
         case InputImageRotation.rotation180deg:
-          l = (originalImageWidth - boundingBox.right) * scale + offsetX;
-          t = (originalImageHeight - boundingBox.bottom) * scale + offsetY;
-          r = (originalImageWidth - boundingBox.left) * scale + offsetX;
-          b = (originalImageHeight - boundingBox.top) * scale + offsetY;
-          if (cameraLensDirection == CameraLensDirection.front) {
-            final double tempL = l;
-            l = size.width - r;
-            r = size.width - tempL;
-          }
+          l = (mlImageWidth - boundingBox.right) * scaleX;
+          t = (mlImageHeight - boundingBox.bottom) * scaleY;
+          r = (mlImageWidth - boundingBox.left) * scaleX;
+          b = (mlImageHeight - boundingBox.top) * scaleY;
           break;
         case InputImageRotation.rotation270deg:
-          l = (originalImageHeight - boundingBox.bottom) * scale + offsetX;
-          t = boundingBox.left * scale + offsetY;
-          r = (originalImageHeight - boundingBox.top) * scale + offsetX;
-          b = boundingBox.right * scale + offsetY;
-            if (cameraLensDirection == CameraLensDirection.front) {
-            final double tempT = t;
-            t = size.height - b;
-            b = size.height - tempT;
-            }
+          l = (mlImageHeight - boundingBox.bottom) * scaleX;
+          t = boundingBox.left * scaleY;
+          r = (mlImageHeight - boundingBox.top) * scaleX;
+          b = boundingBox.right * scaleY;
           break;
       }
-      displayRect = Rect.fromLTRB(l, t, r, b);
 
-      canvas.drawRect(displayRect, paintRect);
+      if (cameraLensDirection == CameraLensDirection.front &&
+          Platform.isAndroid) {
+        if (rotation == InputImageRotation.rotation0deg ||
+            rotation == InputImageRotation.rotation180deg) {
+          final double tempL = l;
+          l = cameraViewRect.width - r;
+          r = cameraViewRect.width - tempL;
+        }
+      }
 
-      if (detectedObject.labels.isNotEmpty) {
-        final label = detectedObject.labels.first;
-        final TextSpan span = TextSpan(
-          text: '${label.text} (${(label.confidence * 100).toStringAsFixed(1)}%)',
-          style: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold),
-        );
-        final TextPainter tp = TextPainter(
-          text: span,
-          textAlign: TextAlign.left,
-          textDirection: TextDirection.ltr,
-        );
-        tp.layout();
+      displayRect = Rect.fromLTRB(
+          cameraViewRect.left + l,
+          cameraViewRect.top + t,
+          cameraViewRect.left + r,
+          cameraViewRect.top + b);
 
-        final Rect textBackgroundRect = Rect.fromLTWH(
-            displayRect.left,
-            displayRect.top - tp.height - 4,
-            tp.width + 8,
-            tp.height + 4);
-        canvas.drawRect(textBackgroundRect, backgroundPaint);
-        tp.paint(canvas, Offset(displayRect.left + 4, displayRect.top - tp.height -2));
+      displayRect = Rect.fromLTRB(
+          displayRect.left.clamp(cameraViewRect.left, cameraViewRect.right),
+          displayRect.top.clamp(cameraViewRect.top, cameraViewRect.bottom),
+          displayRect.right.clamp(cameraViewRect.left, cameraViewRect.right),
+          displayRect.bottom.clamp(cameraViewRect.top, cameraViewRect.bottom));
+
+      if (displayRect.width > 0 && displayRect.height > 0) {
+        canvas.drawRect(displayRect, paintRect);
+
+        if (detectedObject.labels.isNotEmpty) {
+          final label = detectedObject.labels.first;
+          final TextSpan span = TextSpan(
+            text:
+                ' ${label.text} (${(label.confidence * 100).toStringAsFixed(1)}%)',
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14.0,
+                fontWeight: FontWeight.bold),
+          );
+          final TextPainter tp = TextPainter(
+            text: span,
+            textAlign: TextAlign.left,
+            textDirection: TextDirection.ltr,
+          );
+          tp.layout();
+
+          double textBgTop = displayRect.top - tp.height - 4;
+          if (textBgTop < cameraViewRect.top) {
+            textBgTop = displayRect.top + 2;
+          }
+          if (textBgTop + tp.height + 4 > cameraViewRect.bottom) {
+            textBgTop = displayRect.bottom - tp.height - 6;
+          }
+
+          double textBgLeft = displayRect.left;
+          if (textBgLeft + tp.width + 8 > cameraViewRect.right) {
+            textBgLeft = cameraViewRect.right - tp.width - 8;
+          }
+          if (textBgLeft < cameraViewRect.left) {
+            textBgLeft = cameraViewRect.left;
+          }
+
+          final Rect textBackgroundRect =
+              Rect.fromLTWH(textBgLeft, textBgTop, tp.width + 8, tp.height + 4);
+
+          canvas.drawRect(textBackgroundRect, backgroundPaint);
+          tp.paint(canvas,
+              Offset(textBackgroundRect.left + 4, textBackgroundRect.top + 2));
+        }
       }
     }
   }
@@ -137,6 +172,7 @@ class ObjectPainter extends CustomPainter {
         oldDelegate.imageSize != imageSize ||
         oldDelegate.screenSize != screenSize ||
         oldDelegate.rotation != rotation ||
-        oldDelegate.cameraLensDirection != cameraLensDirection;
+        oldDelegate.cameraLensDirection != cameraLensDirection ||
+        oldDelegate.cameraPreviewAspectRatio != cameraPreviewAspectRatio;
   }
 }

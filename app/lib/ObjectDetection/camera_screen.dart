@@ -1,26 +1,24 @@
-// lib/camera_screen.dart
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:typed_data'; // Uint8List
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter/services.dart'; // DeviceOrientation, RootIsolateToken
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
-import 'mlkit_object_detection.dart'; // ML Kit 로직 임포트
-import 'object_painter.dart'; // 메인 Painter 임포트
-import 'dart:io'; // Platform
+import 'mlkit_object_detection.dart';
+import 'object_painter.dart';
+import 'dart:io';
 
-// Isolate에 데이터를 전달하기 위한 간단한 홀더 클래스
 class IsolateDataHolder {
   final SendPort mainSendPort;
-  final RootIsolateToken? rootIsolateToken; // ML Kit은 RootIsolateToken 필요
+  final RootIsolateToken? rootIsolateToken;
 
   IsolateDataHolder(this.mainSendPort, this.rootIsolateToken);
 }
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
-  final List<CameraDescription> cameras; // 카메라 목록 전달받음
+  final List<CameraDescription> cameras;
   const RealtimeObjectDetectionScreen({Key? key, required this.cameras})
       : super(key: key);
 
@@ -34,14 +32,12 @@ class _RealtimeObjectDetectionScreenState
   CameraController? _cameraController;
   int _cameraIndex = 0;
   bool _isCameraInitialized = false;
-  bool _isBusy = false; // 이미지 처리 중복 방지 플래그
-  List<DetectedObject> _detectedObjects =
-      []; // 항상 이 리스트를 Painter에 전달 (내용이 0 또는 1개 객체)
-  InputImageRotation? _imageRotation; // Painter에 전달될 최종 회전 값
+  bool _isBusy = false;
+  List<DetectedObject> _detectedObjects = [];
+  InputImageRotation? _imageRotation;
   late ObjectDetector _objectDetector;
-  Size? _lastImageSize; // ML Kit이 처리한 이미지의 크기
+  Size? _lastImageSize;
 
-  // Isolate 관련
   Isolate? _objectDetectionIsolate;
   Isolate? _imageRotationIsolate;
   late ReceivePort _objectDetectionReceivePort;
@@ -51,12 +47,10 @@ class _RealtimeObjectDetectionScreenState
   StreamSubscription? _objectDetectionSubscription;
   StreamSubscription? _imageRotationSubscription;
 
-  // Isolate 작업 대기 상태 플래그
   bool _isWaitingForRotation = false;
   bool _isWaitingForDetection = false;
 
-  // Isolate 간 데이터 전달을 위한 임시 저장 변수
-  InputImageRotation? _lastCalculatedRotation; // 회전 Isolate에서 계산된 값
+  InputImageRotation? _lastCalculatedRotation;
   Uint8List? _pendingImageDataBytes;
   int? _pendingImageDataWidth;
   int? _pendingImageDataHeight;
@@ -66,14 +60,12 @@ class _RealtimeObjectDetectionScreenState
   @override
   void initState() {
     super.initState();
-    print("RealtimeObjectDetectionScreen: initState called");
-    _objectDetector = initializeObjectDetector(); // ML Kit 로직 파일에서 초기화 함수 호출
+    _objectDetector = initializeObjectDetector();
 
     _spawnIsolates().then((_) {
       if (widget.cameras.isNotEmpty) {
-        _initializeCamera(widget.cameras[0]); // 카메라 초기화
+        _initializeCamera(widget.cameras[0]);
       } else {
-        print("****** No cameras available!");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('사용 가능한 카메라가 없습니다.')),
@@ -81,9 +73,6 @@ class _RealtimeObjectDetectionScreenState
         }
       }
     }).catchError((e, stacktrace) {
-      print(
-          "****** initState: Error spawning isolates or initializing camera: $e");
-      print(stacktrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('초기화 중 오류 발생: $e')),
@@ -94,31 +83,19 @@ class _RealtimeObjectDetectionScreenState
 
   @override
   void dispose() {
-    print("RealtimeObjectDetectionScreen: dispose called");
-    _stopCameraStream(); // 스트림 먼저 중지
+    _stopCameraStream();
     _objectDetectionSubscription?.cancel();
     _imageRotationSubscription?.cancel();
-    _killIsolates(); // Isolate 종료
-    _cameraController?.dispose().then((_) {
-      print("CameraController disposed");
-    }).catchError((e) {
-      print("Error disposing camera controller: $e");
-    });
-    _objectDetector.close().then((_) {
-      print("ObjectDetector closed");
-    }).catchError((e) {
-      print("Error closing object detector: $e");
-    });
+    _killIsolates();
+    _cameraController?.dispose().catchError((e) {});
+    _objectDetector.close().catchError((e) {});
     super.dispose();
   }
 
   Future<void> _spawnIsolates() async {
-    print("Spawning Isolates...");
     final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
 
     if (rootIsolateToken == null) {
-      print(
-          "****** RootIsolateToken is null. ML Kit in Isolate might not work.");
       return;
     }
 
@@ -132,7 +109,6 @@ class _RealtimeObjectDetectionScreenState
         debugName: "ObjectDetectionIsolate");
     _objectDetectionSubscription =
         _objectDetectionReceivePort.listen(_handleDetectionResult);
-    print("Object Detection Isolate spawned and listener attached.");
 
     _imageRotationReceivePort = ReceivePort();
     _imageRotationIsolate = await Isolate.spawn(
@@ -142,23 +118,15 @@ class _RealtimeObjectDetectionScreenState
         debugName: "ImageRotationIsolate");
     _imageRotationSubscription =
         _imageRotationReceivePort.listen(_handleRotationResult);
-    print("Image Rotation Isolate spawned and listener attached.");
   }
 
   void _killIsolates() {
-    print("Killing Isolates...");
     try {
       _objectDetectionIsolate?.kill(priority: Isolate.immediate);
-      print("Object Detection Isolate kill signal sent.");
-    } catch (e) {
-      print("Error killing object detection isolate: $e");
-    }
+    } catch (e) {}
     try {
       _imageRotationIsolate?.kill(priority: Isolate.immediate);
-      print("Image Rotation Isolate kill signal sent.");
-    } catch (e) {
-      print("Error killing image rotation isolate: $e");
-    }
+    } catch (e) {}
     _objectDetectionIsolate = null;
     _imageRotationIsolate = null;
     _objectDetectionIsolateSendPort = null;
@@ -169,7 +137,6 @@ class _RealtimeObjectDetectionScreenState
     if (!mounted) return;
 
     if (_objectDetectionIsolateSendPort == null && message is SendPort) {
-      print("Object Detection Isolate SendPort received via message.");
       _objectDetectionIsolateSendPort = message;
     } else if (message is List<DetectedObject>) {
       List<DetectedObject> objectsToShow = [];
@@ -200,20 +167,15 @@ class _RealtimeObjectDetectionScreenState
         message.length == 2 &&
         message[0] is String &&
         message[0].toString().contains('Error')) {
-      print('****** Object Detection Isolate Error: ${message[1]}');
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     } else if (message == null ||
         (message is List &&
             message.isEmpty &&
             message is! List<DetectedObject>)) {
-      print(
-          '****** Object Detection Isolate exited or sent empty/null message.');
       _isWaitingForDetection = false;
       if (_objectDetectionIsolateSendPort != null && message == null) {
         _objectDetectionIsolateSendPort = null;
-        print(
-            "Object Detection Isolate SendPort invalidated due to Isolate exit.");
       }
       if (_detectedObjects.isNotEmpty && mounted) {
         setState(() {
@@ -222,8 +184,6 @@ class _RealtimeObjectDetectionScreenState
       }
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     } else {
-      print(
-          '****** Unexpected message from Object Detection Isolate: $message, type: ${message.runtimeType}');
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     }
@@ -233,7 +193,6 @@ class _RealtimeObjectDetectionScreenState
     if (!mounted) return;
 
     if (_imageRotationIsolateSendPort == null && message is SendPort) {
-      print("Image Rotation Isolate SendPort received via message.");
       _imageRotationIsolateSendPort = message;
     } else if (message is InputImageRotation?) {
       _isWaitingForRotation = false;
@@ -258,19 +217,12 @@ class _RealtimeObjectDetectionScreenState
         _objectDetectionIsolateSendPort!.send(payload);
         _pendingImageDataBytes = null;
       } else {
-        if (message == null)
-          print(
-              "Rotation calculation resulted in null, not sending to detection isolate.");
-        // if (_pendingImageDataBytes == null) print("Pending image data is null."); // This can be normal if no new image processed yet
-        // if (_objectDetectionIsolateSendPort == null) print("Object detection isolate send port is null.");
-
         if (!_isWaitingForDetection && _isBusy) _isBusy = false;
       }
     } else if (message is List &&
         message.length == 2 &&
         message[0] is String &&
         message[0].toString().contains('Error')) {
-      print('****** Image Rotation Isolate Error: ${message[1]}');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
@@ -278,18 +230,13 @@ class _RealtimeObjectDetectionScreenState
         (message is List &&
             message.isEmpty &&
             message is! InputImageRotation)) {
-      print('****** Image Rotation Isolate exited or sent empty/null message.');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (_imageRotationIsolateSendPort != null && message == null) {
         _imageRotationIsolateSendPort = null;
-        print(
-            "Image Rotation Isolate SendPort invalidated due to Isolate exit.");
       }
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
     } else {
-      print(
-          '****** Unexpected message from Image Rotation Isolate: $message, type: ${message.runtimeType}');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
@@ -298,16 +245,12 @@ class _RealtimeObjectDetectionScreenState
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
-      print(
-          "Disposing previous camera controller before initializing a new one.");
       await _stopCameraStream();
       await _cameraController!.dispose();
       _cameraController = null;
     }
     if (mounted) setState(() => _isCameraInitialized = false);
 
-    print(
-        "Initializing camera: ${cameraDescription.name} with lens direction ${cameraDescription.lensDirection}");
     _cameraController = CameraController(
       cameraDescription,
       ResolutionPreset.high,
@@ -319,11 +262,7 @@ class _RealtimeObjectDetectionScreenState
 
     try {
       await _cameraController!.initialize();
-      print(
-          "Camera initialized. Preview size: ${_cameraController!.value.previewSize}, Aspect Ratio: ${_cameraController!.value.aspectRatio}");
-
       await _startCameraStream();
-
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
@@ -331,8 +270,6 @@ class _RealtimeObjectDetectionScreenState
         });
       }
     } on CameraException catch (e) {
-      print(
-          '****** CameraException on initializeCamera for ${cameraDescription.name}: ${e.code} ${e.description}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -342,9 +279,6 @@ class _RealtimeObjectDetectionScreenState
         setState(() => _isCameraInitialized = false);
       }
     } catch (e, stacktrace) {
-      print(
-          '****** Other Exception on initializeCamera for ${cameraDescription.name}: $e');
-      print(stacktrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -357,19 +291,14 @@ class _RealtimeObjectDetectionScreenState
 
   Future<void> _startCameraStream() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      print("Cannot start stream: Camera not initialized.");
       return;
     }
     if (_cameraController!.value.isStreamingImages) {
-      print("Stream already started.");
       return;
     }
     try {
       await _cameraController!.startImageStream(_processCameraImage);
-      print("Camera image stream started.");
     } catch (e, stacktrace) {
-      print('****** Exception on startCameraStream: $e');
-      print(stacktrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('카메라 스트림 시작 오류.')),
@@ -386,10 +315,7 @@ class _RealtimeObjectDetectionScreenState
     }
     try {
       await _cameraController!.stopImageStream();
-      print("Camera image stream stopped.");
     } catch (e, stacktrace) {
-      print('****** Exception on stopCameraStream: $e');
-      print(stacktrace);
     } finally {
       if (mounted) {
         _isBusy = false;
@@ -434,8 +360,6 @@ class _RealtimeObjectDetectionScreenState
       };
       _imageRotationIsolateSendPort!.send(rotationPayload);
     } catch (e, stacktrace) {
-      print("****** Error preparing image for rotation isolate: $e");
-      print(stacktrace);
       _pendingImageDataBytes = null;
       _isWaitingForRotation = false;
       _isBusy = false;
@@ -444,7 +368,6 @@ class _RealtimeObjectDetectionScreenState
 
   void _switchCamera() {
     if (widget.cameras.length < 2 || _isBusy) return;
-    print("Switching camera...");
     final newIndex = (_cameraIndex + 1) % widget.cameras.length;
     _stopCameraStream().then((_) {
       _initializeCamera(widget.cameras[newIndex]);
@@ -469,6 +392,12 @@ class _RealtimeObjectDetectionScreenState
         ],
       );
     }
+
+    final double cameraAspectRatio = (_isCameraInitialized &&
+            _cameraController != null &&
+            _cameraController!.value.isInitialized)
+        ? _cameraController!.value.aspectRatio
+        : 1.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -495,13 +424,12 @@ class _RealtimeObjectDetectionScreenState
                 _cameraController!.value.isInitialized)
               Center(
                 child: AspectRatio(
-                  aspectRatio: _cameraController!.value.aspectRatio,
+                  aspectRatio: cameraAspectRatio,
                   child: cameraPreviewWidget,
                 ),
               )
             else
               Center(child: cameraPreviewWidget),
-
             if (_isCameraInitialized &&
                 _detectedObjects.isNotEmpty &&
                 _lastImageSize != null &&
@@ -516,25 +444,10 @@ class _RealtimeObjectDetectionScreenState
                     rotation: _imageRotation!,
                     cameraLensDirection:
                         widget.cameras[_cameraIndex].lensDirection,
+                    cameraPreviewAspectRatio: cameraAspectRatio,
                   ),
                 );
               }),
-
-            // "처리 중..." 오버레이 표시 로직 제거
-            // if (_isBusy && _isCameraInitialized)
-            //   Container(
-            //     color: Colors.black.withOpacity(0.5),
-            //     child: const Center(
-            //       child: Column(
-            //         mainAxisSize: MainAxisSize.min,
-            //         children: [
-            //           CircularProgressIndicator(color: Colors.white),
-            //           SizedBox(height: 8),
-            //           Text("처리 중...", style: TextStyle(color: Colors.white, fontSize: 16)),
-            //         ],
-            //       )
-            //     ),
-            //   ),
           ],
         ),
       ),
