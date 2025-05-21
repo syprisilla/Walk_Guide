@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
+import 'package:walk_guide/settings_page.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -15,6 +20,50 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   double Function()? _getSpeed;
+  final FlutterTts _flutterTts = FlutterTts();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNicknameAndGreet();
+  }
+
+  Future<void> _loadNicknameAndGreet() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final doc =
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final enabled = await isVoiceGuideEnabled();
+
+        if (doc.exists && enabled) {
+          final nickname = doc['nickname'];
+          _speakWelcome(nickname);
+        }
+      }
+    } catch (e) {
+      print("닉네임 불러오기 실패: $e");
+    }
+  }
+
+  String getTimeBasedWelcomeMessage(String nickname) {
+    final hour = DateTime.now().hour;
+
+    if (hour < 12) {
+      return "$nickname님, 좋은 아침입니다. 오늘도 안전하게 보행 도와드릴게요.";
+    } else if (hour < 18) {
+      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
+    } else {
+      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+    }
+  }
+
+  Future<void> _speakWelcome(String nickname) async {
+    final message = getTimeBasedWelcomeMessage(nickname);
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(message);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +81,7 @@ class _MainScreenState extends State<MainScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DescriptionPage(),
+                    builder: (context) => const DescriptionPage(),
                   ),
                 );
               },
@@ -45,9 +94,9 @@ class _MainScreenState extends State<MainScreen> {
           color: Colors.grey[300],
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('지도', style: TextStyle(fontSize: 24)),
-              const SizedBox(height: 20),
+            children: const [
+              Text('지도', style: TextStyle(fontSize: 24)),
+              SizedBox(height: 20),
             ],
           ),
         ),
@@ -92,12 +141,15 @@ class _MainScreenState extends State<MainScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AnalyticsDashboardPage(),
+                  builder: (context) => const AnalyticsDashboardPage(),
                 ),
               );
             } else if (index == 2) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('설정 페이지는 준비 중입니다')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsPage(),
+                ),
               );
             }
           },
