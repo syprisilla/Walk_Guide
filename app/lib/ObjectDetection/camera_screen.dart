@@ -10,11 +10,14 @@ import 'mlkit_object_detection.dart';
 import 'object_painter.dart';
 import 'dart:io';
 
+// enum DetectionModelType { mlkit } // IsolateDataHolder에서 사용하지 않으면 제거 가능
+
 class IsolateDataHolder {
   final SendPort mainSendPort;
   final RootIsolateToken? rootIsolateToken;
+  // final DetectionModelType modelType; // 세 번째 인자 제거 (또는 주석 처리)
 
-  IsolateDataHolder(this.mainSendPort, this.rootIsolateToken);
+  IsolateDataHolder(this.mainSendPort, this.rootIsolateToken); // 두 개의 인자만 받도록 수정
 }
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
@@ -86,9 +89,27 @@ class _RealtimeObjectDetectionScreenState
     _stopCameraStream();
     _objectDetectionSubscription?.cancel();
     _imageRotationSubscription?.cancel();
+
+    // ReceivePort 닫기 추가
+    try {
+      _objectDetectionReceivePort.close();
+    } catch (e) {
+      print("Error closing object detection receive port: $e");
+    }
+    try {
+      _imageRotationReceivePort.close();
+    } catch (e) {
+      print("Error closing image rotation receive port: $e");
+    }
+
     _killIsolates();
-    _cameraController?.dispose().catchError((e) {});
-    _objectDetector.close().catchError((e) {});
+    _cameraController?.dispose().catchError((e) {
+      print("Error disposing camera controller: $e");
+    });
+    _cameraController = null;
+    _objectDetector.close().catchError((e) {
+      print("Error closing object detector: $e");
+    });
     super.dispose();
   }
 
@@ -96,14 +117,15 @@ class _RealtimeObjectDetectionScreenState
     final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
 
     if (rootIsolateToken == null) {
+      print("RealtimeObjectDetectionScreen: RootIsolateToken is null. Cannot spawn.");
       return;
     }
 
     _objectDetectionReceivePort = ReceivePort();
     _objectDetectionIsolate = await Isolate.spawn(
         detectObjectsIsolateEntry,
-        IsolateDataHolder(
-            _objectDetectionReceivePort.sendPort, rootIsolateToken),
+        // IsolateDataHolder 생성자 호출 시 두 개의 인자만 전달
+        IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken),
         onError: _objectDetectionReceivePort.sendPort,
         onExit: _objectDetectionReceivePort.sendPort,
         debugName: "ObjectDetectionIsolate");
@@ -121,20 +143,31 @@ class _RealtimeObjectDetectionScreenState
   }
 
   void _killIsolates() {
-    try {
-      _objectDetectionIsolate?.kill(priority: Isolate.immediate);
-    } catch (e) {}
-    try {
-      _imageRotationIsolate?.kill(priority: Isolate.immediate);
-    } catch (e) {}
+    // Isolate 종료 전 'shutdown' 메시지 전송 (mlkit_object_detection.dart에서 처리 필요)
+    if (_objectDetectionIsolateSendPort != null) {
+      _objectDetectionIsolateSendPort!.send('shutdown');
+    }
+    _objectDetectionIsolate?.kill(priority: Isolate.immediate);
     _objectDetectionIsolate = null;
-    _imageRotationIsolate = null;
     _objectDetectionIsolateSendPort = null;
+
+    if (_imageRotationIsolateSendPort != null) {
+      _imageRotationIsolateSendPort!.send('shutdown');
+    }
+    _imageRotationIsolate?.kill(priority: Isolate.immediate);
+    _imageRotationIsolate = null;
     _imageRotationIsolateSendPort = null;
   }
 
   void _handleDetectionResult(dynamic message) {
     if (!mounted) return;
+
+    if (message == 'isolate_shutdown_ack_detection') {
+      print("RealtimeObjectDetectionScreen: Detection isolate acknowledged shutdown.");
+      _objectDetectionIsolate?.kill(priority: Isolate.immediate);
+      _objectDetectionIsolate = null;
+      return;
+    }
 
     if (_objectDetectionIsolateSendPort == null && message is SendPort) {
       _objectDetectionIsolateSendPort = message;
@@ -156,7 +189,7 @@ class _RealtimeObjectDetectionScreenState
       if (mounted) {
         setState(() {
           _detectedObjects = objectsToShow;
-          _imageRotation = _lastCalculatedRotation;
+          // _imageRotation = _lastCalculatedRotation; // 이 부분은 _handleRotationResult에서 _imageRotation을 직접 업데이트하도록 변경
         });
       }
 
@@ -167,16 +200,15 @@ class _RealtimeObjectDetectionScreenState
         message.length == 2 &&
         message[0] is String &&
         message[0].toString().contains('Error')) {
+      print('RealtimeObjectDetectionScreen: Detection Isolate Error: ${message[1]}');
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     } else if (message == null ||
         (message is List &&
             message.isEmpty &&
             message is! List<DetectedObject>)) {
+      print('RealtimeObjectDetectionScreen: Detection Isolate exited or sent empty/null message ($message).');
       _isWaitingForDetection = false;
-      if (_objectDetectionIsolateSendPort != null && message == null) {
-        _objectDetectionIsolateSendPort = null;
-      }
       if (_detectedObjects.isNotEmpty && mounted) {
         setState(() {
           _detectedObjects = [];
@@ -184,6 +216,7 @@ class _RealtimeObjectDetectionScreenState
       }
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     } else {
+      print('RealtimeObjectDetectionScreen: Unexpected message from Detection Isolate: ${message.runtimeType} - $message');
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     }
@@ -192,12 +225,19 @@ class _RealtimeObjectDetectionScreenState
   void _handleRotationResult(dynamic message) {
     if (!mounted) return;
 
+    if (message == 'isolate_shutdown_ack_rotation') {
+      print("RealtimeObjectDetectionScreen: Rotation isolate acknowledged shutdown.");
+      _imageRotationIsolate?.kill(priority: Isolate.immediate);
+      _imageRotationIsolate = null;
+      return;
+    }
+
     if (_imageRotationIsolateSendPort == null && message is SendPort) {
       _imageRotationIsolateSendPort = message;
     } else if (message is InputImageRotation?) {
       _isWaitingForRotation = false;
       _lastCalculatedRotation = message;
-      _imageRotation = message;
+      _imageRotation = message; // 직접 _imageRotation 업데이트
 
       if (_pendingImageDataBytes != null &&
           _objectDetectionIsolateSendPort != null &&
@@ -223,6 +263,7 @@ class _RealtimeObjectDetectionScreenState
         message.length == 2 &&
         message[0] is String &&
         message[0].toString().contains('Error')) {
+      print('RealtimeObjectDetectionScreen: Rotation Isolate Error: ${message[1]}');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
@@ -230,13 +271,12 @@ class _RealtimeObjectDetectionScreenState
         (message is List &&
             message.isEmpty &&
             message is! InputImageRotation)) {
+      print('RealtimeObjectDetectionScreen: Rotation Isolate exited or sent empty/null message ($message).');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
-      if (_imageRotationIsolateSendPort != null && message == null) {
-        _imageRotationIsolateSendPort = null;
-      }
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
     } else {
+      print('RealtimeObjectDetectionScreen: Unexpected message from Rotation Isolate: ${message.runtimeType} - $message');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
@@ -279,6 +319,7 @@ class _RealtimeObjectDetectionScreenState
         setState(() => _isCameraInitialized = false);
       }
     } catch (e, stacktrace) {
+      print('RealtimeObjectDetectionScreen: Unknown camera init error: $e\n$stacktrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -299,6 +340,7 @@ class _RealtimeObjectDetectionScreenState
     try {
       await _cameraController!.startImageStream(_processCameraImage);
     } catch (e, stacktrace) {
+      print('RealtimeObjectDetectionScreen: Start stream error: $e\n$stacktrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('카메라 스트림 시작 오류.')),
@@ -311,18 +353,21 @@ class _RealtimeObjectDetectionScreenState
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized ||
         !_cameraController!.value.isStreamingImages) {
+      _isBusy = false;
+      _isWaitingForRotation = false;
+      _isWaitingForDetection = false;
+      _pendingImageDataBytes = null;
       return;
     }
     try {
       await _cameraController!.stopImageStream();
     } catch (e, stacktrace) {
+      print('RealtimeObjectDetectionScreen: Stop stream error: $e\n$stacktrace');
     } finally {
-      if (mounted) {
-        _isBusy = false;
-        _isWaitingForRotation = false;
-        _isWaitingForDetection = false;
-        _pendingImageDataBytes = null;
-      }
+      _isBusy = false;
+      _isWaitingForRotation = false;
+      _isWaitingForDetection = false;
+      _pendingImageDataBytes = null;
     }
   }
 
@@ -360,6 +405,7 @@ class _RealtimeObjectDetectionScreenState
       };
       _imageRotationIsolateSendPort!.send(rotationPayload);
     } catch (e, stacktrace) {
+      print('RealtimeObjectDetectionScreen: Error processing image: $e\n$stacktrace');
       _pendingImageDataBytes = null;
       _isWaitingForRotation = false;
       _isBusy = false;
@@ -369,8 +415,12 @@ class _RealtimeObjectDetectionScreenState
   void _switchCamera() {
     if (widget.cameras.length < 2 || _isBusy) return;
     final newIndex = (_cameraIndex + 1) % widget.cameras.length;
-    _stopCameraStream().then((_) {
-      _initializeCamera(widget.cameras[newIndex]);
+    // Ensure stream is stopped before re-initializing
+    Future.microtask(() async {
+      await _stopCameraStream();
+      if (mounted) { // Check mounted again before initializing
+        _initializeCamera(widget.cameras[newIndex]);
+      }
     });
   }
 
@@ -422,25 +472,25 @@ class _RealtimeObjectDetectionScreenState
             if (_isCameraInitialized &&
                 _cameraController != null &&
                 _cameraController!.value.isInitialized)
-              Center(
+              Center( // Center the AspectRatio widget
                 child: AspectRatio(
                   aspectRatio: cameraAspectRatio,
                   child: cameraPreviewWidget,
                 ),
               )
             else
-              Center(child: cameraPreviewWidget),
+              Center(child: cameraPreviewWidget), // Also center the loading/error state
             if (_isCameraInitialized &&
                 _detectedObjects.isNotEmpty &&
                 _lastImageSize != null &&
                 _imageRotation != null)
               LayoutBuilder(builder: (context, constraints) {
                 return CustomPaint(
-                  size: constraints.biggest,
+                  size: constraints.biggest, // Use the full available size for the painter
                   painter: ObjectPainter(
                     objects: _detectedObjects,
                     imageSize: _lastImageSize!,
-                    screenSize: constraints.biggest,
+                    screenSize: constraints.biggest, // Painter's canvas size
                     rotation: _imageRotation!,
                     cameraLensDirection:
                         widget.cameras[_cameraIndex].lensDirection,
