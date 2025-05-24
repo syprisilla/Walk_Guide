@@ -57,7 +57,7 @@ class _RealtimeObjectDetectionScreenState
   int? _pendingImageDataFormatRaw;
   int? _pendingImageDataBytesPerRow;
 
-  bool _isDisposed = false;
+  bool _isDisposed = false; 
 
   @override
   void initState() {
@@ -506,7 +506,7 @@ class _RealtimeObjectDetectionScreenState
         ],
       ),
       body: SafeArea(
-        child: LayoutBuilder(
+        child: LayoutBuilder( 
           builder: (context, constraints) {
 
             final Size parentSize = constraints.biggest;
@@ -529,7 +529,7 @@ class _RealtimeObjectDetectionScreenState
                     _cameraController != null &&
                     _cameraController!.value.isInitialized)
                   Center(
-                    child: SizedBox(
+                    child: SizedBox( 
                       width: previewWidth,
                       height: previewHeight,
                       child: cameraPreviewWidget,
@@ -542,15 +542,17 @@ class _RealtimeObjectDetectionScreenState
                     _lastImageSize != null &&
                     _imageRotation != null)
                   CustomPaint(
-                    size: parentSize,
+                    size: parentSize, 
                     painter: ObjectPainter(
                       objects: _detectedObjects,
                       imageSize: _lastImageSize!,
-                      screenSize: parentSize,
+                      screenSize: parentSize, 
                       rotation: _imageRotation!,
                       cameraLensDirection:
                           widget.cameras[_cameraIndex].lensDirection,
                       cameraPreviewAspectRatio: cameraAspectRatio,
+                      // NameTag를 그리지 않도록 showNameTags를 명시적으로 false로 전달 (ObjectPainter 수정 필요)
+                      // showNameTags: false, 
                     ),
                   ),
               ],
