@@ -9,7 +9,7 @@ import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'mlkit_object_detection.dart';
 import 'object_painter.dart';
-import 'camera_screen.dart' show IsolateDataHolder; // IsolateDataHolder 정의를 가져옴
+import 'camera_screen.dart' show IsolateDataHolder;
 
 // 객체 크기 카테고리 및 정보 클래스 정의
 enum ObjectSizeCategory { small, medium, large, unknown }
@@ -17,8 +17,8 @@ enum ObjectSizeCategory { small, medium, large, unknown }
 class DetectedObjectInfo {
   final DetectedObject object;
   final ObjectSizeCategory sizeCategory;
-  final Rect boundingBox; // 화면 좌표계의 바운딩 박스 (Painter에서 사용된 displayRect와 유사)
-  final String? label;
+  final Rect boundingBox;
+  final String? label; // NameTag는 제거하지만, 내부적으로 label은 유지하여 디버깅 등에 활용 가능
 
   DetectedObjectInfo({
     required this.object,
@@ -36,7 +36,7 @@ class DetectedObjectInfo {
       case ObjectSizeCategory.large:
         return "큰";
       default:
-        return "";
+        return ""; // 크기를 알 수 없거나 매우 작으면 빈 문자열 반환
     }
   }
 }
@@ -44,7 +44,7 @@ class DetectedObjectInfo {
 
 class ObjectDetectionView extends StatefulWidget {
   final List<CameraDescription> cameras;
-  final Function(List<DetectedObjectInfo> objectsInfo)? onObjectsDetected; // 콜백 타입 변경
+  final Function(List<DetectedObjectInfo> objectsInfo)? onObjectsDetected;
   final ResolutionPreset resolutionPreset;
 
   const ObjectDetectionView({
@@ -63,11 +63,11 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   int _cameraIndex = 0;
   bool _isCameraInitialized = false;
   bool _isBusy = false;
-  List<DetectedObjectInfo> _processedObjects = []; // 화면 표시 및 콜백용 객체 정보
+  List<DetectedObjectInfo> _processedObjects = [];
   InputImageRotation? _imageRotation;
   late ObjectDetector _objectDetector;
-  Size? _lastImageSize; // 카메라 이미지 원본 크기
-  Size? _screenSize;    // 현재 화면(캔버스) 크기
+  Size? _lastImageSize;
+  Size? _screenSize;
 
   Isolate? _objectDetectionIsolate;
   Isolate? _imageRotationIsolate;
@@ -189,7 +189,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       _objectDetectionReceivePort = ReceivePort();
       _objectDetectionIsolate = await Isolate.spawn(
           detectObjectsIsolateEntry,
-          IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken), // 세 번째 인자 제거
+          IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken),
           onError: _objectDetectionReceivePort.sendPort,
           onExit: _objectDetectionReceivePort.sendPort,
           debugName: "ObjectDetectionIsolate_View");
@@ -268,17 +268,16 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         );
 
         ObjectSizeCategory sizeCategory = ObjectSizeCategory.unknown;
-        if (_screenSize!.width > 0 && _screenSize!.height > 0) { // 화면 크기가 유효할 때만 계산
+        if (_screenSize!.width > 0 && _screenSize!.height > 0) {
             final double screenArea = _screenSize!.width * _screenSize!.height;
             final double objectArea = displayRect.width * displayRect.height;
             if (screenArea > 0) {
                 final double areaRatio = objectArea / screenArea;
-                // 크기 임계값은 실제 테스트를 통해 조정 필요
-                if (areaRatio > 0.20) { // 예: 화면의 20% 이상
+                if (areaRatio > 0.20) {
                     sizeCategory = ObjectSizeCategory.large;
-                } else if (areaRatio > 0.05) { // 예: 화면의 5% 이상
+                } else if (areaRatio > 0.05) {
                     sizeCategory = ObjectSizeCategory.medium;
-                } else if (areaRatio > 0.005) { // 예: 화면의 0.5% 이상 (더 작은 값으로 조정 가능)
+                } else if (areaRatio > 0.005) {
                     sizeCategory = ObjectSizeCategory.small;
                 }
             }
@@ -290,7 +289,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
           object: largestMlKitObject,
           sizeCategory: sizeCategory,
           boundingBox: displayRect,
-          label: mainLabel,
+          label: mainLabel, // label 정보는 유지 (TTS 메시지 생성 시 사용 안 함)
         ));
       }
 
@@ -328,49 +327,44 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
 
   Rect _calculateDisplayRect({
     required Rect mlKitBoundingBox,
-    required Size originalImageSize, // 카메라에서 받은 이미지의 원본 크기
-    required Size canvasSize,        // 화면에 그려지는 캔버스의 크기 (LayoutBuilder의 constraints.biggest)
-    required InputImageRotation imageRotation, // 이미지 회전 정보
-    required CameraLensDirection cameraLensDirection, // 카메라 렌즈 방향
-    required double cameraPreviewAspectRatio,    // 카메라 프리뷰의 종횡비
+    required Size originalImageSize,
+    required Size canvasSize,
+    required InputImageRotation imageRotation,
+    required CameraLensDirection cameraLensDirection,
+    required double cameraPreviewAspectRatio,
   }) {
     if (originalImageSize.isEmpty || canvasSize.isEmpty || cameraPreviewAspectRatio <= 0) {
       return Rect.zero;
     }
 
-    // 1. CameraPreview 위젯이 화면(canvasSize) 내에서 차지하는 실제 영역(cameraViewRect) 계산
-    //    (ObjectPainter의 cameraViewRect 계산 로직과 동일하게)
     Rect cameraViewRect;
     final double screenAspectRatio = canvasSize.width / canvasSize.height;
 
-    if (screenAspectRatio > cameraPreviewAspectRatio) { // 화면이 프리뷰보다 가로로 넓은 경우 (프리뷰가 세로로 꽉 참)
+    if (screenAspectRatio > cameraPreviewAspectRatio) {
       final double fittedHeight = canvasSize.height;
       final double fittedWidth = fittedHeight * cameraPreviewAspectRatio;
       final double offsetX = (canvasSize.width - fittedWidth) / 2;
       cameraViewRect = Rect.fromLTWH(offsetX, 0, fittedWidth, fittedHeight);
-    } else { // 화면이 프리뷰보다 세로로 길거나 같은 비율인 경우 (프리뷰가 가로로 꽉 참)
+    } else {
       final double fittedWidth = canvasSize.width;
       final double fittedHeight = fittedWidth / cameraPreviewAspectRatio;
       final double offsetY = (canvasSize.height - fittedHeight) / 2;
       cameraViewRect = Rect.fromLTWH(0, offsetY, fittedWidth, fittedHeight);
     }
 
-    // 2. ML Kit 바운딩 박스를 cameraViewRect에 맞게 스케일링 및 변환
     final bool isImageRotatedSideways =
         imageRotation == InputImageRotation.rotation90deg ||
             imageRotation == InputImageRotation.rotation270deg;
 
-    // ML Kit이 처리한 이미지의 크기 (회전 고려)
     final double mlImageWidth = isImageRotatedSideways ? originalImageSize.height : originalImageSize.width;
     final double mlImageHeight = isImageRotatedSideways ? originalImageSize.width : originalImageSize.height;
 
     if (mlImageWidth == 0 || mlImageHeight == 0) return Rect.zero;
 
-    // 스케일 팩터: ML Kit 이미지 크기 -> cameraViewRect 크기
     final double scaleX = cameraViewRect.width / mlImageWidth;
     final double scaleY = cameraViewRect.height / mlImageHeight;
 
-    double l, t, r, b; // cameraViewRect 내에서의 상대적 좌표
+    double l, t, r, b;
 
     switch (imageRotation) {
       case InputImageRotation.rotation0deg:
@@ -379,7 +373,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         r = mlKitBoundingBox.right * scaleX;
         b = mlKitBoundingBox.bottom * scaleY;
         break;
-      case InputImageRotation.rotation90deg: // 이미지 시계방향 90도 회전됨 (ML Kit은 이 회전된 이미지를 처리)
+      case InputImageRotation.rotation90deg:
         l = mlKitBoundingBox.top * scaleX;
         t = (mlImageHeight - mlKitBoundingBox.right) * scaleY;
         r = mlKitBoundingBox.bottom * scaleX;
@@ -391,7 +385,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         r = (mlImageWidth - mlKitBoundingBox.left) * scaleX;
         b = (mlImageHeight - mlKitBoundingBox.top) * scaleY;
         break;
-      case InputImageRotation.rotation270deg: // 이미지 시계방향 270도 (반시계 90도) 회전됨
+      case InputImageRotation.rotation270deg:
         l = (mlImageWidth - mlKitBoundingBox.bottom) * scaleX;
         t = mlKitBoundingBox.left * scaleY;
         r = (mlImageWidth - mlKitBoundingBox.top) * scaleX;
@@ -399,28 +393,20 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         break;
     }
     
-    // Android 전면 카메라 미러링 처리 (ObjectPainter와 동일하게)
     if (cameraLensDirection == CameraLensDirection.front && Platform.isAndroid) {
        if (imageRotation == InputImageRotation.rotation0deg || imageRotation == InputImageRotation.rotation180deg) {
          final double tempL = l;
-         l = cameraViewRect.width - r; // cameraViewRect.width 기준으로 미러링
+         l = cameraViewRect.width - r;
          r = cameraViewRect.width - tempL;
        }
-       // 90, 270도의 경우, Android 전면 카메라는 이미 미러링된 이미지를 제공하거나,
-       // _calculateRotation에서 이미 최종 방향이 결정되었을 수 있습니다.
-       // ObjectPainter의 로직을 정확히 따르는 것이 중요합니다.
-       // 만약 ObjectPainter에서 90/270도에 대해 추가적인 미러링을 한다면 여기서도 반영해야 합니다.
-       // 현재 ObjectPainter는 90/270도에 대한 특별한 미러링 로직은 없어 보입니다.
     }
 
-    // 최종 화면(canvas) 좌표로 변환: cameraViewRect의 offset을 더함
     Rect displayRect = Rect.fromLTRB(
         cameraViewRect.left + l,
         cameraViewRect.top + t,
         cameraViewRect.left + r,
         cameraViewRect.top + b);
 
-    // 클리핑: 계산된 displayRect가 cameraViewRect를 벗어나지 않도록 (ObjectPainter와 동일)
     return Rect.fromLTRB(
       displayRect.left.clamp(cameraViewRect.left, cameraViewRect.right),
       displayRect.top.clamp(cameraViewRect.top, cameraViewRect.bottom),
@@ -428,7 +414,6 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       displayRect.bottom.clamp(cameraViewRect.top, cameraViewRect.bottom),
     );
   }
-
 
   void _handleRotationResult(dynamic message) {
     if (_isDisposed || !mounted) return;
@@ -450,7 +435,6 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
 
       if (_pendingImageDataBytes != null && _objectDetectionIsolateSendPort != null && message != null) {
         _isWaitingForDetection = true;
-        // _lastImageSize는 _processCameraImage에서 설정됨
         final Map<String, dynamic> payload = {
           'bytes': _pendingImageDataBytes!,
           'width': _pendingImageDataWidth!,
@@ -584,7 +568,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       _pendingImageDataFormatRaw = image.format.raw;
       _pendingImageDataBytesPerRow = image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
 
-      _lastImageSize = Size(image.width.toDouble(), image.height.toDouble()); // 카메라 이미지 원본 크기 저장
+      _lastImageSize = Size(image.width.toDouble(), image.height.toDouble());
 
       final camera = widget.cameras[_cameraIndex];
       final orientation = _currentDeviceOrientation ?? MediaQuery.of(context).orientation;
@@ -650,7 +634,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        _screenSize = constraints.biggest; // 화면 크기 업데이트
+        _screenSize = constraints.biggest;
         final Size parentSize = constraints.biggest;
         double previewWidth;
         double previewHeight;
@@ -674,16 +658,19 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
                 child: CameraPreview(_cameraController!),
               ),
             ),
-            if (_processedObjects.isNotEmpty && _lastImageSize != null && _imageRotation != null && _screenSize != null) // _screenSize null 체크 추가
+            if (_processedObjects.isNotEmpty && _lastImageSize != null && _imageRotation != null && _screenSize != null)
               CustomPaint(
                 size: parentSize,
                 painter: ObjectPainter(
-                  objects: _processedObjects.map((info) => info.object).toList(), // Painter는 DetectedObject 리스트를 받음
+                  // ObjectPainter는 DetectedObject 리스트를 받도록 유지 (NameTag 제거 위함)
+                  // 또는 DetectedObjectInfo를 받도록 ObjectPainter를 수정할 수 있음
+                  objects: _processedObjects.map((info) => info.object).toList(),
                   imageSize: _lastImageSize!,
-                  screenSize: _screenSize!, // screenSize 전달
+                  screenSize: _screenSize!,
                   rotation: _imageRotation!,
                   cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
                   cameraPreviewAspectRatio: cameraAspectRatio,
+                  showNameTags: false, // NameTag를 그리지 않도록 플래그 추가 (ObjectPainter 수정 필요)
                 ),
               ),
           ],
