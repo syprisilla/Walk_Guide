@@ -11,6 +11,7 @@ class ObjectPainter extends CustomPainter {
   final InputImageRotation rotation;
   final CameraLensDirection cameraLensDirection;
   final double cameraPreviewAspectRatio;
+  final bool showNameTags; // NameTag 표시 여부 플래그
 
   ObjectPainter({
     required this.objects,
@@ -19,6 +20,7 @@ class ObjectPainter extends CustomPainter {
     required this.rotation,
     required this.cameraLensDirection,
     required this.cameraPreviewAspectRatio,
+    this.showNameTags = false, // 기본값 false (NameTag 안 그림)
   });
 
   @override
@@ -31,9 +33,6 @@ class ObjectPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
       ..color = Colors.lightGreenAccent;
-
-    final Paint backgroundPaint = Paint()
-      ..color = Colors.black.withOpacity(0.6);
 
     Rect cameraViewRect;
     final double screenAspectRatio = size.width / size.height;
@@ -79,9 +78,9 @@ class ObjectPainter extends CustomPainter {
           break;
         case InputImageRotation.rotation90deg:
           l = boundingBox.top * scaleX;
-          t = (mlImageWidth - boundingBox.right) * scaleY;
+          t = (mlImageHeight - boundingBox.right) * scaleY;
           r = boundingBox.bottom * scaleX;
-          b = (mlImageWidth - boundingBox.left) * scaleY;
+          b = (mlImageHeight - boundingBox.left) * scaleY;
           break;
         case InputImageRotation.rotation180deg:
           l = (mlImageWidth - boundingBox.right) * scaleX;
@@ -90,17 +89,15 @@ class ObjectPainter extends CustomPainter {
           b = (mlImageHeight - boundingBox.top) * scaleY;
           break;
         case InputImageRotation.rotation270deg:
-          l = (mlImageHeight - boundingBox.bottom) * scaleX;
+          l = (mlImageWidth - boundingBox.bottom) * scaleX;
           t = boundingBox.left * scaleY;
-          r = (mlImageHeight - boundingBox.top) * scaleX;
+          r = (mlImageWidth - boundingBox.top) * scaleX;
           b = boundingBox.right * scaleY;
           break;
       }
 
-      if (cameraLensDirection == CameraLensDirection.front &&
-          Platform.isAndroid) {
-        if (rotation == InputImageRotation.rotation0deg ||
-            rotation == InputImageRotation.rotation180deg) {
+      if (cameraLensDirection == CameraLensDirection.front && Platform.isAndroid) {
+        if (rotation == InputImageRotation.rotation0deg || rotation == InputImageRotation.rotation180deg) {
           final double tempL = l;
           l = cameraViewRect.width - r;
           r = cameraViewRect.width - tempL;
@@ -122,11 +119,12 @@ class ObjectPainter extends CustomPainter {
       if (displayRect.width > 0 && displayRect.height > 0) {
         canvas.drawRect(displayRect, paintRect);
 
-        if (detectedObject.labels.isNotEmpty) {
+        // NameTag 표시 로직 (showNameTags 플래그가 true일 때만 실행)
+        if (showNameTags && detectedObject.labels.isNotEmpty) {
+          final Paint backgroundPaint = Paint()..color = Colors.black.withOpacity(0.6);
           final label = detectedObject.labels.first;
           final TextSpan span = TextSpan(
-            text:
-                ' ${label.text} (${(label.confidence * 100).toStringAsFixed(1)}%)',
+            text: ' ${label.text} (${(label.confidence * 100).toStringAsFixed(1)}%)',
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14.0,
@@ -141,10 +139,12 @@ class ObjectPainter extends CustomPainter {
 
           double textBgTop = displayRect.top - tp.height - 4;
           if (textBgTop < cameraViewRect.top) {
-            textBgTop = displayRect.top + 2;
+            textBgTop = displayRect.bottom + 2;
           }
-          if (textBgTop + tp.height + 4 > cameraViewRect.bottom) {
-            textBgTop = displayRect.bottom - tp.height - 6;
+          if (textBgTop + tp.height + 4 > cameraViewRect.bottom && displayRect.top - tp.height - 4 >= cameraViewRect.top) {
+             textBgTop = displayRect.top - tp.height - 4;
+          } else if (textBgTop + tp.height + 4 > cameraViewRect.bottom) {
+             textBgTop = cameraViewRect.bottom - tp.height - 4;
           }
 
           double textBgLeft = displayRect.left;
@@ -155,12 +155,10 @@ class ObjectPainter extends CustomPainter {
             textBgLeft = cameraViewRect.left;
           }
 
-          final Rect textBackgroundRect =
-              Rect.fromLTWH(textBgLeft, textBgTop, tp.width + 8, tp.height + 4);
+          final Rect textBackgroundRect = Rect.fromLTWH(textBgLeft, textBgTop, tp.width + 8, tp.height + 4);
 
           canvas.drawRect(textBackgroundRect, backgroundPaint);
-          tp.paint(canvas,
-              Offset(textBackgroundRect.left + 4, textBackgroundRect.top + 2));
+          tp.paint(canvas, Offset(textBackgroundRect.left + 4, textBackgroundRect.top + 2));
         }
       }
     }
@@ -173,6 +171,7 @@ class ObjectPainter extends CustomPainter {
         oldDelegate.screenSize != screenSize ||
         oldDelegate.rotation != rotation ||
         oldDelegate.cameraLensDirection != cameraLensDirection ||
-        oldDelegate.cameraPreviewAspectRatio != cameraPreviewAspectRatio;
+        oldDelegate.cameraPreviewAspectRatio != cameraPreviewAspectRatio ||
+        oldDelegate.showNameTags != showNameTags; // showNameTags 변경 시에도 다시 그리도록
   }
 }
