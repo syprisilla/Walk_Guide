@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
-import 'dart:ui'; // Required for Size
+import 'dart:ui'; 
 import 'dart:io' show Platform;
 
-import 'package:flutter/services.dart'; // Required for RootIsolateToken, BackgroundIsolateBinaryMessenger
+import 'package:flutter/services.dart'; 
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'camera_screen.dart' show IsolateDataHolder;
@@ -13,7 +13,7 @@ ObjectDetector initializeObjectDetector() {
   print("Logic: Initializing ObjectDetector (ML Kit)...");
   final options = ObjectDetectorOptions(
     mode: DetectionMode.stream,
-    classifyObjects: true, // 레이블 정보를 얻기 위해 true 유지
+    classifyObjects: true, 
     multipleObjects: true,
   );
   return ObjectDetector(options: options);
