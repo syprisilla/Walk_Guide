@@ -13,7 +13,7 @@ ObjectDetector initializeObjectDetector() {
   print("Logic: Initializing ObjectDetector (ML Kit)...");
   final options = ObjectDetectorOptions(
     mode: DetectionMode.stream,
-    classifyObjects: true,
+    classifyObjects: true, // 레이블 정보를 얻기 위해 true 유지
     multipleObjects: true,
   );
   return ObjectDetector(options: options);
