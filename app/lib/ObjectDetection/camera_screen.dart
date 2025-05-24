@@ -10,14 +10,11 @@ import 'mlkit_object_detection.dart';
 import 'object_painter.dart';
 import 'dart:io';
 
-// enum DetectionModelType { mlkit } // IsolateDataHolder에서 사용하지 않으므로 제거 또는 주석 처리
-
 class IsolateDataHolder {
   final SendPort mainSendPort;
   final RootIsolateToken? rootIsolateToken;
-  // final DetectionModelType modelType; // IsolateDataHolder 생성자 인자 개수 오류로 인해 제거 (또는 주석 처리)
 
-  IsolateDataHolder(this.mainSendPort, this.rootIsolateToken); // 두 개의 인자만 받도록 유지
+  IsolateDataHolder(this.mainSendPort, this.rootIsolateToken);
 }
 
 class RealtimeObjectDetectionScreen extends StatefulWidget {
@@ -60,7 +57,7 @@ class _RealtimeObjectDetectionScreenState
   int? _pendingImageDataFormatRaw;
   int? _pendingImageDataBytesPerRow;
 
-  bool _isDisposed = false; // dispose 상태 플래그
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -145,7 +142,7 @@ class _RealtimeObjectDetectionScreenState
     _objectDetectionReceivePort = ReceivePort();
     _objectDetectionIsolate = await Isolate.spawn(
         detectObjectsIsolateEntry,
-        IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken), // 두 개의 인자만 전달
+        IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken),
         onError: _objectDetectionReceivePort.sendPort,
         onExit: _objectDetectionReceivePort.sendPort,
         debugName: "ObjectDetectionIsolate_Realtime");
@@ -509,9 +506,8 @@ class _RealtimeObjectDetectionScreenState
         ],
       ),
       body: SafeArea(
-        child: LayoutBuilder( // LayoutBuilder를 사용하여 painter에게 올바른 screenSize 전달
+        child: LayoutBuilder(
           builder: (context, constraints) {
-            // _screenSize = constraints.biggest; // 이 파일에서는 _screenSize를 직접 사용하지 않으므로 주석 처리
 
             final Size parentSize = constraints.biggest;
             double previewWidth;
@@ -533,7 +529,7 @@ class _RealtimeObjectDetectionScreenState
                     _cameraController != null &&
                     _cameraController!.value.isInitialized)
                   Center(
-                    child: SizedBox( // SizedBox로 CameraPreview 크기 제어
+                    child: SizedBox(
                       width: previewWidth,
                       height: previewHeight,
                       child: cameraPreviewWidget,
@@ -546,11 +542,11 @@ class _RealtimeObjectDetectionScreenState
                     _lastImageSize != null &&
                     _imageRotation != null)
                   CustomPaint(
-                    size: parentSize, // CustomPaint는 부모의 전체 크기를 사용
+                    size: parentSize,
                     painter: ObjectPainter(
                       objects: _detectedObjects,
                       imageSize: _lastImageSize!,
-                      screenSize: parentSize, // Painter에게 실제 캔버스 크기 전달
+                      screenSize: parentSize,
                       rotation: _imageRotation!,
                       cameraLensDirection:
                           widget.cameras[_cameraIndex].lensDirection,
