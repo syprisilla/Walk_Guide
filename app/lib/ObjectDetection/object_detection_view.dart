@@ -11,14 +11,13 @@ import 'mlkit_object_detection.dart';
 import 'object_painter.dart';
 import 'camera_screen.dart' show IsolateDataHolder;
 
-// 객체 크기 카테고리 및 정보 클래스 정의
 enum ObjectSizeCategory { small, medium, large, unknown }
 
 class DetectedObjectInfo {
   final DetectedObject object;
   final ObjectSizeCategory sizeCategory;
   final Rect boundingBox;
-  final String? label; // NameTag는 제거하지만, 내부적으로 label은 유지하여 디버깅 등에 활용 가능
+  final String? label;
 
   DetectedObjectInfo({
     required this.object,
@@ -36,7 +35,7 @@ class DetectedObjectInfo {
       case ObjectSizeCategory.large:
         return "큰";
       default:
-        return ""; // 크기를 알 수 없거나 매우 작으면 빈 문자열 반환
+        return "";
     }
   }
 }
@@ -289,7 +288,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
           object: largestMlKitObject,
           sizeCategory: sizeCategory,
           boundingBox: displayRect,
-          label: mainLabel, // label 정보는 유지 (TTS 메시지 생성 시 사용 안 함)
+          label: mainLabel,
         ));
       }
 
@@ -662,15 +661,13 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
               CustomPaint(
                 size: parentSize,
                 painter: ObjectPainter(
-                  // ObjectPainter는 DetectedObject 리스트를 받도록 유지 (NameTag 제거 위함)
-                  // 또는 DetectedObjectInfo를 받도록 ObjectPainter를 수정할 수 있음
                   objects: _processedObjects.map((info) => info.object).toList(),
                   imageSize: _lastImageSize!,
                   screenSize: _screenSize!,
                   rotation: _imageRotation!,
                   cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
                   cameraPreviewAspectRatio: cameraAspectRatio,
-                  showNameTags: false, // NameTag를 그리지 않도록 플래그 추가 (ObjectPainter 수정 필요)
+                  showNameTags: false, // NameTag 그리지 않음
                 ),
               ),
           ],
