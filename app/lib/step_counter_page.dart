@@ -64,7 +64,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     requestPermission();
     loadSessions();
 
-    // ✅ 사용자 맞춤형 프로필 초기화
+    // 사용자 맞춤형 프로필 초기화
     final box = Hive.box<WalkSession>('walk_sessions');
     final sessions = box.values.toList();
     _userProfile = UserProfile.fromSessions(sessions);
@@ -169,8 +169,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       return;
     }
 
-    double avgSpeed = RealTimeSpeedService.getSpeed();
-    final delay = getGuidanceDelay(avgSpeed);
+    final delay = getGuidanceDelay(_userProfile.avgSpeed);
 
     String sizeDesc = objectInfo.sizeDescription;
     String message = "전방에";
