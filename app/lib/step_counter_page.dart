@@ -87,6 +87,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
     }
 
     if (status.isGranted) {
+      if (!Hive.isBoxOpen('recent_steps')) {
+        await Hive.openBox<DateTime>('recent_steps');
+        debugPrint(" Hive 'recent_steps' 박스 열림 완료");
+      }
       startPedometer();
       startAccelerometer();
       startCheckingMovement();
@@ -200,7 +204,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       _previousSteps = event.steps;
       _startTime = DateTime.now();
       _lastMovementTime = DateTime.now();
-      RealTimeSpeedService.clear();
+      RealTimeSpeedService.clear(delay: true);
       _steps = 0; // 새 세션 시작이므로 _steps는 0으로 초기화
       if (mounted && !_isDisposed) {
         setState(() {}); // UI에 초기값 반영 (예: 0걸음)
@@ -215,14 +219,16 @@ class _StepCounterPageState extends State<StepCounterPage> {
         currentPedometerSteps - (_previousSteps ?? currentPedometerSteps);
 
     if (stepDelta > 0) {
-      _steps += stepDelta; // 누적 걸음 수 업데이트
-      final now = DateTime.now();
+      _steps += stepDelta;
+      final baseTime = DateTime.now(); //  고정 기준 시간
       for (int i = 0; i < stepDelta; i++) {
-        RealTimeSpeedService.recordStep(now);
+        await RealTimeSpeedService.recordStep(
+          baseTime.add(Duration(milliseconds: i * 100)), //  시간 차이 줘서 기록
+        );
       }
-      _lastMovementTime = DateTime.now(); // 움직임 시간 갱신
+      _lastMovementTime = DateTime.now();
       if (mounted && !_isDisposed) {
-        setState(() {}); // UI 업데이트
+        setState(() {});
       }
     }
     _previousSteps = currentPedometerSteps; // 이전 pedometer 값 업데이트
@@ -269,7 +275,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
       _previousSteps = null;
       _steps = 0; // UI 표시용 걸음수는 0으로
       _startTime = null;
-      RealTimeSpeedService.clear();
+      RealTimeSpeedService.clear(delay: true);
       if (mounted && !_isDisposed) setState(() {});
       return;
     }
@@ -301,7 +307,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _initialSteps = null;
     _previousSteps = null;
     _startTime = null;
-    RealTimeSpeedService.clear();
+    RealTimeSpeedService.clear(delay: true);
     if (mounted && !_isDisposed) setState(() {});
   }
 
