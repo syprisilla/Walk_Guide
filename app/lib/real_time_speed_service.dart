@@ -1,28 +1,40 @@
 import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
 
 class RealTimeSpeedService {
   static const String boxName = 'recent_steps';
-  static const Duration window = Duration(seconds: 3);
-  static const Duration holdTime = Duration(seconds: 5);
+  static const Duration window = Duration(seconds: 12);
+  static const Duration holdTime = Duration(seconds: 10);
+  static const Duration clearDelay = Duration(seconds: 15); // 지연 삭제 시간
 
   static double _lastSpeed = 0.0;
   static DateTime? _lastUpdateTime;
 
-  static void recordStep([DateTime? time]) {
+  static Future<void> recordStep([DateTime? time]) async {
+    if (!Hive.isBoxOpen(boxName)) {
+      await Hive.openBox<DateTime>(boxName);
+      debugPrint("✅ Hive recent_steps 박스 열림 (recordStep 내부)");
+    }
+
     final box = Hive.box<DateTime>(boxName);
-    box.add(time ?? DateTime.now()); // 외부에서 받은 시간 사용, 없으면 현재 시간
+    final timestamp = time ?? DateTime.now();
+    box.add(timestamp);
+    debugPrint("📌 recordStep 저장됨: $timestamp");
   }
 
   static double getSpeed() {
+    if (!Hive.isBoxOpen(boxName)) {
+      debugPrint("⚠️ getSpeed 호출 시 박스가 열려있지 않음");
+      return 0.0;
+    }
+
     final box = Hive.box<DateTime>(boxName);
     final now = DateTime.now();
 
-    // 최근 걸음 리스트 필터링
     final validSteps = box.values
         .where((t) => now.difference(t).inSeconds <= window.inSeconds)
         .toList();
 
-    // 최근 걸음 수로 속도 계산
     final count = validSteps.length;
     final speed = count * 0.7 / window.inSeconds;
 
@@ -41,14 +53,29 @@ class RealTimeSpeedService {
     return 0.0;
   }
 
-  static void clear() {
+  static void clear({bool delay = false}) {
+    if (!Hive.isBoxOpen(boxName)) return;
+
     final box = Hive.box<DateTime>(boxName);
-    box.clear();
-    _lastSpeed = 0.0;
-    _lastUpdateTime = null;
+
+    if (delay) {
+      Future.delayed(clearDelay, () {
+        box.clear();
+        _lastSpeed = 0.0;
+        _lastUpdateTime = null;
+        debugPrint("🕒 recent_steps 지연 삭제됨");
+      });
+    } else {
+      box.clear();
+      _lastSpeed = 0.0;
+      _lastUpdateTime = null;
+      debugPrint("🧹 recent_steps 즉시 삭제됨");
+    }
   }
 
   static bool get hasRecentSteps {
+    if (!Hive.isBoxOpen(boxName)) return false;
+
     final box = Hive.box<DateTime>(boxName);
     return box.isNotEmpty;
   }
