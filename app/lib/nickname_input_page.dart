@@ -15,6 +15,14 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
   final _nicknameController = TextEditingController();
   bool _isSaving = false;
 
+  Future<bool> isNicknameTaken(String nickname) async {
+    final query = await FirebaseFirestore.instance
+        .collection('users')
+        .where('nickname', isEqualTo: nickname)
+        .get();
+    return query.docs.isNotEmpty;
+  }
+
   Future<void> _saveNickname() async {
     final nickname = _nicknameController.text.trim();
     final user = FirebaseAuth.instance.currentUser;
@@ -24,6 +32,28 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
     setState(() {
       _isSaving = true;
     });
+
+    final taken = await isNicknameTaken(nickname);
+    if (taken) {
+      setState(() {
+        _isSaving = false;
+      });
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('닉네임 중복'),
+          content: const Text('이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'email': user.email,
@@ -48,9 +78,12 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+  return PopScope(
+    canPop: false, // 뒤로가기 동작 차단
+    child: Scaffold(
       appBar: AppBar(
         title: const Text('닉네임 입력'),
+        automaticallyImplyLeading: false,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -82,6 +115,7 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
