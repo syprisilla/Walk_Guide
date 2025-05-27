@@ -152,23 +152,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                elevation: 2,
-              ),
-              icon: const Icon(Icons.login),
-              label: const Text(
-              'Google로 로그인하기',
-              style: TextStyle(fontSize: 16),
-            ),
-            onPressed: () => AuthService().signInWithGoogle(context),
-          ),
+          //     ElevatedButton.icon(
+          //       style: ElevatedButton.styleFrom(
+          //       backgroundColor: Colors.white,
+          //       foregroundColor: Colors.black,
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(8),
+          //       ),
+          //       padding: const EdgeInsets.symmetric(vertical: 14),
+          //       elevation: 2,
+          //     ),
+          //     icon: const Icon(Icons.login),
+          //     label: const Text(
+          //     'Google로 로그인하기',
+          //     style: TextStyle(fontSize: 16),
+          //   ),
+          //   onPressed: () => AuthService().signInWithGoogle(context),
+          // ),
           ],
           ),
         ),

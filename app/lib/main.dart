@@ -4,7 +4,7 @@ import 'package:walk_guide/walk_session.dart';
 import 'package:walk_guide/splash_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:camera/camera.dart';
-
+import 'package:walk_guide/nickname_input_page.dart';
 List<CameraDescription> camerasGlobal = [];
 
 void main() async {
@@ -20,12 +20,18 @@ void main() async {
   await Firebase.initializeApp();
 
   try {
-    camerasGlobal = await availableCameras();
+    //camerasGlobal = await availableCameras();
+    camerasGlobal = [];
   } on CameraException catch (e) {
-    print('Error finding cameras: ${e.code}, ${e.description}');
+    print('카메라 탐색 실패: $e');
+    camerasGlobal = []; // 카메라 없어도 빈 리스트로 초기화
   }
 
-  runApp(const MyApp());
+  runApp(
+      MaterialApp(
+        home: const NicknameInputPage(),
+      )
+  );
 }
 
 class MyApp extends StatelessWidget {
