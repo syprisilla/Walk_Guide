@@ -36,6 +36,7 @@ dependencies:
   firebase_core: ^2.27.0
   firebase_auth: ^4.17.4
   cloud_firestore: ^4.13.3
+  google_sign_in: ^6.1.4
 
    #음성 안내 끄기/켜기 설정 저장용 패키지 추가
   shared_preferences: ^2.2.2
