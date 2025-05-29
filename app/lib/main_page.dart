@@ -25,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   double Function()? _getSpeed;
   final FlutterTts _flutterTts = FlutterTts();
   LatLng? _currentLocation;
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -63,9 +64,14 @@ class _MainScreenState extends State<MainScreen> {
     if (permission == LocationPermission.deniedForever) return;
 
     Position position = await Geolocator.getCurrentPosition();
+    final newLocation = LatLng(position.latitude, position.longitude);
+
     setState(() {
-      _currentLocation = LatLng(position.latitude, position.longitude);
+      _currentLocation = newLocation;
     });
+
+    // 지도 중심을 내 위치로 이동
+    _mapController.move(newLocation, 16.0);
   }
 
   Future<void> _speakWelcome(String nickname) async {
@@ -110,6 +116,7 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         body: FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
             initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
             initialZoom: 15.0,
