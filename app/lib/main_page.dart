@@ -8,6 +8,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -88,17 +90,37 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Colors.grey[300],
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text('지도', style: TextStyle(fontSize: 24)),
-              SizedBox(height: 20),
-            ],
+        body: FlutterMap(
+          options: const MapOptions(
+            initialCenter: LatLng(37.5665, 126.9780), // 서울시청
+            initialZoom: 15.0,
           ),
+          children: [
+            TileLayer(
+              urlTemplate:
+                  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+              subdomains: const ['a', 'b', 'c'],
+              userAgentPackageName: 'com.oss.walk_guide',
+              tileProvider: NetworkTileProvider(),
+              tileSize: 256,
+              retinaMode: true,
+              backgroundColor: Colors.white,
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  width: 60,
+                  height: 60,
+                  point: LatLng(37.5665, 126.9780),
+                  child: const Icon(
+                    Icons.location_pin,
+                    size: 50,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         bottomNavigationBar: BottomNavigationBar(
           selectedFontSize: 16,

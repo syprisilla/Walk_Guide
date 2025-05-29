@@ -1,6 +1,6 @@
 name: walk_guide
 description: "A new Flutter project."
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -17,28 +17,31 @@ dependencies:
   sensors_plus: ^6.1.1
   permission_handler: ^12.0.0+1
 
-  # MLKit 및 카메라 관련 의존성 (추가됨)
+  # MLKit 및 카메라 관련 의존성
   camera: ^0.10.5+9
   google_mlkit_object_detection: ^0.11.0
   google_mlkit_commons: ^0.6.0
   isolate: '>=2.1.1 <4.0.0'
 
-
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   path_provider: ^2.0.15
 
-  # 음성 안내 기능 추가
+  # 음성 안내 기능
   flutter_tts: ^3.8.2  
   fl_chart: ^0.71.0
 
-  # firebase 로그인 기능용 패키지 추가
+  # Firebase 관련
   firebase_core: ^2.27.0
   firebase_auth: ^4.17.4
   cloud_firestore: ^4.13.3
 
-   #음성 안내 끄기/켜기 설정 저장용 패키지 추가
+  # 설정 저장용
   shared_preferences: ^2.2.2
+
+  # OpenStreetMap 기반 지도
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
 
 dev_dependencies:
   flutter_test:
@@ -50,6 +53,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
+
   assets:
     - assets/images/
