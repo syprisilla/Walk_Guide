@@ -81,13 +81,24 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   String getTimeBasedWelcomeMessage(String nickname) {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return "$nickname\uB2D8, \uC88B\uC740 \uC544\uCE68\uC785\uB2C8\uB2E4. \uC624\uB298\uB3C4 \uC548\uC804\uD558\uAC8C \uBCF4\uD5D8 \uB3C4\uC6C0\uC744 \uB4DC\uB9AC\uACA0\uC5B4\uC694.";
-    } else if (hour < 18) {
-      return "$nickname\uB2D8, \uC88B\uC740 \uC624\uD6C4\uC785\uB2C8\uB2E4. \uC624\uB298\uB3C4 \uD568\uAED8 \uAC78\uC5B4\uC694.";
+    final now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
+    final second = now.second;
+
+    // 오전 4:00:00 ~ 오전 11:59:59
+    final isMorning =
+        (hour > 4 || (hour == 4 && (minute > 0 || second > 0))) && hour < 12;
+
+    // 오후 12:00:00 ~ 오후 18:00:00 (6시)
+    final isAfternoon = (hour >= 12 && hour < 18);
+
+    if (isMorning) {
+      return "$nickname님, 좋은 아침입니다. 오늘도 안전한 보행 도움 드릴게요.";
+    } else if (isAfternoon) {
+      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
     } else {
-      return "$nickname\uB2D8, \uC88B\uC740 \uC800\uB141\uC785\uB2C8\uB2E4. \uC870\uC2EC\uD574\uC11C \uB2E4\uB140\uC624\uC138\uC694.";
+      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
     }
   }
 
