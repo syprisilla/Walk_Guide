@@ -119,6 +119,12 @@ class _MainScreenState extends State<MainScreen> {
           options: MapOptions(
             initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
             initialZoom: 15.0,
+            minZoom: 3.0, // 최소 축소 제한
+            maxZoom: 18.0, // 최대 확대 제한
+            maxBounds: LatLngBounds(
+              LatLng(-85.0, -180.0), // 남서쪽 경계
+              LatLng(85.0, 180.0), // 북동쪽 경계
+            ),
           ),
           children: [
             TileLayer(
