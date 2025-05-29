@@ -8,6 +8,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -21,11 +24,14 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   double Function()? _getSpeed;
   final FlutterTts _flutterTts = FlutterTts();
+  LatLng? _currentLocation;
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
     super.initState();
     _loadNicknameAndGreet();
+    _getCurrentLocation();
   }
 
   Future<void> _loadNicknameAndGreet() async {
@@ -35,27 +41,36 @@ class _MainScreenState extends State<MainScreen> {
         final doc =
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final enabled = await isVoiceGuideEnabled();
-
         if (doc.exists && enabled) {
           final nickname = doc['nickname'];
           _speakWelcome(nickname);
         }
       }
     } catch (e) {
-      print("닉네임 불러오기 실패: $e");
+      print("\uB2C9\uB124\uC784 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328: $e");
     }
   }
 
-  String getTimeBasedWelcomeMessage(String nickname) {
-    final hour = DateTime.now().hour;
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
 
-    if (hour < 12) {
-      return "$nickname님, 좋은 아침입니다. 오늘도 안전하게 보행 도와드릴게요.";
-    } else if (hour < 18) {
-      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
-    } else {
-      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) return;
     }
+
+    if (permission == LocationPermission.deniedForever) return;
+
+    Position position = await Geolocator.getCurrentPosition();
+    final newLocation = LatLng(position.latitude, position.longitude);
+
+    setState(() {
+      _currentLocation = newLocation;
+    });
+
+    _mapController.move(newLocation, 16.0);
   }
 
   Future<void> _speakWelcome(String nickname) async {
@@ -63,6 +78,28 @@ class _MainScreenState extends State<MainScreen> {
     await _flutterTts.setLanguage("ko-KR");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.speak(message);
+  }
+
+  String getTimeBasedWelcomeMessage(String nickname) {
+    final now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
+    final second = now.second;
+
+    // 오전 4:00:00 ~ 오전 11:59:59
+    final isMorning =
+        (hour > 4 || (hour == 4 && (minute > 0 || second > 0))) && hour < 12;
+
+    // 오후 12:00:00 ~ 오후 18:00:00 (6시)
+    final isAfternoon = (hour >= 12 && hour < 18);
+
+    if (isMorning) {
+      return "$nickname님, 좋은 아침입니다. 오늘도 안전한 보행 도움 드릴게요.";
+    } else if (isAfternoon) {
+      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
+    } else {
+      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+    }
   }
 
   @override
@@ -88,17 +125,61 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Colors.grey[300],
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text('지도', style: TextStyle(fontSize: 24)),
-              SizedBox(height: 20),
-            ],
+        body: FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
+            initialZoom: 15.0,
+            minZoom: 3.0, // 최소 축소 제한
+            maxZoom: 18.0, // 최대 확대 제한
+            maxBounds: LatLngBounds(
+              LatLng(-85.0, -180.0), // 남서쪽 경계
+              LatLng(85.0, 180.0), // 북동쪽 경계
+            ),
           ),
+          children: [
+            TileLayer(
+              urlTemplate:
+                  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+              subdomains: const ['a', 'b', 'c'],
+              userAgentPackageName: 'com.oss.walk_guide',
+              tileProvider: NetworkTileProvider(),
+              tileSize: 256,
+              retinaMode: true,
+              backgroundColor: Colors.white,
+            ),
+            if (_currentLocation != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _currentLocation!,
+                    width: 50,
+                    height: 50,
+                    child: const Icon(
+                      Icons.directions_walk,
+                      size: 40,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          // ignore: deprecated_member_use
+          backgroundColor: Colors.grey.withOpacity(0.6), // 반투명 회색 배경
+          elevation: 0,
+          child: const Icon(Icons.my_location,
+              color: Color.fromARGB(255, 254, 255, 255)),
+          onPressed: () {
+            if (_currentLocation != null) {
+              _mapController.move(_currentLocation!, 16.0);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('현재 위치를 가져올 수 없습니다.')),
+              );
+            }
+          },
         ),
         bottomNavigationBar: BottomNavigationBar(
           selectedFontSize: 16,
