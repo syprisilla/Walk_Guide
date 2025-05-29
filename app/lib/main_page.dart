@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
     } catch (e) {
-      print("닉네임 불러오기 실패: $e");
+      print("\uB2C9\uB124\uC784 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328: $e");
     }
   }
 
@@ -70,7 +70,6 @@ class _MainScreenState extends State<MainScreen> {
       _currentLocation = newLocation;
     });
 
-    // 지도 중심을 내 위치로 이동
     _mapController.move(newLocation, 16.0);
   }
 
@@ -84,11 +83,11 @@ class _MainScreenState extends State<MainScreen> {
   String getTimeBasedWelcomeMessage(String nickname) {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return "$nickname님, 좋은 아침입니다. 오늘도 안전하게 보행 도와드릴게요.";
+      return "$nickname\uB2D8, \uC88B\uC740 \uC544\uCE68\uC785\uB2C8\uB2E4. \uC624\uB298\uB3C4 \uC548\uC804\uD558\uAC8C \uBCF4\uD5D8 \uB3C4\uC6C0\uC744 \uB4DC\uB9AC\uACA0\uC5B4\uC694.";
     } else if (hour < 18) {
-      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
+      return "$nickname\uB2D8, \uC88B\uC740 \uC624\uD6C4\uC785\uB2C8\uB2E4. \uC624\uB298\uB3C4 \uD568\uAED8 \uAC78\uC5B4\uC694.";
     } else {
-      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+      return "$nickname\uB2D8, \uC88B\uC740 \uC800\uB141\uC785\uB2C8\uB2E4. \uC870\uC2EC\uD574\uC11C \uB2E4\uB140\uC624\uC138\uC694.";
     }
   }
 
@@ -140,9 +139,9 @@ class _MainScreenState extends State<MainScreen> {
                     width: 50,
                     height: 50,
                     child: const Icon(
-                      Icons.my_location,
+                      Icons.directions_walk,
                       size: 40,
-                      color: Colors.blue,
+                      color: Colors.redAccent,
                     ),
                   ),
                 ],
