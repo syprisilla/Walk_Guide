@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -23,11 +24,13 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   double Function()? _getSpeed;
   final FlutterTts _flutterTts = FlutterTts();
+  LatLng? _currentLocation;
 
   @override
   void initState() {
     super.initState();
     _loadNicknameAndGreet();
+    _getCurrentLocation();
   }
 
   Future<void> _loadNicknameAndGreet() async {
@@ -37,7 +40,6 @@ class _MainScreenState extends State<MainScreen> {
         final doc =
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final enabled = await isVoiceGuideEnabled();
-
         if (doc.exists && enabled) {
           final nickname = doc['nickname'];
           _speakWelcome(nickname);
@@ -48,16 +50,22 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  String getTimeBasedWelcomeMessage(String nickname) {
-    final hour = DateTime.now().hour;
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
 
-    if (hour < 12) {
-      return "$nickname님, 좋은 아침입니다. 오늘도 안전하게 보행 도와드릴게요.";
-    } else if (hour < 18) {
-      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
-    } else {
-      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) return;
     }
+
+    if (permission == LocationPermission.deniedForever) return;
+
+    Position position = await Geolocator.getCurrentPosition();
+    setState(() {
+      _currentLocation = LatLng(position.latitude, position.longitude);
+    });
   }
 
   Future<void> _speakWelcome(String nickname) async {
@@ -65,6 +73,17 @@ class _MainScreenState extends State<MainScreen> {
     await _flutterTts.setLanguage("ko-KR");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.speak(message);
+  }
+
+  String getTimeBasedWelcomeMessage(String nickname) {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return "$nickname님, 좋은 아침입니다. 오늘도 안전하게 보행 도와드릴게요.";
+    } else if (hour < 18) {
+      return "$nickname님, 좋은 오후입니다. 오늘도 함께 걸어요.";
+    } else {
+      return "$nickname님, 좋은 저녁입니다. 조심해서 다녀오세요.";
+    }
   }
 
   @override
@@ -91,8 +110,8 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         body: FlutterMap(
-          options: const MapOptions(
-            initialCenter: LatLng(37.5665, 126.9780), // 서울시청
+          options: MapOptions(
+            initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
             initialZoom: 15.0,
           ),
           children: [
@@ -106,20 +125,21 @@ class _MainScreenState extends State<MainScreen> {
               retinaMode: true,
               backgroundColor: Colors.white,
             ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  width: 60,
-                  height: 60,
-                  point: LatLng(37.5665, 126.9780),
-                  child: const Icon(
-                    Icons.location_pin,
-                    size: 50,
-                    color: Colors.redAccent,
+            if (_currentLocation != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _currentLocation!,
+                    width: 50,
+                    height: 50,
+                    child: const Icon(
+                      Icons.my_location,
+                      size: 40,
+                      color: Colors.blue,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
         bottomNavigationBar: BottomNavigationBar(
