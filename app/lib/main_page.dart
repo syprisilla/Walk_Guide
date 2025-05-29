@@ -154,6 +154,22 @@ class _MainScreenState extends State<MainScreen> {
               ),
           ],
         ),
+        floatingActionButton: FloatingActionButton(
+          // ignore: deprecated_member_use
+          backgroundColor: Colors.grey.withOpacity(0.6), // 반투명 회색 배경
+          elevation: 0,
+          child: const Icon(Icons.my_location,
+              color: Color.fromARGB(255, 254, 255, 255)),
+          onPressed: () {
+            if (_currentLocation != null) {
+              _mapController.move(_currentLocation!, 16.0);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('현재 위치를 가져올 수 없습니다.')),
+              );
+            }
+          },
+        ),
         bottomNavigationBar: BottomNavigationBar(
           selectedFontSize: 16,
           unselectedFontSize: 14,
