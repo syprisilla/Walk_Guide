@@ -26,12 +26,25 @@ class _MainScreenState extends State<MainScreen> {
   final FlutterTts _flutterTts = FlutterTts();
   LatLng? _currentLocation;
   final MapController _mapController = MapController();
+  final FocusNode _walkStartFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadNicknameAndGreet();
     _getCurrentLocation();
+
+    _walkStartFocusNode.addListener(() {
+      if (_walkStartFocusNode.hasFocus) {
+        _flutterTts.speak("보행을 시작하려면 이 버튼을 누르세요.");
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _walkStartFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNicknameAndGreet() async {
@@ -47,7 +60,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
     } catch (e) {
-      print("\uB2C9\uB124\uC784 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328: $e");
+      print("닉네임 불러오기 실패: $e");
     }
   }
 
@@ -86,11 +99,8 @@ class _MainScreenState extends State<MainScreen> {
     final minute = now.minute;
     final second = now.second;
 
-    // 오전 4:00:00 ~ 오전 11:59:59
     final isMorning =
         (hour > 4 || (hour == 4 && (minute > 0 || second > 0))) && hour < 12;
-
-    // 오후 12:00:00 ~ 오후 18:00:00 (6시)
     final isAfternoon = (hour >= 12 && hour < 18);
 
     if (isMorning) {
@@ -130,11 +140,11 @@ class _MainScreenState extends State<MainScreen> {
           options: MapOptions(
             initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
             initialZoom: 15.0,
-            minZoom: 3.0, // 최소 축소 제한
-            maxZoom: 18.0, // 최대 확대 제한
+            minZoom: 3.0,
+            maxZoom: 18.0,
             maxBounds: LatLngBounds(
-              LatLng(-85.0, -180.0), // 남서쪽 경계
-              LatLng(85.0, 180.0), // 북동쪽 경계
+              LatLng(-85.0, -180.0),
+              LatLng(85.0, 180.0),
             ),
           ),
           children: [
@@ -166,8 +176,7 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          // ignore: deprecated_member_use
-          backgroundColor: Colors.grey.withOpacity(0.6), // 반투명 회색 배경
+          backgroundColor: Colors.grey.withOpacity(0.6),
           elevation: 0,
           child: const Icon(Icons.my_location,
               color: Color.fromARGB(255, 254, 255, 255)),
@@ -185,21 +194,24 @@ class _MainScreenState extends State<MainScreen> {
           selectedFontSize: 16,
           unselectedFontSize: 14,
           iconSize: 32,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.directions_walk),
+              icon: Focus(
+                focusNode: _walkStartFocusNode,
+                child: const Icon(Icons.directions_walk),
+              ),
               label: '보행시작하기',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.bar_chart),
               label: '분석',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.settings),
               label: '설정',
             ),
           ],
-          onTap: (index) {
+          onTap: (index) async {
             if (index == 0) {
               if (widget.cameras.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -207,6 +219,9 @@ class _MainScreenState extends State<MainScreen> {
                 );
                 return;
               }
+
+              await _flutterTts.speak("보행을 시작합니다.");
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -219,6 +234,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               );
             } else if (index == 1) {
+              await _flutterTts.speak("분석 페이지로 이동합니다.");
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -226,6 +242,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               );
             } else if (index == 2) {
+              await _flutterTts.speak("설정 페이지로 이동합니다.");
               Navigator.push(
                 context,
                 MaterialPageRoute(
