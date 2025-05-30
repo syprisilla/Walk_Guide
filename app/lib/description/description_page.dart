@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'account_info_page.dart';
 import 'privacy_policy_page.dart';
 import 'app_guide_page.dart';
@@ -17,6 +18,7 @@ class DescriptionPage extends StatefulWidget {
 
 class _DescriptionPageState extends State<DescriptionPage> {
   String? nickname;
+  final FlutterTts _flutterTts = FlutterTts();
 
   final List<_DescriptionItem> items = [
     _DescriptionItem('보행 데이터 관리', PrivacyPolicyPage()),
@@ -35,11 +37,20 @@ class _DescriptionPageState extends State<DescriptionPage> {
   Future<void> fetchNickname() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       setState(() {
         nickname = doc.data()?['nickname'] ?? '사용자';
       });
     }
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(text);
   }
 
   @override
@@ -62,6 +73,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () {
+                _speak("계정 정보를 확인하는 페이지로 이동합니다.");
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AccountInfoPage()),
@@ -73,7 +85,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),  
+                      borderRadius: BorderRadius.circular(20),
                       image: const DecorationImage(
                         image: AssetImage('assets/images/profile.jpg'),
                         fit: BoxFit.cover,
@@ -85,35 +97,37 @@ class _DescriptionPageState extends State<DescriptionPage> {
                     TextSpan(
                       children: [
                         TextSpan(
-                            text: nickname ?? '...',
-                            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                          ),
+                          text: nickname ?? '...',
+                          style: const TextStyle(
+                              fontSize: 25, fontWeight: FontWeight.bold),
+                        ),
                         const TextSpan(
                           text: '님',
-                            style: TextStyle(fontSize: 25),
-                            ),
-                        ],
-                      ),
+                          style: TextStyle(fontSize: 25),
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
             ...items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => item.page),
-                  );
-                },
-                child: Text(
-                  item.title,
-                  style: const TextStyle(fontSize: 22),
-                ),
-              ),
-            )),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  child: GestureDetector(
+                    onTap: () {
+                      _speak("${item.title} 페이지로 이동합니다.");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => item.page),
+                      );
+                    },
+                    child: Text(
+                      item.title,
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
+                )),
           ],
         ),
       ),
