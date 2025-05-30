@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:walk_guide/voice_guide_service.dart'; // 추가
 import 'account_info_page.dart';
 import 'privacy_policy_page.dart';
 import 'app_guide_page.dart';
@@ -47,10 +48,13 @@ class _DescriptionPageState extends State<DescriptionPage> {
     }
   }
 
-  Future<void> _speak(String text) async {
-    await _flutterTts.setLanguage("ko-KR");
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.speak(text);
+  Future<void> _speakIfEnabled(String text) async {
+    final enabled = await isNavigationVoiceEnabled(); // 설정 불러오기
+    if (enabled) {
+      await _flutterTts.setLanguage("ko-KR");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.speak(text);
+    }
   }
 
   @override
@@ -72,8 +76,8 @@ class _DescriptionPageState extends State<DescriptionPage> {
           children: [
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () {
-                _speak("계정 정보를 확인하는 페이지로 이동합니다.");
+              onTap: () async {
+                await _speakIfEnabled("계정 정보를 확인하는 페이지로 이동합니다."); // 조건부 음성 안내
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AccountInfoPage()),
@@ -115,8 +119,9 @@ class _DescriptionPageState extends State<DescriptionPage> {
             ...items.map((item) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   child: GestureDetector(
-                    onTap: () {
-                      _speak("${item.title} 페이지로 이동합니다.");
+                    onTap: () async {
+                      await _speakIfEnabled(
+                          "${item.title} 페이지로 이동합니다."); // 조건부 음성 안내
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => item.page),

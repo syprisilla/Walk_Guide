@@ -34,8 +34,9 @@ class _MainScreenState extends State<MainScreen> {
     _loadNicknameAndGreet();
     _getCurrentLocation();
 
-    _walkStartFocusNode.addListener(() {
-      if (_walkStartFocusNode.hasFocus) {
+    _walkStartFocusNode.addListener(() async {
+      final enabled = await isNavigationVoiceEnabled();
+      if (_walkStartFocusNode.hasFocus && enabled) {
         _flutterTts.speak("보행을 시작하려면 이 버튼을 누르세요.");
       }
     });
@@ -212,6 +213,8 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
           onTap: (index) async {
+            final navigationVoiceEnabled = await isNavigationVoiceEnabled();
+
             if (index == 0) {
               if (widget.cameras.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -220,7 +223,9 @@ class _MainScreenState extends State<MainScreen> {
                 return;
               }
 
-              await _flutterTts.speak("보행을 시작합니다.");
+              if (navigationVoiceEnabled) {
+                await _flutterTts.speak("보행을 시작합니다.");
+              }
 
               Navigator.push(
                 context,
@@ -234,7 +239,10 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               );
             } else if (index == 1) {
-              await _flutterTts.speak("분석 페이지로 이동합니다.");
+              if (navigationVoiceEnabled) {
+                await _flutterTts.speak("분석 페이지로 이동합니다.");
+              }
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -242,7 +250,10 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               );
             } else if (index == 2) {
-              await _flutterTts.speak("설정 페이지로 이동합니다.");
+              if (navigationVoiceEnabled) {
+                await _flutterTts.speak("설정 페이지로 이동합니다.");
+              }
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
