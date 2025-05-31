@@ -45,11 +45,11 @@ class DetectedObjectInfo {
   String get horizontalLocationDescription {
     switch (horizontalLocation) {
       case ObjectHorizontalLocation.left:
-        return "좌측";
+        return "좌측 전방";
       case ObjectHorizontalLocation.center:
-        return "중앙";
+        return "전방";
       case ObjectHorizontalLocation.right:
-        return "우측";
+        return "우측 전방";
       default:
         return "전방";
     }
