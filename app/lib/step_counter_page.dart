@@ -18,6 +18,7 @@ import 'package:walk_guide/voice_guide_service.dart';
 import './ObjectDetection/object_detection_view.dart';
 
 import 'package:walk_guide/user_profile.dart'; // UserProfile 경로 확인
+import 'package:flutter/services.dart';
 
 class StepCounterPage extends StatefulWidget {
   final void Function(double Function())? onInitialized;
@@ -55,24 +56,29 @@ class _StepCounterPageState extends State<StepCounterPage> {
   bool _isDisposed = false; // dispose 상태 플래그
 
   @override
-  void initState() {
-    super.initState();
-    _isDisposed = false; // dispose 상태 초기화
-    flutterTts = FlutterTts();
-    flutterTts.setSpeechRate(0.5); // TTS 속도 설정
-    flutterTts.setLanguage("ko-KR"); // TTS 언어 설정 (한국어)
+void initState() {
+  super.initState();
+  _isDisposed = false;
 
-    requestPermission(); // 권한 요청
-    loadSessions(); // 저장된 세션 불러오기
+  // 화면을 가로 모드로 설정
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
 
-    // 사용자 맞춤형 프로필 초기화
-    final box = Hive.box<WalkSession>('walk_sessions');
-    final sessions = box.values.toList();
-    _userProfile = UserProfile.fromSessions(sessions); // 이전 세션들로 프로필 생성
+  flutterTts = FlutterTts();
+  flutterTts.setSpeechRate(0.5);
+  flutterTts.setLanguage("ko-KR");
 
-    // RealTimeSpeedService를 onInitialized 콜백으로 전달 (필요시)
-    widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
-  }
+  requestPermission();
+  loadSessions();
+
+  final box = Hive.box<WalkSession>('walk_sessions');
+  final sessions = box.values.toList();
+  _userProfile = UserProfile.fromSessions(sessions);
+
+  widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
+}
 
   // ObjectDetectionView로부터 감지된 객체 정보를 받는 콜백 함수
   void _handleDetectedObjects(List<DetectedObjectInfo> objectsInfo) {
