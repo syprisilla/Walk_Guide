@@ -667,14 +667,22 @@ void initState() {
   }
 
   @override
-  void dispose() {
-    _isDisposed = true; // dispose 상태로 설정
-    _stepCountSubscription?.cancel();
-    _accelerometerSubscription?.cancel();
-    _checkTimer?.cancel();
-    flutterTts.stop(); // TTS 중지
-    // _saveSessionData(); // 페이지 종료 시 현재 세션 저장 (선택적: AppBar의 뒤로가기 버튼에서 이미 처리)
-    super.dispose();
-    print("StepCounterPage disposed");
-  }
+void dispose() {
+  _isDisposed = true;
+
+  // 화면 방향을 다시 세로 모드로 복구
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  // 또는 모든 방향 허용:
+  // SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+
+  _stepCountSubscription?.cancel();
+  _accelerometerSubscription?.cancel();
+  _checkTimer?.cancel();
+  flutterTts.stop();
+  super.dispose();
+  print("StepCounterPage disposed");
+}
 }
