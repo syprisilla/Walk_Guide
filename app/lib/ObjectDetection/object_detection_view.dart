@@ -1,7 +1,5 @@
-// syprisilla/walk_guide/Walk_Guide-6a291b2d27615ed276ef08f7956a8c04df5ca664/app/lib/ObjectDetection/object_detection_view.dart
-
 import 'dart:async';
-import 'dart:io';
+import 'dart:io'; // Platform 사용을 위해 추가
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
@@ -10,10 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'mlkit_object_detection.dart';
-import 'camera_screen.dart' show IsolateDataHolder;
 import 'object_painter.dart';
+import 'camera_screen.dart' show IsolateDataHolder; // IsolateDataHolder 경로 확인
 
+// 객체의 가로 위치를 나타내는 열거형
+enum ObjectHorizontalLocation { left, center, right, unknown }
 
+// 객체의 크기 범주를 나타내는 열거형 (기존 위치에 이미 정의되어 있을 수 있음)
 enum ObjectSizeCategory { small, medium, large, unknown }
 
 class DetectedObjectInfo {
@@ -36,13 +37,28 @@ class DetectedObjectInfo {
       case ObjectSizeCategory.small:
         return "작은";
       case ObjectSizeCategory.medium:
-        return "중간 크기의";
+        return "중간";
       case ObjectSizeCategory.large:
         return "큰";
       default:
         return "";
     }
   }
+
+  // 위치 설명을 반환하는 getter
+  String get horizontalLocationDescription {
+    switch (horizontalLocation) {
+      case ObjectHorizontalLocation.left:
+        return "좌측";
+      case ObjectHorizontalLocation.center:
+        return "중앙"; // 또는 "전방"으로 해석될 수 있음
+      case ObjectHorizontalLocation.right:
+        return "우측";
+      default:
+        return "전방"; // 기본값 또는 위치 불명확 시
+    }
+  }
+}
 
 
 class ObjectDetectionView extends StatefulWidget {
@@ -70,7 +86,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   InputImageRotation? _imageRotation;
   late ObjectDetector _objectDetector;
   Size? _lastImageSize;
-  Size? _screenSize;
+  Size? _screenSize; // 화면 크기를 저장할 변수
 
   Isolate? _objectDetectionIsolate;
   Isolate? _imageRotationIsolate;
@@ -94,7 +110,6 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   Orientation? _currentDeviceOrientation;
 
   bool _isDisposed = false;
-  bool _isShuttingDownIsolates = false;
 
   @override
   void initState() {
@@ -135,138 +150,51 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
 
   @override
   void dispose() {
-    print("****** ObjectDetectionView: Dispose called. Current state: _isDisposed: $_isDisposed, _isShuttingDownIsolates: $_isShuttingDownIsolates");
-    if (_isDisposed) {
-      print("****** ObjectDetectionView: Already disposed. Skipping further actions.");
-      return;
-    }
+    print("****** ObjectDetectionView: Dispose called.");
     _isDisposed = true;
-    _isShuttingDownIsolates = true;
-    print("****** ObjectDetectionView: Set _isDisposed=true, _isShuttingDownIsolates=true. Initiating cleanup.");
 
-    // 1. 즉시 Isolate에 종료 신호 전송
-    _sendShutdownSignalToIsolates();
-
-    // 2. 비동기 정리 작업 예약 (카메라 및 기타 리소스)
-    //    dispose() 자체는 동기적으로 완료되어야 하므로, 오래 걸리는 작업은 microtask로 분리
     Future.microtask(() async {
-      print("****** ObjectDetectionView: Dispose microtask started.");
+      await _stopCameraStream();
 
-      // 2a. 카메라 스트림 중지 (가장 먼저 수행)
-      if (_cameraController != null && _cameraController!.value.isInitialized && _cameraController!.value.isStreamingImages) {
-        try {
-          print("****** ObjectDetectionView: Attempting to stop image stream in microtask...");
-          await _cameraController!.stopImageStream();
-          print("****** ObjectDetectionView: Image stream stopped in microtask.");
-        } catch (e, stacktrace) {
-          print('****** ObjectDetectionView: Error stopping image stream in microtask: $e\n$stacktrace');
-        }
-      }
-      // 스트림 중지 후 관련 플래그 즉시 초기화
-      _isBusy = false;
-      _isWaitingForRotation = false;
-      _isWaitingForDetection = false;
-      _pendingImageDataBytes = null;
+      await _objectDetectionSubscription?.cancel();
+      _objectDetectionSubscription = null;
+      await _imageRotationSubscription?.cancel();
+      _imageRotationSubscription = null;
+      print("****** ObjectDetectionView: Subscriptions cancelled.");
 
-      // 2b. Isolate가 종료 신호를 처리할 시간 확보 (짧은 지연)
-      // 이 시간 동안 Isolate는 'shutdown' 메시지를 받고 자체 리소스(ObjectDetector)를 닫고 ack를 보낼 수 있음
-      await Future.delayed(const Duration(milliseconds: 250)); // 이전 300ms에서 약간 줄임
-
-      // 2c. 구독 취소
-      try {
-        await _objectDetectionSubscription?.cancel();
-        _objectDetectionSubscription = null;
-        await _imageRotationSubscription?.cancel();
-        _imageRotationSubscription = null;
-        print("****** ObjectDetectionView: Subscriptions cancelled in microtask.");
-      } catch (e) {
-        print("****** ObjectDetectionView: Error cancelling subscriptions in microtask: $e");
-      }
-      
-      // 2d. 수신 포트 닫기
       try {
         _objectDetectionReceivePort.close();
-        print("****** ObjectDetectionView: Object detection receive port closed in microtask.");
+        print("****** ObjectDetectionView: Object detection receive port closed.");
       } catch (e) {
-        print("****** ObjectDetectionView: Error closing object detection receive port in microtask: $e");
+        print("****** ObjectDetectionView: Error closing object detection receive port: $e");
       }
       try {
         _imageRotationReceivePort.close();
-        print("****** ObjectDetectionView: Image rotation receive port closed in microtask.");
+        print("****** ObjectDetectionView: Image rotation receive port closed.");
       } catch (e) {
-        print("****** ObjectDetectionView: Error closing image rotation receive port in microtask: $e");
+        print("****** ObjectDetectionView: Error closing image rotation receive port: $e");
       }
 
-      // 2e. Isolate 강제 종료 (정상 종료되지 않은 경우 대비)
-      _forceKillRemainingIsolates(); // 내부에서 로그 출력
+      _killIsolates();
 
-      // 2f. 카메라 컨트롤러 해제
       try {
         await _cameraController?.dispose();
-        print("****** ObjectDetectionView: CameraController disposed in microtask.");
+        print("****** ObjectDetectionView: CameraController disposed.");
       } catch (e, stacktrace) {
-        print('****** ObjectDetectionView: Error disposing CameraController in microtask: $e\n$stacktrace');
+        print('****** ObjectDetectionView: Error disposing CameraController: $e\n$stacktrace');
       }
-      _cameraController = null; // 참조 제거
+      _cameraController = null;
 
-      // 2g. 메인 Isolate의 ObjectDetector 해제
       try {
         await _objectDetector.close();
-        print("****** ObjectDetectionView: Main ObjectDetector closed in microtask.");
+        print("****** ObjectDetectionView: Main ObjectDetector closed.");
       } catch (e, stacktrace) {
-        print('****** ObjectDetectionView: Error closing main ObjectDetector in microtask: $e\n$stacktrace');
+        print('****** ObjectDetectionView: Error closing main ObjectDetector: $e\n$stacktrace');
       }
-      print("****** ObjectDetectionView: Dispose microtask completed.");
     });
 
     super.dispose();
-    print("****** ObjectDetectionView: super.dispose() completed.");
-  }
-
-  void _sendShutdownSignalToIsolates() {
-    print("****** ObjectDetectionView: _sendShutdownSignalToIsolates called.");
-    if (_objectDetectionIsolateSendPort != null) {
-      try {
-        print("****** ObjectDetectionView: Sending 'shutdown' to DetectionIsolate.");
-        _objectDetectionIsolateSendPort!.send('shutdown');
-      } catch (e) {
-        print("****** ObjectDetectionView: Error sending 'shutdown' to DetectionIsolate: $e. Isolate might have already exited.");
-        // Isolate가 이미 종료되었을 수 있으므로, 오류 발생 시 SendPort를 null로 설정하여 재시도 방지
-        _objectDetectionIsolateSendPort = null;
-      }
-    } else {
-      print("****** ObjectDetectionView: DetectionIsolateSendPort is null. Cannot send shutdown.");
-    }
-
-    if (_imageRotationIsolateSendPort != null) {
-      try {
-        print("****** ObjectDetectionView: Sending 'shutdown' to RotationIsolate.");
-        _imageRotationIsolateSendPort!.send('shutdown');
-      } catch (e) {
-        print("****** ObjectDetectionView: Error sending 'shutdown' to RotationIsolate: $e. Isolate might have already exited.");
-        _imageRotationIsolateSendPort = null;
-      }
-    } else {
-      print("****** ObjectDetectionView: RotationIsolateSendPort is null. Cannot send shutdown.");
-    }
-  }
-
-  void _forceKillRemainingIsolates() {
-    print("****** ObjectDetectionView: _forceKillRemainingIsolates called.");
-    if (_objectDetectionIsolate != null) {
-      print("****** ObjectDetectionView: Force-killing DetectionIsolate.");
-      _objectDetectionIsolate!.kill(priority: Isolate.immediate);
-      _objectDetectionIsolate = null;
-    }
-    _objectDetectionIsolateSendPort = null; // SendPort도 확실히 정리
-
-    if (_imageRotationIsolate != null) {
-      print("****** ObjectDetectionView: Force-killing RotationIsolate.");
-      _imageRotationIsolate!.kill(priority: Isolate.immediate);
-      _imageRotationIsolate = null;
-    }
-    _imageRotationIsolateSendPort = null; // SendPort도 확실히 정리
-    print("****** ObjectDetectionView: _forceKillRemainingIsolates completed.");
+    print("****** ObjectDetectionView: Dispose completed for super.");
   }
 
   Future<bool> _spawnIsolates() async {
@@ -278,21 +206,13 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
 
     try {
       _objectDetectionReceivePort = ReceivePort();
-      _objectDetectionIsolate = await Isolate.spawn<IsolateDataHolder>(
+      _objectDetectionIsolate = await Isolate.spawn(
           detectObjectsIsolateEntry,
           IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken),
           onError: _objectDetectionReceivePort.sendPort,
           onExit: _objectDetectionReceivePort.sendPort,
           debugName: "ObjectDetectionIsolate_View");
-      _objectDetectionSubscription = _objectDetectionReceivePort.listen(_handleDetectionResult,
-        onError: (error, stackTrace) {
-          print("****** ObjectDetectionView: Error in _objectDetectionReceivePort.listen: $error\n$stackTrace");
-        },
-        onDone: () {
-          print("****** ObjectDetectionView: _objectDetectionReceivePort is done.");
-        },
-        cancelOnError: false // 오류 발생 시에도 스트림을 유지하여 ack 메시지 등을 받을 수 있도록 함
-      );
+      _objectDetectionSubscription = _objectDetectionReceivePort.listen(_handleDetectionResult);
       print("****** ObjectDetectionView: ObjectDetectionIsolate spawned.");
 
       _imageRotationReceivePort = ReceivePort();
@@ -301,58 +221,56 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
           onError: _imageRotationReceivePort.sendPort,
           onExit: _imageRotationReceivePort.sendPort,
           debugName: "ImageRotationIsolate_View");
-      _imageRotationSubscription = _imageRotationReceivePort.listen(_handleRotationResult,
-        onError: (error, stackTrace) {
-          print("****** ObjectDetectionView: Error in _imageRotationReceivePort.listen: $error\n$stackTrace");
-        },
-        onDone: () {
-          print("****** ObjectDetectionView: _imageRotationReceivePort is done.");
-        },
-        cancelOnError: false
-      );
+      _imageRotationSubscription = _imageRotationReceivePort.listen(_handleRotationResult);
       print("****** ObjectDetectionView: ImageRotationIsolate spawned.");
       return true;
     } catch (e, stacktrace) {
       print("****** ObjectDetectionView: Failed to spawn isolates: $e\n$stacktrace");
-      if (mounted && !_isDisposed) { // initState에서 setState 호출 시 mounted 확인
-         setState(() {
-            _initializationErrorMsg = "백그라운드 작업 생성 실패: $e";
-         });
-      } else if (!_isDisposed) { // initState 외부에서 _initializationErrorMsg 설정 시
-         _initializationErrorMsg = "백그라운드 작업 생성 실패: $e";
-      }
+      _initializationErrorMsg = "백그라운드 작업 생성 실패: $e";
+      if(mounted && !_isDisposed) setState(() {});
       return false;
     }
   }
 
+  void _killIsolates() {
+    if (_objectDetectionIsolateSendPort != null && !_isDisposed) {
+        _objectDetectionIsolateSendPort!.send('shutdown');
+        print("****** ObjectDetectionView: Sent 'shutdown' to DetectionIsolate.");
+    } else {
+      _objectDetectionIsolate?.kill(priority: Isolate.immediate);
+      _objectDetectionIsolate = null;
+      print("****** ObjectDetectionView: DetectionIsolate killed (no SendPort or already disposed).");
+    }
+    _objectDetectionIsolateSendPort = null;
+
+    if (_imageRotationIsolateSendPort != null && !_isDisposed) {
+        _imageRotationIsolateSendPort!.send('shutdown');
+        print("****** ObjectDetectionView: Sent 'shutdown' to RotationIsolate.");
+    } else {
+      _imageRotationIsolate?.kill(priority: Isolate.immediate);
+      _imageRotationIsolate = null;
+      print("****** ObjectDetectionView: RotationIsolate killed (no SendPort or already disposed).");
+    }
+    _imageRotationIsolateSendPort = null;
+  }
+
   void _handleDetectionResult(dynamic message) {
-    // 종료 신호 확인 및 처리 (가장 먼저)
+    if (_isDisposed || !mounted) return;
+
     if (message == 'isolate_shutdown_ack_detection') {
-        print("****** ObjectDetectionView: Detection isolate acknowledged shutdown. Nullifying isolate reference.");
-        // Isolate가 자체적으로 종료했으므로, 여기서 kill을 호출할 필요는 없지만,
-        // 만약을 위해 _forceKillRemainingIsolates에서 처리될 수 있도록 참조만 null로 설정
-        _objectDetectionIsolate = null; 
-        _objectDetectionIsolateSendPort = null;
+        print("****** ObjectDetectionView: Detection isolate acknowledged shutdown. Killing now.");
+        _objectDetectionIsolate?.kill(priority: Isolate.immediate);
+        _objectDetectionIsolate = null;
         return;
     }
 
-    // 위젯이 dispose되었거나, 종료 중이거나, 아직 mount되지 않은 경우 메시지 처리 중단 (SendPort 초기 설정 제외)
-    if ((_isDisposed || _isShuttingDownIsolates || !mounted) && message is! SendPort) {
-        print("****** ObjectDetectionView (_handleDetectionResult): View disposed/shutting_down/unmounted. Ignoring message: ${message.runtimeType}");
-        return;
-    }
-    
     if (_objectDetectionIsolateSendPort == null && message is SendPort) {
       _objectDetectionIsolateSendPort = message;
       print("****** ObjectDetectionView: ObjectDetectionIsolate SendPort received.");
-      return; // SendPort 설정 후 바로 다음 메시지 처리로 넘어가지 않도록 return
-    }
-    
-    // 실제 데이터 처리 로직
-    if (message is List<DetectedObject>) {
-      // ... (기존 객체 처리 로직과 동일)
+    } else if (message is List<DetectedObject>) {
       List<DetectedObjectInfo> newProcessedObjects = [];
-      if (message.isNotEmpty && _lastImageSize != null && _screenSize != null && _imageRotation != null && _cameraController != null && _cameraController!.value.isInitialized) {
+
+      if (message.isNotEmpty && _lastImageSize != null && _screenSize != null && _imageRotation != null && _cameraController != null) {
         DetectedObject largestMlKitObject = message.reduce((curr, next) {
           final double areaCurr = curr.boundingBox.width * curr.boundingBox.height;
           final double areaNext = next.boundingBox.width * next.boundingBox.height;
@@ -374,57 +292,78 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
             final double objectArea = displayRect.width * displayRect.height;
             if (screenArea > 0) {
                 final double areaRatio = objectArea / screenArea;
-                if (areaRatio > 0.20) {
+                if (areaRatio > 0.20) { // 20% 이상 차지하면 large
                     sizeCategory = ObjectSizeCategory.large;
-                } else if (areaRatio > 0.05) {
+                } else if (areaRatio > 0.05) { // 5% 이상 차지하면 medium
                     sizeCategory = ObjectSizeCategory.medium;
-                } else if (areaRatio > 0.005) {
+                } else if (areaRatio > 0.005) { // 0.5% 이상 차지하면 small
                     sizeCategory = ObjectSizeCategory.small;
                 }
             }
         }
+        
+        // 객체의 화면상 가로 위치 판단 로직 추가
+        ObjectHorizontalLocation horizontalLocation = ObjectHorizontalLocation.unknown;
+        if (_screenSize!.width > 0 && displayRect.width > 0 && displayRect.height > 0) {
+            final double screenWidth = _screenSize!.width;
+            // 카메라 프리뷰 영역을 기준으로 3등분
+            // _calculateDisplayRect에서 반환된 displayRect는 이미 전체 스크린 기준의 좌표이므로,
+            // _screenSize!.width를 사용해도 무방.
+            // 만약 카메라 프리뷰가 화면 전체를 채우지 않는다면, 
+            // 카메라 프리뷰 영역(cameraViewRect)을 기준으로 계산해야 함.
+            // 여기서는 _calculateDisplayRect가 이미 cameraViewRect를 고려하여 최종 displayRect를 반환한다고 가정.
+
+            final double leftBoundary = screenWidth / 3.0;
+            final double rightBoundary = screenWidth * (2.0 / 3.0);
+            final double objectCenterX = displayRect.center.dx;
+
+            if (objectCenterX < leftBoundary) {
+                horizontalLocation = ObjectHorizontalLocation.left;
+            } else if (objectCenterX < rightBoundary) {
+                horizontalLocation = ObjectHorizontalLocation.center;
+            } else {
+                horizontalLocation = ObjectHorizontalLocation.right;
+            }
+        }
+        
         final String? mainLabel = largestMlKitObject.labels.isNotEmpty ? largestMlKitObject.labels.first.text : null;
+
         newProcessedObjects.add(DetectedObjectInfo(
           object: largestMlKitObject,
           sizeCategory: sizeCategory,
-          boundingBox: displayRect,
+          horizontalLocation: horizontalLocation, // 위치 정보 전달
+          boundingBox: displayRect, // 화면에 그려질 최종 바운딩 박스
           label: mainLabel,
         ));
       }
 
       _isWaitingForDetection = false;
-      if (mounted && !_isDisposed && !_isShuttingDownIsolates) { // setState 호출 조건 강화
+      if (mounted && !_isDisposed) {
         setState(() {
           _processedObjects = newProcessedObjects;
         });
       }
-      if (!_isShuttingDownIsolates) { // 종료 중이 아닐 때만 콜백 호출
-          widget.onObjectsDetected?.call(newProcessedObjects);
-      }
-
+      widget.onObjectsDetected?.call(newProcessedObjects);
 
       if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
         _isBusy = false;
       }
     } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().contains('Error')) {
       print('****** ObjectDetectionView: Detection Isolate Error: ${message[1]}');
-      if (mounted && !_isDisposed && !_isShuttingDownIsolates) setState(() => _processedObjects = []);
-      if (!_isShuttingDownIsolates) widget.onObjectsDetected?.call([]);
+      if (mounted && !_isDisposed) setState(() => _processedObjects = []);
+      widget.onObjectsDetected?.call([]);
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     } else if (message == null || (message is List && message.isEmpty && message is! List<DetectedObject>)) {
       print('****** ObjectDetectionView: Detection Isolate exited or sent empty/null message ($message).');
-      // Isolate가 예기치 않게 종료된 경우일 수 있음
-      if (mounted && !_isDisposed && !_isShuttingDownIsolates) setState(() => _processedObjects = []);
-      if (!_isShuttingDownIsolates) widget.onObjectsDetected?.call([]);
+      if (mounted && !_isDisposed) setState(() => _processedObjects = []);
+      widget.onObjectsDetected?.call([]);
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
-    } else if (message is SendPort) {
-        // 이미 위에서 처리됨. 여기서는 무시.
     } else {
       print('****** ObjectDetectionView: Unexpected message from Detection Isolate: ${message.runtimeType} - $message');
-      if (mounted && !_isDisposed && !_isShuttingDownIsolates) setState(() => _processedObjects = []);
-      if (!_isShuttingDownIsolates) widget.onObjectsDetected?.call([]);
+      if (mounted && !_isDisposed) setState(() => _processedObjects = []);
+      widget.onObjectsDetected?.call([]);
       _isWaitingForDetection = false;
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     }
@@ -433,63 +372,103 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   Rect _calculateDisplayRect({
     required Rect mlKitBoundingBox,
     required Size originalImageSize,
-    required Size canvasSize,
+    required Size canvasSize, // CustomPaint가 그려지는 전체 화면 또는 영역 크기
     required InputImageRotation imageRotation,
     required CameraLensDirection cameraLensDirection,
     required double cameraPreviewAspectRatio,
   }) {
-    // ... (이전과 동일한 로직)
     if (originalImageSize.isEmpty || canvasSize.isEmpty || cameraPreviewAspectRatio <= 0) {
       return Rect.zero;
     }
+
+    // 1. 카메라 프리뷰가 실제로 화면에 표시되는 영역(cameraViewRect) 계산
     Rect cameraViewRect;
     final double screenAspectRatio = canvasSize.width / canvasSize.height;
+
     if (screenAspectRatio > cameraPreviewAspectRatio) {
+      // 화면이 프리뷰보다 넓은 경우 (위아래 레터박스 또는 프리뷰가 세로로 꽉 참)
       final double fittedHeight = canvasSize.height;
       final double fittedWidth = fittedHeight * cameraPreviewAspectRatio;
-      final double offsetX = (canvasSize.width - fittedWidth) / 2;
+      final double offsetX = (canvasSize.width - fittedWidth) / 2; // 중앙 정렬을 위한 X 오프셋
       cameraViewRect = Rect.fromLTWH(offsetX, 0, fittedWidth, fittedHeight);
     } else {
+      // 프리뷰가 화면보다 넓은 경우 (좌우 레터박스 또는 프리뷰가 가로로 꽉 참)
       final double fittedWidth = canvasSize.width;
       final double fittedHeight = fittedWidth / cameraPreviewAspectRatio;
-      final double offsetY = (canvasSize.height - fittedHeight) / 2;
+      final double offsetY = (canvasSize.height - fittedHeight) / 2; // 중앙 정렬을 위한 Y 오프셋
       cameraViewRect = Rect.fromLTWH(0, offsetY, fittedWidth, fittedHeight);
     }
+
+    // 2. ML Kit에서 반환된 바운딩 박스를 카메라 프리뷰 좌표계에 맞게 변환
     final bool isImageRotatedSideways =
         imageRotation == InputImageRotation.rotation90deg ||
             imageRotation == InputImageRotation.rotation270deg;
+
+    // 회전을 고려한 ML Kit 이미지의 너비와 높이
     final double mlImageWidth = isImageRotatedSideways ? originalImageSize.height : originalImageSize.width;
     final double mlImageHeight = isImageRotatedSideways ? originalImageSize.width : originalImageSize.height;
+
     if (mlImageWidth == 0 || mlImageHeight == 0) return Rect.zero;
+
+    // ML Kit 이미지 좌표를 cameraViewRect 좌표로 변환하기 위한 스케일 계산
     final double scaleX = cameraViewRect.width / mlImageWidth;
     final double scaleY = cameraViewRect.height / mlImageHeight;
-    double l, t, r, b;
+
+    double l, t, r, b; // 변환된 좌표 (cameraViewRect 내에서의 상대 좌표)
+
     switch (imageRotation) {
       case InputImageRotation.rotation0deg:
-        l = mlKitBoundingBox.left * scaleX; t = mlKitBoundingBox.top * scaleY;
-        r = mlKitBoundingBox.right * scaleX; b = mlKitBoundingBox.bottom * scaleY;
+        l = mlKitBoundingBox.left * scaleX;
+        t = mlKitBoundingBox.top * scaleY;
+        r = mlKitBoundingBox.right * scaleX;
+        b = mlKitBoundingBox.bottom * scaleY;
         break;
       case InputImageRotation.rotation90deg:
-        l = mlKitBoundingBox.top * scaleX; t = (mlImageHeight - mlKitBoundingBox.right) * scaleY;
-        r = mlKitBoundingBox.bottom * scaleX; b = (mlImageHeight - mlKitBoundingBox.left) * scaleY;
+        l = mlKitBoundingBox.top * scaleX;
+        t = (mlImageHeight - mlKitBoundingBox.right) * scaleY; // Y축 반전 및 스케일
+        r = mlKitBoundingBox.bottom * scaleX;
+        b = (mlImageHeight - mlKitBoundingBox.left) * scaleY;  // Y축 반전 및 스케일
         break;
       case InputImageRotation.rotation180deg:
-        l = (mlImageWidth - mlKitBoundingBox.right) * scaleX; t = (mlImageHeight - mlKitBoundingBox.bottom) * scaleY;
-        r = (mlImageWidth - mlKitBoundingBox.left) * scaleX; b = (mlImageHeight - mlKitBoundingBox.top) * scaleY;
+        l = (mlImageWidth - mlKitBoundingBox.right) * scaleX;  // X축 반전 및 스케일
+        t = (mlImageHeight - mlKitBoundingBox.bottom) * scaleY; // Y축 반전 및 스케일
+        r = (mlImageWidth - mlKitBoundingBox.left) * scaleX;   // X축 반전 및 스케일
+        b = (mlImageHeight - mlKitBoundingBox.top) * scaleY;  // Y축 반전 및 스케일
         break;
       case InputImageRotation.rotation270deg:
-        l = (mlImageWidth - mlKitBoundingBox.bottom) * scaleX; t = mlKitBoundingBox.left * scaleY;
-        r = (mlImageWidth - mlKitBoundingBox.top) * scaleX; b = mlKitBoundingBox.right * scaleY;
+        l = (mlImageWidth - mlKitBoundingBox.bottom) * scaleX; // X축 반전 및 스케일 (원래 이미지의 bottom이 화면의 left가 됨)
+        t = mlKitBoundingBox.left * scaleY;
+        r = (mlImageWidth - mlKitBoundingBox.top) * scaleX;    // X축 반전 및 스케일 (원래 이미지의 top이 화면의 right가 됨)
+        b = mlKitBoundingBox.right * scaleY;
         break;
     }
+    
+    // 안드로이드 전면 카메라 미러링 처리
     if (cameraLensDirection == CameraLensDirection.front && Platform.isAndroid) {
+       // 가로 미러링이 필요한 경우 (보통 0도 또는 180도 회전 시)
        if (imageRotation == InputImageRotation.rotation0deg || imageRotation == InputImageRotation.rotation180deg) {
-         final double tempL = l; l = cameraViewRect.width - r; r = cameraViewRect.width - tempL;
+         final double tempL = l;
+         l = cameraViewRect.width - r; // cameraViewRect 내부에서의 미러링
+         r = cameraViewRect.width - tempL;
        }
+       // 90도, 270도 회전 시에는 미러링 방향이 달라지거나 필요 없을 수 있음 (테스트 필요)
+       // 예: 90도 회전 시에는 세로 방향 미러링이 될 수 있음 (t,b 값 변경)
+       // else if (imageRotation == InputImageRotation.rotation90deg || imageRotation == InputImageRotation.rotation270deg) {
+       //   final double tempT = t;
+       //   t = cameraViewRect.height - b;
+       //   b = cameraViewRect.height - tempT;
+       // }
     }
+
+
+    // 3. cameraViewRect의 오프셋을 더해 최종 화면(canvas) 좌표로 변환
     Rect displayRect = Rect.fromLTRB(
-        cameraViewRect.left + l, cameraViewRect.top + t,
-        cameraViewRect.left + r, cameraViewRect.top + b);
+        cameraViewRect.left + l,
+        cameraViewRect.top + t,
+        cameraViewRect.left + r,
+        cameraViewRect.top + b);
+
+    // 4. 계산된 displayRect가 cameraViewRect 범위를 벗어나지 않도록 클램핑
     return Rect.fromLTRB(
       displayRect.left.clamp(cameraViewRect.left, cameraViewRect.right),
       displayRect.top.clamp(cameraViewRect.top, cameraViewRect.bottom),
@@ -498,67 +477,59 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     );
   }
 
-  void _handleRotationResult(dynamic message) {
-    if (message == 'isolate_shutdown_ack_rotation') {
-        print("****** ObjectDetectionView: Rotation isolate acknowledged shutdown. Nullifying isolate reference.");
-        _imageRotationIsolate = null;
-        _imageRotationIsolateSendPort = null;
-        return;
-    }
 
-    if ((_isDisposed || _isShuttingDownIsolates || !mounted) && message is! SendPort) {
-        print("****** ObjectDetectionView (_handleRotationResult): View disposed/shutting_down/unmounted. Ignoring message: ${message.runtimeType}");
+  void _handleRotationResult(dynamic message) {
+    if (_isDisposed || !mounted) return;
+
+    if (message == 'isolate_shutdown_ack_rotation') {
+        print("****** ObjectDetectionView: Rotation isolate acknowledged shutdown. Killing now.");
+        _imageRotationIsolate?.kill(priority: Isolate.immediate);
+        _imageRotationIsolate = null;
         return;
     }
 
     if (_imageRotationIsolateSendPort == null && message is SendPort) {
       _imageRotationIsolateSendPort = message;
       print("****** ObjectDetectionView: ImageRotationIsolate SendPort received.");
-      return;
-    }
-    
-    if (message is InputImageRotation?) {
+    } else if (message is InputImageRotation?) {
       _isWaitingForRotation = false;
       _lastCalculatedRotation = message;
       _imageRotation = message;
 
       if (_pendingImageDataBytes != null && _objectDetectionIsolateSendPort != null && message != null) {
         _isWaitingForDetection = true;
+        // _lastImageSize는 _processCameraImage에서 이미 설정됨
         final Map<String, dynamic> payload = {
           'bytes': _pendingImageDataBytes!,
           'width': _pendingImageDataWidth!,
           'height': _pendingImageDataHeight!,
-          'rotation': message,
+          'rotation': message, // 계산된 이미지 회전 값
           'formatRaw': _pendingImageDataFormatRaw!,
           'bytesPerRow': _pendingImageDataBytesPerRow!,
         };
-        if (!_isDisposed && !_isShuttingDownIsolates && _objectDetectionIsolateSendPort != null) { // SendPort null 체크 추가
+        if (!_isDisposed && _objectDetectionIsolateSendPort != null) {
              _objectDetectionIsolateSendPort!.send(payload);
         } else {
-          print("****** ObjectDetectionView: Not sending to detection isolate (disposed, shutting down, or no sendPort)");
-          // 전송하지 못했으므로 _isWaitingForDetection을 false로 되돌리고 _isBusy도 해제 시도
-          _isWaitingForDetection = false;
-          if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+          print("****** ObjectDetectionView: Not sending to detection isolate (disposed or no sendPort)");
         }
-        _pendingImageDataBytes = null; // 전송 시도 후에는 항상 null로 설정
+        _pendingImageDataBytes = null; // 데이터 전송 후 초기화
       } else {
-        // _pendingImageDataBytes가 null이거나, detection isolate send port가 없거나, message가 null인 경우
+        // 보낼 데이터가 없거나, 보낼 곳이 없거나, 회전값이 null인 경우
         if (!_isWaitingForDetection && _isBusy) _isBusy = false;
       }
     } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().contains('Error')) {
       print('****** ObjectDetectionView: Rotation Isolate Error: ${message[1]}');
       _isWaitingForRotation = false;
-      _pendingImageDataBytes = null;
+      _pendingImageDataBytes = null; // 오류 발생 시 보류 중인 데이터 클리어
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
     } else if (message == null || (message is List && message.isEmpty && message is! InputImageRotation)) {
+      // Isolate가 종료되었거나, 빈 메시지 또는 예상치 못한 null 메시지를 보낸 경우
       print('****** ObjectDetectionView: Rotation Isolate exited or sent empty/null message ($message).');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
       if (!_isWaitingForDetection && _isBusy) _isBusy = false;
-    } else if (message is SendPort) {
-        // 이미 위에서 처리됨.
-    }
-     else {
+    } else {
+      // 예상치 못한 타입의 메시지
       print('****** ObjectDetectionView: Unexpected message from Rotation Isolate: ${message.runtimeType} - $message');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
@@ -567,43 +538,30 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
-    print("****** ObjectDetectionView: _initializeCamera called for ${cameraDescription.name}. _isDisposed: $_isDisposed");
     if (_isDisposed) return;
-
-    // 이전 카메라 컨트롤러 정리
     if (_cameraController != null) {
-      print("****** ObjectDetectionView: Disposing previous camera controller.");
-      await _stopCameraStream(); // 스트림 먼저 중지
-      try {
-        await _cameraController!.dispose();
-        print("****** ObjectDetectionView: Previous CameraController disposed successfully.");
-      } catch (e) {
-        print("****** ObjectDetectionView: Error disposing previous CameraController: $e");
-      }
+      await _stopCameraStream(); 
+      await _cameraController!.dispose();
       _cameraController = null;
+      print("****** ObjectDetectionView: Old CameraController disposed before new init for ${cameraDescription.name}.");
     }
-
     if (mounted && !_isDisposed) {
       setState(() {
         _isCameraInitialized = false;
-        _initializationErrorMsg = null;
+        _initializationErrorMsg = null; // 이전 오류 메시지 초기화
       });
-    } else if (!_isDisposed) { // mounted 안됐어도 초기화는 시도 (예: initState에서)
-        _isCameraInitialized = false;
-        _initializationErrorMsg = null;
     }
-
 
     _cameraController = CameraController(
       cameraDescription,
-      widget.resolutionPreset,
+      widget.resolutionPreset, // 전달받은 해상도 사용
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
     try {
       await _cameraController!.initialize();
       print("****** ObjectDetectionView: New CameraController initialized for ${cameraDescription.name}.");
-      await _startCameraStream(); // 초기화 성공 후 스트림 시작
+      await _startCameraStream(); // 스트림 시작
       if (mounted && !_isDisposed) {
         setState(() {
           _isCameraInitialized = true;
@@ -622,11 +580,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   }
 
   Future<void> _startCameraStream() async {
-    print("****** ObjectDetectionView: _startCameraStream called. _isDisposed: $_isDisposed, Controller null: ${_cameraController == null}");
-    if (_isDisposed || _cameraController == null || !_cameraController!.value.isInitialized || _cameraController!.value.isStreamingImages) {
-      print("****** ObjectDetectionView: Conditions not met to start stream. Initialized: ${_cameraController?.value.isInitialized}, Streaming: ${_cameraController?.value.isStreamingImages}");
-      return;
-    }
+    if (_isDisposed || _cameraController == null || !_cameraController!.value.isInitialized || _cameraController!.value.isStreamingImages) return;
     try {
       await _cameraController!.startImageStream(_processCameraImage);
       print("****** ObjectDetectionView: Camera stream started for ${_cameraController?.description.name}.");
@@ -641,37 +595,43 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   }
 
   Future<void> _stopCameraStream() async {
-    print("****** ObjectDetectionView: _stopCameraStream called. Controller: ${_cameraController != null}, Initialized: ${_cameraController?.value.isInitialized}, Streaming: ${_cameraController?.value.isStreamingImages}");
+    // 스트림을 멈추기 전에 _isBusy 등의 상태를 초기화할 수 있음
     if (_cameraController == null || !_cameraController!.value.isInitialized || !_cameraController!.value.isStreamingImages) {
-      _isBusy = false;
+      _isBusy = false; // 안전하게 false로 설정
       _isWaitingForRotation = false;
       _isWaitingForDetection = false;
       _pendingImageDataBytes = null;
-      print("****** ObjectDetectionView: _stopCameraStream: Not streaming or controller not ready. Flags reset.");
       return;
     }
     try {
       await _cameraController!.stopImageStream();
-      print("****** ObjectDetectionView: Camera stream stopped successfully in _stopCameraStream for ${_cameraController?.description.name}.");
+      print("****** ObjectDetectionView: Camera stream stopped in _stopCameraStream for ${_cameraController?.description.name}.");
     } catch (e, stacktrace) {
-      print('****** ObjectDetectionView: Error stopping image stream in _stopCameraStream: $e\n$stacktrace');
+      print('****** ObjectDetectionView: Stop stream error in _stopCameraStream: $e\n$stacktrace');
+      // 오류 발생 시에도 상태는 초기화하는 것이 좋을 수 있음
     } finally {
+      // 스트림 중지 후 관련 상태 초기화
       _isBusy = false;
       _isWaitingForRotation = false;
       _isWaitingForDetection = false;
-      _pendingImageDataBytes = null;
-      print("****** ObjectDetectionView: _stopCameraStream: Flags reset in finally block.");
+      _pendingImageDataBytes = null; // 보류 중인 데이터가 있다면 클리어
     }
   }
 
+
   void _processCameraImage(CameraImage image) {
-    if (_isDisposed || _isShuttingDownIsolates || !mounted || _isBusy || _imageRotationIsolateSendPort == null) {
+    if (_isDisposed || !mounted || _isBusy || _imageRotationIsolateSendPort == null) {
+      // print("Skipping frame: disposed=$_isDisposed, mounted=$mounted, busy=$_isBusy, rotationPortNull=${_imageRotationIsolateSendPort == null}");
+      if(_isBusy && !_isDisposed) {
+        // print("Frame skipped (busy)");
+      }
       return;
     }
-    _isBusy = true; // 여기서 busy 설정
-    _isWaitingForRotation = true;
+    _isBusy = true; // 처리를 시작했으므로 true
+    _isWaitingForRotation = true; // 회전 계산을 기다림
 
     try {
+      // 이미지 데이터 준비 (기존 코드 유지)
       final WriteBuffer allBytes = WriteBuffer();
       for (final Plane plane in image.planes) {
         allBytes.putUint8List(plane.bytes);
@@ -682,52 +642,61 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       _pendingImageDataFormatRaw = image.format.raw;
       _pendingImageDataBytesPerRow = image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
 
+      // 현재 이미지 크기 업데이트 (ML Kit 결과 처리 시 사용)
       _lastImageSize = Size(image.width.toDouble(), image.height.toDouble());
 
+      // 회전 계산을 위한 정보 전달 (기존 코드 유지)
       final camera = widget.cameras[_cameraIndex];
-      final orientation = _currentDeviceOrientation ?? MediaQuery.of(context).orientation;
+      // _currentDeviceOrientation은 build 메소드에서 MediaQuery를 통해 업데이트되거나,
+      // OrientationBuilder 등을 통해 실시간으로 가져올 수 있습니다.
+      // 여기서는 build 메소드에서 업데이트된 값을 사용한다고 가정합니다.
+      final orientation = _currentDeviceOrientation ?? MediaQuery.of(context).orientation; // Fallback
+      
       final DeviceOrientation deviceRotation = (orientation == Orientation.landscape)
           ? (Platform.isIOS ? DeviceOrientation.landscapeRight : DeviceOrientation.landscapeLeft)
-          : DeviceOrientation.portraitUp;
+          : DeviceOrientation.portraitUp; // 기본값은 portraitUp
+
       final Map<String, dynamic> rotationPayload = {
         'sensorOrientation': camera.sensorOrientation,
         'deviceOrientationIndex': deviceRotation.index,
       };
 
-      if (!_isDisposed && !_isShuttingDownIsolates && _imageRotationIsolateSendPort != null) { 
+      if (!_isDisposed && _imageRotationIsolateSendPort != null) { 
          _imageRotationIsolateSendPort!.send(rotationPayload);
       } else {
-         print("****** ObjectDetectionView: Not sending to rotation isolate (disposed, shutting down, or no sendPort)");
+         print("****** ObjectDetectionView: Not sending to rotation isolate (disposed or no sendPort)");
+         // 전송 실패 시 보류 중인 데이터 및 상태 초기화
          _pendingImageDataBytes = null; 
-         _isWaitingForRotation = false;
-         _isBusy = false; // busy 해제
+         _isWaitingForRotation = false; // 회전 계산 기다릴 필요 없음
+         _isBusy = false; // 다음 프레임 처리 가능하도록 false로 설정
       }
+
     } catch (e, stacktrace) {
       print("****** ObjectDetectionView: Error processing image: $e\n$stacktrace");
+      // 오류 발생 시 관련 상태 초기화
       _pendingImageDataBytes = null;
       _isWaitingForRotation = false;
-      _isBusy = false; // 오류 발생 시 busy 해제
+      _isBusy = false; // 다음 프레임 처리 가능하도록
     }
   }
 
   void _switchCamera() {
-    if (_isDisposed || widget.cameras.length < 2 || _isBusy || _isShuttingDownIsolates) return;
+    if (_isDisposed || widget.cameras.length < 2 || _isBusy) return;
     print("****** ObjectDetectionView: Switching camera...");
     final newIndex = (_cameraIndex + 1) % widget.cameras.length;
-    
-    // 비동기 작업으로 전환하여 현재 빌드 사이클과 분리
+    // 카메라 전환은 비동기 작업이므로, Future.microtask를 사용하여 현재 빌드 사이클 이후에 실행
     Future.microtask(() async {
-        print("****** ObjectDetectionView: Microtask for _switchCamera started.");
-        await _stopCameraStream(); // 현재 스트림과 busy 상태 정리
-        if (!_isDisposed && mounted) { // dispose나 unmount 안됐는지 확인
-            await _initializeCamera(widget.cameras[newIndex]); 
+        await _stopCameraStream(); // 현재 스트림을 먼저 중지
+        if (!_isDisposed && mounted) { // dispose되지 않았고 마운트된 상태인지 확인
+            await _initializeCamera(widget.cameras[newIndex]); // 새 카메라 초기화
         }
-        print("****** ObjectDetectionView: Microtask for _switchCamera finished.");
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
+    // 현재 장치 방향 업데이트
     _currentDeviceOrientation = MediaQuery.of(context).orientation;
 
     if (_initializationErrorMsg != null) {
@@ -749,27 +718,32 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         ));
     }
 
+    // 카메라 컨트롤러와 화면 비율을 가져옴
     final double cameraAspectRatio = _cameraController!.value.aspectRatio;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        _screenSize = constraints.biggest;
-        final Size parentSize = constraints.biggest;
+        _screenSize = constraints.biggest; // 화면 크기 업데이트
+        final Size parentSize = constraints.biggest; // LayoutBuilder로부터 실제 사용 가능한 부모 크기
         double previewWidth;
         double previewHeight;
 
+        // 화면 비율과 카메라 프리뷰 비율을 비교하여 프리뷰 크기 계산
         if (parentSize.width / parentSize.height > cameraAspectRatio) { 
+          // 부모 위젯이 카메라 프리뷰보다 가로로 넓은 경우 (세로로 꽉 채움)
           previewHeight = parentSize.height;
           previewWidth = previewHeight * cameraAspectRatio;
         } else {
+          // 부모 위젯이 카메라 프리뷰보다 세로로 긴 경우 (가로로 꽉 채움)
           previewWidth = parentSize.width;
           previewHeight = previewWidth / cameraAspectRatio;
         }
 
         return Stack(
-          fit: StackFit.expand,
-          alignment: Alignment.center,
+          fit: StackFit.expand, // Stack이 LayoutBuilder의 크기를 모두 차지하도록
+          alignment: Alignment.center, // 자식들을 중앙 정렬 (CameraPreview 위젯에 영향)
           children: [
+            // 카메라 프리뷰를 중앙에 배치하고 계산된 크기 적용
             Center(
               child: SizedBox(
                 width: previewWidth,
@@ -777,19 +751,21 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
                 child: CameraPreview(_cameraController!),
               ),
             ),
+            // 객체 바운딩 박스 및 정보 표시 (CustomPaint)
             if (_processedObjects.isNotEmpty && _lastImageSize != null && _imageRotation != null && _screenSize != null)
               CustomPaint(
-                size: parentSize,
+                size: parentSize, // CustomPaint의 크기는 LayoutBuilder의 전체 크기
                 painter: ObjectPainter(
-                  objects: _processedObjects.map((info) => info.object).toList(),
+                  objects: _processedObjects.map((info) => info.object).toList(), // DetectedObject 리스트 전달
                   imageSize: _lastImageSize!,
-                  screenSize: _screenSize!,
+                  screenSize: _screenSize!, // CustomPaint의 캔버스 크기
                   rotation: _imageRotation!,
                   cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
-                  cameraPreviewAspectRatio: cameraAspectRatio,
-                  showNameTags: false,
+                  cameraPreviewAspectRatio: cameraAspectRatio, // 카메라 프리뷰 비율 전달
+                  showNameTags: false, // 요구사항에 따라 이름표는 그리지 않음
                 ),
               ),
+            // 여기에 다른 UI 요소들을 Positioned 위젯 등으로 추가할 수 있음
           ],
         );
       },
