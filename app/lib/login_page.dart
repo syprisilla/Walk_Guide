@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:walk_guide/services/auth_service.dart';
 import 'package:walk_guide/main_page.dart';
 import 'package:walk_guide/signup_page.dart';
-
 import 'package:camera/camera.dart';
 import 'package:walk_guide/main.dart';
 
@@ -153,7 +152,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-            ],
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 2,
+              ),
+              icon: const Icon(Icons.login),
+              label: const Text(
+              'Google로 로그인하기',
+              style: TextStyle(fontSize: 16),
+            ),
+            onPressed: () => AuthService().signInWithGoogle(context),
+          ),
+          ],
           ),
         ),
       ),
