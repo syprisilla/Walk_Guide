@@ -35,11 +35,11 @@ class DetectedObjectInfo {
   String get sizeDescription {
     switch (sizeCategory) {
       case ObjectSizeCategory.small:
-        return "작은";
+        return "작은 크기의";
       case ObjectSizeCategory.medium:
-        return "중간";
+        return "중간 크기의";
       case ObjectSizeCategory.large:
-        return "큰";
+        return "큰 크기의";
       default:
         return "";
     }
@@ -49,11 +49,11 @@ class DetectedObjectInfo {
   String get horizontalLocationDescription {
     switch (horizontalLocation) {
       case ObjectHorizontalLocation.left:
-        return "좌측";
+        return "좌측 전방";
       case ObjectHorizontalLocation.center:
-        return "중앙"; // 또는 "전방"으로 해석될 수 있음
+        return "전방"; // 또는 "전방"으로 해석될 수 있음
       case ObjectHorizontalLocation.right:
-        return "우측";
+        return "우측 전방";
       default:
         return "전방"; // 기본값 또는 위치 불명확 시
     }
