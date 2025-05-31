@@ -20,7 +20,7 @@ void main() async {
   await Firebase.initializeApp();
 
   try {
-    //camerasGlobal = await availableCameras();
+    camerasGlobal = await availableCameras();
     camerasGlobal = [];
   } on CameraException catch (e) {
     print('카메라 탐색 실패: $e');

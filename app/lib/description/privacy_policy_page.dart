@@ -36,33 +36,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
       walkingData = data;
     });
   }
-
-  // 🔽 테스트 데이터 블록 시작
-  Future<void> insertDummyWalkingData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final uid = user.uid;
-    final now = DateTime.now();
-
-    for (int i = 0; i < 7; i++) {
-      final fakeSpeed = 0.9 + i * 0.1; // 0.9 ~ 1.5 m/s
-      final date = now.subtract(Duration(days: i));
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('walking_data')
-          .add({
-            'speed': fakeSpeed,
-            'timestamp': Timestamp.fromDate(date),
-          });
-    }
-
-    await fetchWalkingData();
-  }
-  // 🔼 테스트 데이터 블록 끝
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,15 +51,6 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-
-            // 🔽 테스트 데이터 블록 시작
-            ElevatedButton(
-              onPressed: insertDummyWalkingData,
-              child: const Text("테스트용 더미 데이터 삽입"),
-            ),
-            const SizedBox(height: 12),
-            // 🔼 테스트 데이터 블록 끝
-
             Expanded(
               child: walkingData.isEmpty
                   ? const Center(child: Text("저장된 데이터가 없습니다."))
