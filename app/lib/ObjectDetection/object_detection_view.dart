@@ -19,12 +19,14 @@ enum ObjectSizeCategory { small, medium, large, unknown }
 class DetectedObjectInfo {
   final DetectedObject object;
   final ObjectSizeCategory sizeCategory;
+  final ObjectHorizontalLocation horizontalLocation; // 위치 정보 필드 추가
   final Rect boundingBox;
   final String? label;
 
   DetectedObjectInfo({
     required this.object,
     required this.sizeCategory,
+    required this.horizontalLocation, // 생성자에 추가
     required this.boundingBox,
     this.label,
   });
@@ -41,7 +43,6 @@ class DetectedObjectInfo {
         return "";
     }
   }
-}
 
 
 class ObjectDetectionView extends StatefulWidget {
