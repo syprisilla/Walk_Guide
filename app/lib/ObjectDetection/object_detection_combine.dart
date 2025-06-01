@@ -870,3 +870,423 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       if (!_isWaitingForRotation && _isBusy) _isBusy = false;
     }
   }
+
+  Rect _calculateDisplayRect({
+    required Rect mlKitBoundingBox,
+    required Size originalImageSize,
+    required Size canvasSize,
+    required InputImageRotation imageRotation,
+    required CameraLensDirection cameraLensDirection,
+    required double cameraPreviewAspectRatio,
+  }) {
+    if (originalImageSize.isEmpty ||
+        canvasSize.isEmpty ||
+        cameraPreviewAspectRatio <= 0) {
+      return Rect.zero;
+    }
+
+    Rect cameraViewRect;
+    final double screenAspectRatio = canvasSize.width / canvasSize.height;
+
+    if (screenAspectRatio > cameraPreviewAspectRatio) {
+      final double fittedHeight = canvasSize.height;
+      final double fittedWidth = fittedHeight * cameraPreviewAspectRatio;
+      final double offsetX = (canvasSize.width - fittedWidth) / 2;
+      cameraViewRect = Rect.fromLTWH(offsetX, 0, fittedWidth, fittedHeight);
+    } else {
+      final double fittedWidth = canvasSize.width;
+      final double fittedHeight = fittedWidth / cameraPreviewAspectRatio;
+      final double offsetY = (canvasSize.height - fittedHeight) / 2;
+      cameraViewRect = Rect.fromLTWH(0, offsetY, fittedWidth, fittedHeight);
+    }
+
+    final bool isImageRotatedSideways =
+        imageRotation == InputImageRotation.rotation90deg ||
+            imageRotation == InputImageRotation.rotation270deg;
+
+    final double mlImageWidth = isImageRotatedSideways
+        ? originalImageSize.height
+        : originalImageSize.width;
+    final double mlImageHeight = isImageRotatedSideways
+        ? originalImageSize.width
+        : originalImageSize.height;
+
+    if (mlImageWidth == 0 || mlImageHeight == 0) return Rect.zero;
+
+    final double scaleX = cameraViewRect.width / mlImageWidth;
+    final double scaleY = cameraViewRect.height / mlImageHeight;
+
+    double l, t, r, b;
+
+    switch (imageRotation) {
+      case InputImageRotation.rotation0deg:
+        l = mlKitBoundingBox.left * scaleX;
+        t = mlKitBoundingBox.top * scaleY;
+        r = mlKitBoundingBox.right * scaleX;
+        b = mlKitBoundingBox.bottom * scaleY;
+        break;
+      case InputImageRotation.rotation90deg:
+        l = mlKitBoundingBox.top * scaleX;
+        t = (mlImageHeight - mlKitBoundingBox.right) * scaleY;
+        r = mlKitBoundingBox.bottom * scaleX;
+        b = (mlImageHeight - mlKitBoundingBox.left) * scaleY;
+        break;
+      case InputImageRotation.rotation180deg:
+        l = (mlImageWidth - mlKitBoundingBox.right) * scaleX;
+        t = (mlImageHeight - mlKitBoundingBox.bottom) * scaleY;
+        r = (mlImageWidth - mlKitBoundingBox.left) * scaleX;
+        b = (mlImageHeight - mlKitBoundingBox.top) * scaleY;
+        break;
+      case InputImageRotation.rotation270deg:
+        l = (mlImageWidth - mlKitBoundingBox.bottom) * scaleX;
+        t = mlKitBoundingBox.left * scaleY;
+        r = (mlImageWidth - mlKitBoundingBox.top) * scaleX;
+        b = mlKitBoundingBox.right * scaleY;
+        break;
+    }
+
+    if (cameraLensDirection == CameraLensDirection.front &&
+        Platform.isAndroid) {
+      if (imageRotation == InputImageRotation.rotation0deg ||
+          imageRotation == InputImageRotation.rotation180deg) {
+        final double tempL = l;
+        l = cameraViewRect.width - r;
+        r = cameraViewRect.width - tempL;
+      }
+    }
+
+    Rect displayRect = Rect.fromLTRB(
+        cameraViewRect.left + l,
+        cameraViewRect.top + t,
+        cameraViewRect.left + r,
+        cameraViewRect.top + b);
+
+    return Rect.fromLTRB(
+      displayRect.left.clamp(cameraViewRect.left, cameraViewRect.right),
+      displayRect.top.clamp(cameraViewRect.top, cameraViewRect.bottom),
+      displayRect.right.clamp(cameraViewRect.left, cameraViewRect.right),
+      displayRect.bottom.clamp(cameraViewRect.top, cameraViewRect.bottom),
+    );
+  }
+
+  void _handleRotationResult(dynamic message) {
+    if (_isDisposed || !mounted) return;
+
+    if (message == 'isolate_shutdown_ack_rotation') {
+      print(
+          "****** ObjectDetectionView: Rotation isolate acknowledged shutdown. Killing now.");
+      _imageRotationIsolate?.kill(priority: Isolate.immediate);
+      _imageRotationIsolate = null;
+      return;
+    }
+
+    if (_imageRotationIsolateSendPort == null && message is SendPort) {
+      _imageRotationIsolateSendPort = message;
+      print(
+          "****** ObjectDetectionView: ImageRotationIsolate SendPort received.");
+    } else if (message is InputImageRotation?) {
+      _isWaitingForRotation = false;
+      _lastCalculatedRotation = message;
+      _imageRotation = message;
+
+      if (_pendingImageDataBytes != null &&
+          _objectDetectionIsolateSendPort != null &&
+          message != null) {
+        _isWaitingForDetection = true;
+        final Map<String, dynamic> payload = {
+          'bytes': _pendingImageDataBytes!,
+          'width': _pendingImageDataWidth!,
+          'height': _pendingImageDataHeight!,
+          'rotation': message,
+          'formatRaw': _pendingImageDataFormatRaw!,
+          'bytesPerRow': _pendingImageDataBytesPerRow!,
+        };
+        if (!_isDisposed && _objectDetectionIsolateSendPort != null) {
+          _objectDetectionIsolateSendPort!.send(payload);
+        } else {
+          print(
+              "****** ObjectDetectionView: Not sending to detection isolate (disposed or no sendPort)");
+        }
+        _pendingImageDataBytes = null;
+      } else {
+        if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+      }
+    } else if (message is List &&
+        message.length == 2 &&
+        message[0] is String &&
+        message[0].toString().contains('Error')) {
+      print(
+          '****** ObjectDetectionView: Rotation Isolate Error: ${message[1]}');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    } else if (message == null ||
+        (message is List &&
+            message.isEmpty &&
+            message is! InputImageRotation)) {
+      print(
+          '****** ObjectDetectionView: Rotation Isolate exited or sent empty/null message ($message).');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    } else {
+      print(
+          '****** ObjectDetectionView: Unexpected message from Rotation Isolate: ${message.runtimeType} - $message');
+      _isWaitingForRotation = false;
+      _pendingImageDataBytes = null;
+      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+    }
+  }
+
+  Future<void> _initializeCamera(CameraDescription cameraDescription) async {
+    if (_isDisposed) return;
+    if (_cameraController != null) {
+      await _stopCameraStream();
+      await _cameraController!.dispose();
+      _cameraController = null;
+      print(
+          "****** ObjectDetectionView: Old CameraController disposed before new init for ${cameraDescription.name}.");
+    }
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _isCameraInitialized = false;
+        _initializationErrorMsg = null;
+      });
+    }
+
+    _cameraController = CameraController(
+      cameraDescription,
+      widget.resolutionPreset,
+      enableAudio: false,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
+    );
+    try {
+      await _cameraController!.initialize();
+      print(
+          "****** ObjectDetectionView: New CameraController initialized for ${cameraDescription.name}.");
+      await _startCameraStream();
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCameraInitialized = true;
+          _cameraIndex = widget.cameras.indexOf(cameraDescription);
+        });
+      }
+    } catch (e, stacktrace) {
+      print(
+          '****** ObjectDetectionView: Camera init error for ${cameraDescription.name}: $e\n$stacktrace');
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCameraInitialized = false;
+          _initializationErrorMsg =
+              "카메라 시작에 실패했습니다.\n권한 확인 또는 앱 재시작 필요.\n오류: ${e.toString().substring(0, (e.toString().length > 100) ? 100 : e.toString().length)}";
+        });
+      }
+    }
+  }
+
+  Future<void> _startCameraStream() async {
+    if (_isDisposed ||
+        _cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _cameraController!.value.isStreamingImages) return;
+    try {
+      await _cameraController!.startImageStream(_processCameraImage);
+      print(
+          "****** ObjectDetectionView: Camera stream started for ${_cameraController?.description.name}.");
+    } catch (e, stacktrace) {
+      print('****** ObjectDetectionView: Start stream error: $e\n$stacktrace');
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _initializationErrorMsg =
+              "카메라 스트림 시작 실패: ${e.toString().substring(0, (e.toString().length > 100) ? 100 : e.toString().length)}";
+        });
+      }
+    }
+  }
+
+  Future<void> _stopCameraStream() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        !_cameraController!.value.isStreamingImages) {
+      _isBusy = false;
+      _isWaitingForRotation = false;
+      _isWaitingForDetection = false;
+      _pendingImageDataBytes = null;
+      return;
+    }
+    try {
+      await _cameraController!.stopImageStream();
+      print(
+          "****** ObjectDetectionView: Camera stream stopped in _stopCameraStream for ${_cameraController?.description.name}.");
+    } catch (e, stacktrace) {
+      print(
+          '****** ObjectDetectionView: Stop stream error in _stopCameraStream: $e\n$stacktrace');
+    } finally {
+      _isBusy = false;
+      _isWaitingForRotation = false;
+      _isWaitingForDetection = false;
+      _pendingImageDataBytes = null;
+    }
+  }
+
+  void _processCameraImage(CameraImage image) {
+    if (_isDisposed ||
+        !mounted ||
+        _isBusy ||
+        _imageRotationIsolateSendPort == null) {
+      if (_isBusy && !_isDisposed) {}
+      return;
+    }
+    _isBusy = true;
+    _isWaitingForRotation = true;
+
+    try {
+      final WriteBuffer allBytes = WriteBuffer();
+      for (final Plane plane in image.planes) {
+        allBytes.putUint8List(plane.bytes);
+      }
+      _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
+      _pendingImageDataWidth = image.width;
+      _pendingImageDataHeight = image.height;
+      _pendingImageDataFormatRaw = image.format.raw;
+      _pendingImageDataBytesPerRow =
+          image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
+
+      _lastImageSize = Size(image.width.toDouble(), image.height.toDouble());
+
+      final camera = widget.cameras[_cameraIndex];
+      final orientation =
+          _currentDeviceOrientation ?? MediaQuery.of(context).orientation;
+      final DeviceOrientation deviceRotation =
+          (orientation == Orientation.landscape)
+              ? (Platform.isIOS
+                  ? DeviceOrientation.landscapeRight
+                  : DeviceOrientation.landscapeLeft)
+              : DeviceOrientation.portraitUp;
+      final Map<String, dynamic> rotationPayload = {
+        'sensorOrientation': camera.sensorOrientation,
+        'deviceOrientationIndex': deviceRotation.index,
+      };
+      if (!_isDisposed && _imageRotationIsolateSendPort != null) {
+        _imageRotationIsolateSendPort!.send(rotationPayload);
+      } else {
+        print(
+            "****** ObjectDetectionView: Not sending to rotation isolate (disposed or no sendPort)");
+        _pendingImageDataBytes = null;
+        _isWaitingForRotation = false;
+        _isBusy = false;
+      }
+    } catch (e, stacktrace) {
+      print(
+          "****** ObjectDetectionView: Error processing image: $e\n$stacktrace");
+      _pendingImageDataBytes = null;
+      _isWaitingForRotation = false;
+      _isBusy = false;
+    }
+  }
+
+  void _switchCamera() {
+    if (_isDisposed || widget.cameras.length < 2 || _isBusy) return;
+    print("****** ObjectDetectionView: Switching camera...");
+    final newIndex = (_cameraIndex + 1) % widget.cameras.length;
+    Future.microtask(() async {
+      await _stopCameraStream();
+      if (!_isDisposed && mounted) {
+        await _initializeCamera(widget.cameras[newIndex]);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _currentDeviceOrientation = MediaQuery.of(context).orientation;
+
+    if (_initializationErrorMsg != null) {
+      return Center(
+          child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(_initializationErrorMsg!,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+            textAlign: TextAlign.center),
+      ));
+    }
+
+    if (!_isCameraInitialized ||
+        _cameraController == null ||
+        !_cameraController!.value.isInitialized) {
+      return Center(
+          child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 10),
+          Text(widget.cameras.isEmpty ? '카메라 없음' : '카메라 초기화 중...'),
+        ],
+      ));
+    }
+
+    final double cameraAspectRatio = _cameraController!.value.aspectRatio;
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        _screenSize = constraints.biggest;
+        final Size parentSize = constraints.biggest;
+        double previewWidth;
+        double previewHeight;
+
+        if (parentSize.width / parentSize.height > cameraAspectRatio) {
+          previewHeight = parentSize.height;
+          previewWidth = previewHeight * cameraAspectRatio;
+        } else {
+          previewWidth = parentSize.width;
+          previewHeight = previewWidth / cameraAspectRatio;
+        }
+
+        return Stack(
+          fit: StackFit.expand,
+          alignment: Alignment.center,
+          children: [
+            Center(
+              child: SizedBox(
+                width: previewWidth,
+                height: previewHeight,
+                child: CameraPreview(_cameraController!),
+              ),
+            ),
+            if (_processedObjects.isNotEmpty &&
+                _lastImageSize != null &&
+                _imageRotation != null &&
+                _screenSize != null)
+              CustomPaint(
+                size: parentSize,
+                painter: ObjectPainter(
+                  objects:
+                      _processedObjects.map((info) => info.object).toList(),
+                  imageSize: _lastImageSize!,
+                  screenSize: _screenSize!,
+                  rotation: _imageRotation!,
+                  cameraLensDirection:
+                      widget.cameras[_cameraIndex].lensDirection,
+                  cameraPreviewAspectRatio: cameraAspectRatio,
+                  showNameTags: false, // NameTag 그리지 않음
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// --- From camera_screen.dart (Main Screen Class) ---
+class RealtimeObjectDetectionScreen extends StatefulWidget {
+  final List<CameraDescription> cameras;
+  const RealtimeObjectDetectionScreen({Key? key, required this.cameras})
+      : super(key: key);
+
+  @override
+  _RealtimeObjectDetectionScreenState createState() =>
+      _RealtimeObjectDetectionScreenState();
+}
