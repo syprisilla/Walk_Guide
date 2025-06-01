@@ -29,14 +29,22 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
   }
 
   @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지 벗어나면 음성 출력 중지
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('앱 제작자 소개')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         children: const [
-          Text('충북대학교',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            '충북대학교',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 12),
           Text('팀명: SCORE', style: TextStyle(fontSize: 16)),
           Divider(height: 32),
