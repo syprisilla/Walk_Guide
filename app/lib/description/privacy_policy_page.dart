@@ -38,6 +38,12 @@ JSON 파일로 백업 및 복원이 가능합니다.
   }
 
   @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지 나갈 때 음성 안내 중지
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
