@@ -23,6 +23,12 @@ class _TechnologyPageState extends State<TechnologyPage> {
   }
 
   @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지 나갈 때 음성 안내 중지
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('사용된 기술 및 기능')),
