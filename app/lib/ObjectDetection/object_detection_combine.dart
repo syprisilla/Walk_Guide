@@ -1667,3 +1667,230 @@ class _RealtimeObjectDetectionScreenState
       }
     }
   }
+
+  Future<void> _stopCameraStream() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        !_cameraController!.value.isStreamingImages) {
+      _isBusy = false;
+      _isWaitingForRotation = false;
+      _isWaitingForDetection = false;
+      _pendingImageDataBytes = null;
+      return;
+    }
+    try {
+      await _cameraController!.stopImageStream();
+      print(
+          "RealtimeObjectDetectionScreen: Camera stream stopped in _stopCameraStream for ${_cameraController?.description.name}.");
+    } catch (e, stacktrace) {
+      print(
+          'RealtimeObjectDetectionScreen: Stop stream error in _stopCameraStream: $e\n$stacktrace');
+    } finally {
+      _isBusy = false;
+      _isWaitingForRotation = false;
+      _isWaitingForDetection = false;
+      _pendingImageDataBytes = null;
+    }
+  }
+
+  void _processCameraImage(CameraImage image) {
+    if (_isDisposed ||
+        !mounted ||
+        _isBusy ||
+        _imageRotationIsolateSendPort == null) {
+      if (_isBusy && !_isDisposed) {
+        // print("Skipping frame in RealtimeObjectDetectionScreen, busy");
+      }
+      return;
+    }
+    _isBusy = true;
+    _isWaitingForRotation = true;
+
+    try {
+      final WriteBuffer allBytes = WriteBuffer();
+      for (final Plane plane in image.planes) {
+        allBytes.putUint8List(plane.bytes);
+      }
+      _pendingImageDataBytes = allBytes.done().buffer.asUint8List();
+      _pendingImageDataWidth = image.width;
+      _pendingImageDataHeight = image.height;
+      _pendingImageDataFormatRaw = image.format.raw;
+      _pendingImageDataBytesPerRow =
+          image.planes.isNotEmpty ? image.planes[0].bytesPerRow : 0;
+
+      _lastImageSize = Size(image.width.toDouble(), image.height.toDouble());
+
+      final camera = widget.cameras[_cameraIndex];
+      final orientation = MediaQuery.of(context).orientation;
+      final DeviceOrientation deviceRotation =
+          (orientation == Orientation.landscape)
+              ? (Platform.isIOS
+                  ? DeviceOrientation.landscapeRight
+                  : DeviceOrientation.landscapeLeft)
+              : DeviceOrientation.portraitUp;
+
+      final Map<String, dynamic> rotationPayload = {
+        'sensorOrientation': camera.sensorOrientation,
+        'deviceOrientationIndex': deviceRotation.index,
+      };
+      if (!_isDisposed && _imageRotationIsolateSendPort != null) {
+        _imageRotationIsolateSendPort!.send(rotationPayload);
+      } else {
+        print(
+            "RealtimeObjectDetectionScreen: Not sending to rotation isolate (disposed or no sendPort)");
+        _pendingImageDataBytes = null;
+        _isWaitingForRotation = false;
+        _isBusy = false;
+      }
+    } catch (e, stacktrace) {
+      print(
+          'RealtimeObjectDetectionScreen: Error processing image: $e\n$stacktrace');
+      _pendingImageDataBytes = null;
+      _isWaitingForRotation = false;
+      _isBusy = false;
+    }
+  }
+
+  void _switchCamera() {
+    if (_isDisposed || widget.cameras.length < 2 || _isBusy) return;
+    print("RealtimeObjectDetectionScreen: Switching camera...");
+    final newIndex = (_cameraIndex + 1) % widget.cameras.length;
+    Future.microtask(() async {
+      await _stopCameraStream();
+      if (mounted && !_isDisposed) {
+        await _initializeCamera(widget.cameras[newIndex]);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget cameraPreviewWidget;
+
+    if (_isCameraInitialized &&
+        _cameraController != null &&
+        _cameraController!.value.isInitialized) {
+      cameraPreviewWidget = CameraPreview(_cameraController!);
+    } else {
+      cameraPreviewWidget = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 10),
+          Text(widget.cameras.isEmpty ? '카메라 없음' : '카메라 초기화 중...'),
+        ],
+      );
+    }
+
+    final double cameraAspectRatio = (_isCameraInitialized &&
+            _cameraController != null &&
+            _cameraController!.value.isInitialized)
+        ? _cameraController!.value.aspectRatio
+        : 1.0;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('실시간 객체 탐지'),
+        actions: [
+          if (widget.cameras.length > 1)
+            IconButton(
+              icon: Icon(
+                widget.cameras[_cameraIndex].lensDirection ==
+                        CameraLensDirection.front
+                    ? Icons.camera_front
+                    : Icons.camera_rear,
+              ),
+              onPressed: _isBusy ? null : _switchCamera,
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final Size parentSize = constraints.biggest;
+            double previewWidth;
+            double previewHeight;
+
+            if (parentSize.width / parentSize.height > cameraAspectRatio) {
+              previewHeight = parentSize.height;
+              previewWidth = previewHeight * cameraAspectRatio;
+            } else {
+              previewWidth = parentSize.width;
+              previewHeight = previewWidth / cameraAspectRatio;
+            }
+
+            return Stack(
+              fit: StackFit.expand,
+              alignment: Alignment.center,
+              children: [
+                if (_isCameraInitialized &&
+                    _cameraController != null &&
+                    _cameraController!.value.isInitialized)
+                  Center(
+                    child: SizedBox(
+                      width: previewWidth,
+                      height: previewHeight,
+                      child: cameraPreviewWidget,
+                    ),
+                  )
+                else
+                  Center(child: cameraPreviewWidget),
+                if (_isCameraInitialized &&
+                    _detectedObjects.isNotEmpty &&
+                    _lastImageSize != null &&
+                    _imageRotation != null)
+                  CustomPaint(
+                    size: parentSize,
+                    painter: ObjectPainter(
+                      objects: _detectedObjects,
+                      imageSize: _lastImageSize!,
+                      screenSize: parentSize,
+                      rotation: _imageRotation!,
+                      cameraLensDirection:
+                          widget.cameras[_cameraIndex].lensDirection,
+                      cameraPreviewAspectRatio: cameraAspectRatio,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  final List<CameraDescription> cameras;
+
+  const MyApp({Key? key, required this.cameras}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '실시간 객체 탐지 앱',
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
+      ),
+      debugShowCheckedModeBanner: false,
+      home: cameras.isEmpty
+          ? Scaffold(
+              appBar: AppBar(title: const Text('카메라 오류')),
+              body: const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    '사용 가능한 카메라가 없습니다.\n앱 권한을 확인하거나 앱을 재시작해주세요.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.red),
+                  ),
+                ),
+              ),
+            )
+          : RealtimeObjectDetectionScreen(
+              cameras: cameras), // camera_initialization_ui.dart는 이 화면을 사용
+    );
+  }
+}
