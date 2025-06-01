@@ -22,6 +22,12 @@ class _FAQPageState extends State<FAQPage> {
   }
 
   @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지를 벗어날 때 음성 중지
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('자주 묻는 질문')),
