@@ -42,6 +42,12 @@ WalkGuide는 시각장애인의 안전한 보행을 돕기 위해 설계된 앱�
   }
 
   @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지를 벗어날 때 음성 중지
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('앱 사용법')),
