@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -10,12 +12,33 @@ class PrivacyPolicyPage extends StatefulWidget {
 }
 
 class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
+  final FlutterTts _flutterTts = FlutterTts();
   List<Map<String, dynamic>> walkingData = [];
 
   @override
   void initState() {
     super.initState();
+    _readContentIfEnabled();
     fetchWalkingData();
+  }
+
+  Future<void> _readContentIfEnabled() async {
+    final enabled = await isNavigationVoiceEnabled();
+    if (!enabled) return;
+
+    const String fullText = '''
+보행 데이터 관리 페이지입니다.
+
+첫째, 데이터 저장 위치.
+모든 보행 데이터는 로컬 Hive에 안전하게 저장됩니다.
+
+둘째, 백업 및 복원.
+JSON 파일로 백업 및 복원이 가능합니다.
+''';
+
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(fullText);
   }
 
   Future<void> fetchWalkingData() async {
@@ -36,7 +59,13 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
       walkingData = data;
     });
   }
-  
+
+  @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지 나갈 때 음성 안내 중지
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
