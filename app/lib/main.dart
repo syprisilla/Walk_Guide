@@ -4,7 +4,6 @@ import 'package:walk_guide/walk_session.dart';
 import 'package:walk_guide/splash_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:camera/camera.dart';
-import 'package:walk_guide/nickname_input_page.dart';
 List<CameraDescription> camerasGlobal = [];
 
 void main() async {
@@ -32,7 +31,7 @@ void main() async {
 
   runApp(
       MaterialApp(
-        home: const NicknameInputPage(),
+        home: SplashScreen(cameras: camerasGlobal),
       )
   );
 }
