@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/session_detail_page.dart';
 import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/services/statistics_service.dart';
+import 'package:walk_guide/services/firestore_service.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   const AnalyticsDashboardPage({super.key});
@@ -22,11 +24,17 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   Map<String, double> weeklyAverages = {};
   Timer? _speedTimer;
 
+  int _dailySteps = 0;
+  double _dailyAvgSpeed = 0.0;
+  int _weeklySteps = 0;
+  double _weeklyAvgSpeed = 0.0;
+
   @override
   void initState() {
     super.initState();
     _startSpeedTracking();
     loadWeeklyAverages();
+    calculateAndStoreAggregateStats();
   }
 
   void _startSpeedTracking() {
@@ -80,6 +88,21 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
 
   String getDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> calculateAndStoreAggregateStats() async {
+    final box = Hive.box<WalkSession>('walk_sessions');
+    final sessions = box.values.toList();
+
+    final stats = StatisticsService.calculateStats(sessions);
+    await FirestoreService.saveAggregateStats(stats);
+
+    setState(() {
+      _dailySteps = stats['daily_steps'];
+      _dailyAvgSpeed = stats['daily_avg_speed'];
+      _weeklySteps = stats['weekly_steps'];
+      _weeklyAvgSpeed = stats['weekly_avg_speed'];
+    });
   }
 
   Future<void> clearAllSessions() async {
@@ -140,7 +163,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         backgroundColor: Colors.amber,
         centerTitle: true,
       ),
-      body: SingleChildScrollView( // 🔥 overflow 방지용 추가
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -148,6 +171,11 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             children: [
               const Text('실시간 속도 그래프',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text("📅 오늘 걸음 수: $_dailySteps 걸음"),
+              Text("📅 오늘 평균 속도: ${_dailyAvgSpeed.toStringAsFixed(2)} m/s"),
+              Text("🗓️ 일주일 총 걸음 수: $_weeklySteps 걸음"),
+              Text("🗓️ 일주일 평균 속도: ${_weeklyAvgSpeed.toStringAsFixed(2)} m/s"),
+              const SizedBox(height: 16),
               SizedBox(
                 height: 120,
                 child: Padding(

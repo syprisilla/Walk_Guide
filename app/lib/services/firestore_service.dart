@@ -39,4 +39,26 @@ class FirestoreService {
           'timestamp': timestamp,
         });
   }
+
+  static Future<void> saveAggregateStats(Map<String, dynamic> stats) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final uid = user.uid;
+  final now = DateTime.now();
+  final dateKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('aggregate_stats')
+      .doc(dateKey)
+      .set({
+    'daily_steps': stats['daily_steps'],
+    'daily_avg_speed': stats['daily_avg_speed'],
+    'weekly_steps': stats['weekly_steps'],
+    'weekly_avg_speed': stats['weekly_avg_speed'],
+    'timestamp': Timestamp.now(),
+  });
+}
 }
