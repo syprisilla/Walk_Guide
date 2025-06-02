@@ -45,6 +45,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
+    _flutterTts.stop();
     _walkStartFocusNode.dispose();
     super.dispose();
   }
@@ -127,13 +128,23 @@ class _MainScreenState extends State<MainScreen> {
             IconButton(
               icon: const Icon(Icons.menu),
               tooltip: '설명 보기',
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                final enabled = await isNavigationVoiceEnabled();
+                if (enabled) {
+                  await _flutterTts.setLanguage("ko-KR");
+                  await _flutterTts.setSpeechRate(0.5);
+                  await _flutterTts.speak("관리 페이지로 이동합니다.");
+                }
+
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const DescriptionPage(),
                   ),
                 );
+
+                // 설명 페이지에서 돌아오면 음성 정지
+                await _flutterTts.stop();
               },
             ),
           ],

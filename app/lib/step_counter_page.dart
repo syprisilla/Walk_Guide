@@ -433,18 +433,18 @@ class _StepCounterPageState extends State<StepCounterPage> {
               left: 0,
               right: 0,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                padding: const EdgeInsets.symmetric(horizontal: 6.0),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      vertical: 8.0, horizontal: 12.0),
+                      vertical: 4.0, horizontal: 6.0),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.75),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.25),
-                        spreadRadius: 2,
-                        blurRadius: 5,
+                        spreadRadius: 1,
+                        blurRadius: 2,
                         offset: const Offset(0, 2),
                       ),
                     ],
@@ -461,7 +461,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
                             Text(
                               _isMoving ? '🚶 보행 중' : '🛑 정지 상태',
                               style: const TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 8,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold),
                             ),
@@ -469,7 +469,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
                             Text(
                               '$_steps 걸음',
                               style: const TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 10,
                                   color: Colors.amberAccent,
                                   fontWeight: FontWeight.bold),
                             ),
@@ -489,24 +489,24 @@ class _StepCounterPageState extends State<StepCounterPage> {
                           children: [
                             const Text('평균 속도',
                                 style: TextStyle(
-                                    fontSize: 14, color: Colors.white70)),
+                                    fontSize: 8, color: Colors.white70)),
                             const SizedBox(height: 2),
                             Text(
                               '${getAverageSpeed().toStringAsFixed(2)} m/s',
                               style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 10,
                                   color: Colors.lightGreenAccent,
                                   fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 6),
                             const Text('실시간 속도',
                                 style: TextStyle(
-                                    fontSize: 14, color: Colors.white70)),
+                                    fontSize: 8, color: Colors.white70)),
                             const SizedBox(height: 2),
                             Text(
                               '${getRealTimeSpeed().toStringAsFixed(2)} m/s',
                               style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 8,
                                   color: Colors.cyanAccent,
                                   fontWeight: FontWeight.bold),
                             ),
