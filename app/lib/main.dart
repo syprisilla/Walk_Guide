@@ -21,10 +21,13 @@ void main() async {
 
   try {
     camerasGlobal = await availableCameras();
-    camerasGlobal = [];
+    print("📸 카메라 갯수: ${camerasGlobal.length}");
+    for (var cam in camerasGlobal) {
+      print(" - ${cam.name} (${cam.lensDirection})");
+    }
   } on CameraException catch (e) {
     print('카메라 탐색 실패: $e');
-    camerasGlobal = []; // 카메라 없어도 빈 리스트로 초기화
+    camerasGlobal = [];
   }
 
   runApp(

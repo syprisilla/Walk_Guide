@@ -43,21 +43,21 @@ JSON 파일로 백업 및 복원이 가능합니다.
 
   Future<void> fetchWalkingData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  if (user == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('walking_data')
-        .orderBy('timestamp', descending: true)
-        .limit(7)
-        .get();
+  final snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('daily_steps')
+      .orderBy('date', descending: true)
+      .limit(7)
+      .get();
 
-    final data = snapshot.docs.map((doc) => doc.data()).toList();
+  final data = snapshot.docs.map((doc) => doc.data()).toList();
 
-    setState(() {
-      walkingData = data;
-    });
+  setState(() {
+    walkingData = data;
+  });
   }
 
   @override
@@ -87,13 +87,13 @@ JSON 파일로 백업 및 복원이 가능합니다.
                       itemCount: walkingData.length,
                       itemBuilder: (context, index) {
                         final data = walkingData[index];
-                        final ts = (data['timestamp'] as Timestamp).toDate();
-                        final speed = (data['speed'] ?? 0.0).toStringAsFixed(2);
+                        final date = (data['date'] as Timestamp).toDate();
+                        final steps = data['steps'] ?? 0;
 
                         return ListTile(
                           leading: const Icon(Icons.directions_walk),
-                          title: Text('$speed m/s'),
-                          subtitle: Text('${ts.toLocal()}'),
+                          title: Text('$steps 걸음'),
+                          subtitle: Text('${date.toLocal()}'),
                         );
                       },
                     ),

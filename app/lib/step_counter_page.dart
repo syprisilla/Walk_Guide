@@ -18,6 +18,8 @@ import './ObjectDetection/object_detection_view.dart';
 
 import 'package:walk_guide/user_profile.dart';
 
+import 'package:walk_guide/services/firestore_service.dart';
+
 class StepCounterPage extends StatefulWidget {
   final void Function(double Function())? onInitialized;
   final List<CameraDescription> cameras;
@@ -260,7 +262,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     return RealTimeSpeedService.getSpeed();
   }
 
-  void _saveSessionData() {
+  Future<void> _saveSessionData() async {
     if (_isDisposed) return;
     if (_startTime == null || _steps == 0) {
       debugPrint("세션 저장 스킵: 시작 시간이 없거나 걸음 수가 0입니다.");
@@ -296,6 +298,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
     final box = Hive.box<WalkSession>('walk_sessions');
     box.add(session);
+
+    // Firestore 저장
+    await FirestoreService.saveDailySteps(_steps);
+    await FirestoreService.saveWalkingSpeed(getAverageSpeed());
 
     debugPrint("🟢 저장된 세션: $session");
     debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");

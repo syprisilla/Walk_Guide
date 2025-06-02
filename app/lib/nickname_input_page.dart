@@ -25,20 +25,22 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
 
   Future<void> _saveNickname() async {
     final nickname = _nicknameController.text.trim();
-    final user = FirebaseAuth.instance.currentUser;
+  final user = FirebaseAuth.instance.currentUser;
 
-    if (nickname.isEmpty || user == null) return;
+  if (nickname.isEmpty || user == null) return;
 
-    setState(() {
-      _isSaving = true;
-    });
+  setState(() {
+    _isSaving = true;
+  });
 
+  try {
     final taken = await isNicknameTaken(nickname);
     if (taken) {
       setState(() {
         _isSaving = false;
       });
 
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -58,7 +60,7 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'email': user.email,
       'nickname': nickname,
-    });
+    }, SetOptions(merge: true)); // ← 덮어쓰기 방지
 
     if (!mounted) return;
 
@@ -68,6 +70,20 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
         builder: (_) => MainScreen(cameras: camerasGlobal),
       ),
     );
+  } catch (e) {
+    debugPrint('🔥 닉네임 저장 중 오류 발생: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('닉네임 저장에 실패했습니다. 다시 시도해주세요.')),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
   }
 
   @override
