@@ -36,22 +36,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       final box = Hive.box<DateTime>('recent_steps');
       final now = DateTime.now();
 
-      // Hive에 저장된 전체 recent_steps 로그 수 출력
-      debugPrint("📦 Hive recent_steps 전체: ${box.length}");
-
-      // 유효한 걸음만 필터링 (5초 이내)
       final validSteps =
           box.values.where((t) => now.difference(t).inSeconds <= 5).toList();
-
-      for (final stepTime in box.values) {
-        final diff = now.difference(stepTime).inSeconds;
-        debugPrint("⏱️ 기록된 시간: $stepTime, 차이: ${diff}초");
-      }
-
       final double speed = validSteps.length * 0.7 / 5;
-      debugPrint("📈 계산된 실시간 속도 (Hive 기반): $speed");
 
-      // speed가 0이더라도 항상 setState 호출
       setState(() {
         speedData.add(speed);
         if (speedData.length > 30) speedData.removeAt(0);
@@ -152,98 +140,101 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         backgroundColor: Colors.amber,
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('실시간 속도 그래프',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(
-              height: 120,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                child: LineChart(
-                  LineChartData(
-                    titlesData: FlTitlesData(show: false),
-                    borderData: FlBorderData(show: false),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: List.generate(speedData.length,
-                            (i) => FlSpot(i.toDouble(), speedData[i])),
-                        isCurved: true,
-                        barWidth: 3,
-                        dotData: FlDotData(show: false),
-                        color: Colors.blue,
-                      ),
-                    ],
+      body: SingleChildScrollView( // 🔥 overflow 방지용 추가
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('실시간 속도 그래프',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(
+                height: 120,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: LineChart(
+                    LineChartData(
+                      titlesData: FlTitlesData(show: false),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: List.generate(speedData.length,
+                              (i) => FlSpot(i.toDouble(), speedData[i])),
+                          isCurved: true,
+                          barWidth: 3,
+                          dotData: FlDotData(show: false),
+                          color: Colors.blue,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('최근 일주일 평균 속도 변화',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(
-              height: 160,
-              child: BarChart(
-                BarChartData(
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        if (group.x.toInt() >= dates.length) return null;
-                        final date = dates[group.x.toInt()];
-                        final speed = rod.toY.toStringAsFixed(2);
-                        return BarTooltipItem('$date\n속도: $speed m/s',
-                            const TextStyle(color: Colors.white, fontSize: 14));
-                      },
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= dates.length) {
-                            return const SizedBox();
-                          }
-                          final date = dates[index];
-                          return Text(date.substring(5),
-                              style: const TextStyle(fontSize: 10));
+              const SizedBox(height: 16),
+              const Text('최근 일주일 평균 속도 변화',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(
+                height: 160,
+                child: BarChart(
+                  BarChartData(
+                    barTouchData: BarTouchData(
+                      enabled: true,
+                      touchTooltipData: BarTouchTooltipData(
+                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                          if (group.x.toInt() >= dates.length) return null;
+                          final date = dates[group.x.toInt()];
+                          final speed = rod.toY.toStringAsFixed(2);
+                          return BarTooltipItem('$date\n속도: $speed m/s',
+                              const TextStyle(color: Colors.white, fontSize: 14));
                         },
                       ),
                     ),
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final index = value.toInt();
+                            if (index < 0 || index >= dates.length) {
+                              return const SizedBox();
+                            }
+                            final date = dates[index];
+                            return Text(date.substring(5),
+                                style: const TextStyle(fontSize: 10));
+                          },
+                        ),
+                      ),
+                    ),
+                    barGroups: List.generate(dates.length, (index) {
+                      final date = dates[index];
+                      final speed = weeklyAverages[date]!;
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(toY: speed, width: 12, color: Colors.teal)
+                        ],
+                      );
+                    }),
                   ),
-                  barGroups: List.generate(dates.length, (index) {
-                    final date = dates[index];
-                    final speed = weeklyAverages[date]!;
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                            toY: speed, width: 12, color: Colors.teal)
-                      ],
-                    );
-                  }),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('세션 다시보기',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(
-              height: 200,
-              child: ValueListenableBuilder(
+              const SizedBox(height: 16),
+              const Text('세션 다시보기',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ValueListenableBuilder(
                 valueListenable:
                     Hive.box<WalkSession>('walk_sessions').listenable(),
                 builder: (context, Box<WalkSession> box, _) {
                   if (box.isEmpty) {
-                    return const Center(child: Text('저장된 세션이 없습니다.'));
+                    return const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Center(child: Text('저장된 세션이 없습니다.')),
+                    );
                   }
                   final sessions = box.values.toList().reversed.toList();
                   return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: sessions.length,
                     itemBuilder: (context, index) {
                       final session = sessions[index];
@@ -258,8 +249,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    SessionDetailPage(session: session)),
+                              builder: (context) =>
+                                  SessionDetailPage(session: session),
+                            ),
                           );
                         },
                       );
@@ -267,51 +259,52 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                   );
                 },
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('데이터 초기화 및 백업',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    await clearAllSessions();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('🗑️ 모든 세션이 삭제되었습니다')),
-                      );
-                    }
-                  },
-                  child: const Text('초기화'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () async {
-                    await backupSessionsToJson();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ 데이터가 JSON으로 백업되었습니다')),
-                      );
-                    }
-                  },
-                  child: const Text('백업'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () async {
-                    await restoreSessionsFromJson();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ 백업 데이터에서 세션을 복원했습니다')),
-                      );
-                      setState(() {});
-                    }
-                  },
-                  child: const Text('복원'),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 16),
+              const Text('데이터 초기화 및 백업',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      await clearAllSessions();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('🗑️ 모든 세션이 삭제되었습니다')),
+                        );
+                      }
+                    },
+                    child: const Text('초기화'),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await backupSessionsToJson();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✅ 데이터가 JSON으로 백업되었습니다')),
+                        );
+                      }
+                    },
+                    child: const Text('백업'),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await restoreSessionsFromJson();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✅ 백업 데이터에서 세션을 복원했습니다')),
+                        );
+                        setState(() {});
+                      }
+                    },
+                    child: const Text('복원'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
