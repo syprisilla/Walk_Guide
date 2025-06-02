@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/session_detail_page.dart';
 import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/services/statistics_service.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   const AnalyticsDashboardPage({super.key});
@@ -145,6 +146,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final weeklyStepData = StatisticsService.getWeeklyStepData(
+      Hive.box<WalkSession>('walk_sessions').values.toList(),
+    );
     final dates = weeklyAverages.keys.toList();
     return Scaffold(
       appBar: AppBar(
@@ -152,7 +156,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         backgroundColor: Colors.amber,
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,6 +189,56 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             const SizedBox(height: 16),
             const Text('최근 일주일 평균 속도 변화',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(
+              height: 160,
+              child: BarChart(
+                BarChartData(
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      if (group.x.toInt() >= dates.length) return null;
+                      final date = dates[group.x.toInt()];
+                      final steps = rod.toY.toInt();
+                      return BarTooltipItem(
+                        '$date\n걸음 수: $steps',
+                        const TextStyle(color: Colors.white, fontSize: 14),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= dates.length) {
+                          return const SizedBox();
+                        }
+                        final date = dates[index];
+                        return Text(date.substring(5), style: const TextStyle(fontSize: 10));
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: List.generate(dates.length, (index) {
+                  final date = dates[index];
+                  final steps = weeklyStepData[date] ?? 0;
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: steps.toDouble(),
+                        width: 12,
+                        color: Colors.deepOrange, // 원하는 색상 지정
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),    
             SizedBox(
               height: 160,
               child: BarChart(
@@ -313,6 +368,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
