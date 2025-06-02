@@ -38,13 +38,15 @@ class _TechnologyPageState extends State<TechnologyPage> {
             title: const Text('센서 사용'),
             onExpansionChanged: (expanded) {
               if (expanded) {
-                _speakIfEnabled("센서 사용", "sensors_plus 사용");
+                _speakIfEnabled("센서 사용",
+                    "sensors_plus 패키지를 활용해 스마트폰의 가속도 센서를 통해 사용자의 움직임을 감지합니다.");
               }
             },
             children: const [
               Padding(
                 padding: EdgeInsets.all(8),
-                child: Text('sensors_plus 사용'),
+                child: Text(
+                    'sensors_plus 패키지를 활용해 스마트폰의 가속도 센서를 통해 사용자의 움직임을 감지합니다.'),
               ),
             ],
           ),
@@ -52,13 +54,15 @@ class _TechnologyPageState extends State<TechnologyPage> {
             title: const Text('AI 기반 안내'),
             onExpansionChanged: (expanded) {
               if (expanded) {
-                _speakIfEnabled("AI 기반 안내", "보행 속도 학습");
+                _speakIfEnabled("AI 기반 안내",
+                    "사용자의 걸음 수와 이동 시간을 기반으로 보행 속도를 계산하고, 이를 지속적으로 학습하여 개인 맞춤형 보행 패턴을 생성합니다.");
               }
             },
             children: const [
               Padding(
                 padding: EdgeInsets.all(8),
-                child: Text('보행 속도 학습'),
+                child: Text(
+                    '사용자의 걸음 수와 이동 시간을 기반으로 보행 속도를 계산하고, 이를 지속적으로 학습하여 개인 맞춤형 보행 패턴을 생성합니다.'),
               ),
             ],
           ),
@@ -66,13 +70,15 @@ class _TechnologyPageState extends State<TechnologyPage> {
             title: const Text('음성 안내'),
             onExpansionChanged: (expanded) {
               if (expanded) {
-                _speakIfEnabled("음성 안내", "Flutter TTS 사용");
+                _speakIfEnabled("음성 안내",
+                    "Flutter TTS를 활용해 시각장애인이 시각 정보 없이도 상황을 인식할 수 있도록 실시간으로 음성 안내를 제공합니다.");
               }
             },
             children: const [
               Padding(
                 padding: EdgeInsets.all(8),
-                child: Text('Flutter TTS 사용'),
+                child: Text(
+                    'Flutter TTS를 활용해 시각장애인이 시각 정보 없이도 상황을 인식할 수 있도록 실시간으로 음성 안내를 제공합니다.'),
               ),
             ],
           ),
@@ -80,13 +86,15 @@ class _TechnologyPageState extends State<TechnologyPage> {
             title: const Text('로컬 저장소 Hive'),
             onExpansionChanged: (expanded) {
               if (expanded) {
-                _speakIfEnabled("로컬 저장소 Hive", "데이터 저장 및 복원");
+                _speakIfEnabled("로컬 저장소 Hive",
+                    "Hive를 사용해 로컬에 보행 데이터를 저장합니다. 앱을 종료하거나 스마트폰을 껐다 켜도 이전 데이터를 복원합니다.");
               }
             },
             children: const [
               Padding(
                 padding: EdgeInsets.all(8),
-                child: Text('데이터 저장 및 복원'),
+                child: Text(
+                    'Hive를 사용해 로컬에 보행 데이터를 저장합니다. 앱을 종료하거나 스마트폰을 껐다 켜도 이전 데이터를 복원합니다.'),
               ),
             ],
           ),
