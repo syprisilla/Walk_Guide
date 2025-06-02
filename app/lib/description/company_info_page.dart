@@ -41,33 +41,27 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         children: const [
-          Text(
-            '충북대학교',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          Text('충북대학교',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           SizedBox(height: 12),
           Text('팀명: SCORE', style: TextStyle(fontSize: 16)),
           Divider(height: 32),
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('김병우'),
-            subtitle: Text('~~~~~'),
-          ),
+              leading: Icon(Icons.person),
+              title: Text('김병우'),
+              subtitle: Text('바운더리 박스 구현, 객체 감지 정확성 향상 및 버그 수정')),
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('권오섭'),
-            subtitle: Text('~~~~~'),
-          ),
+              leading: Icon(Icons.person),
+              title: Text('권오섭'),
+              subtitle: Text('카메라 초기설정, ML Kit 기반 객체 감지 로직 구현')),
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('전수영'),
-            subtitle: Text('~~~~~'),
-          ),
+              leading: Icon(Icons.person),
+              title: Text('전수영'),
+              subtitle: Text('~~~~~')),
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('김선영'),
-            subtitle: Text('~~~~~'),
-          ),
+              leading: Icon(Icons.person),
+              title: Text('김선영'),
+              subtitle: Text('~~~~~')),
         ],
       ),
     );
