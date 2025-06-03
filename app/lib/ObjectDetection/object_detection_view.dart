@@ -36,7 +36,7 @@ class DetectedObjectInfo {
       case ObjectSizeCategory.small:
         return "작은";
       case ObjectSizeCategory.medium:
-        return "중간 크기의";
+        return "중간";
       case ObjectSizeCategory.large:
         return "큰";
       default:

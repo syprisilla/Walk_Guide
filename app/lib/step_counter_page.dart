@@ -196,17 +196,13 @@ class _StepCounterPageState extends State<StepCounterPage> {
     String sizeDesc = objectInfo.sizeDescription;
     String positionDesc = objectInfo.positionalDescription;
 
+    // MODIFIED: Unified object naming to "장애물"
     String message = "$positionDesc에"; 
     if (sizeDesc.isNotEmpty) {
       message += " $sizeDesc 크기의";
     }
-    if (objectInfo.label != null && objectInfo.label!.isNotEmpty) {
-         message += " ${objectInfo.label}";
-    } else {
-        message += " 장애물이";
-    }
-    message += " 있습니다. 주의하세요.";
-
+    // Always use "장애물" regardless of objectInfo.label
+    message += " 장애물이 있습니다. 주의하세요."; 
 
     debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정... TTS 메시지: $message");
 
@@ -427,7 +423,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
         children: [
           Positioned.fill(
             child: (widget.cameras.isNotEmpty)
-                ? ObjectDetectionView( // This should now be recognized
+                ? ObjectDetectionView( 
                     cameras: widget.cameras,
                     onObjectsDetected: _handleDetectedObjects,
                   )
