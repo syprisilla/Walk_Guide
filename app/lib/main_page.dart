@@ -180,7 +180,7 @@ class _MainScreenState extends State<MainScreen> {
                     width: 50,
                     height: 50,
                     child: Image.asset(
-                      'assets/images/walkingIcon.png', // 실제 파일 경로로 바꿔줘
+                      'assets/images/walkingIcon.png',
                       width: 50,
                       height: 50,
                     ),
@@ -205,6 +205,9 @@ class _MainScreenState extends State<MainScreen> {
           },
         ),
         bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.black54,
+          unselectedItemColor: Colors.black54,
           selectedFontSize: 16,
           unselectedFontSize: 14,
           iconSize: 32,
