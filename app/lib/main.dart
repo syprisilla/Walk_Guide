@@ -4,7 +4,6 @@ import 'package:walk_guide/walk_session.dart';
 import 'package:walk_guide/splash_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:camera/camera.dart';
-
 List<CameraDescription> camerasGlobal = [];
 
 void main() async {
@@ -21,11 +20,20 @@ void main() async {
 
   try {
     camerasGlobal = await availableCameras();
+    print("📸 카메라 갯수: ${camerasGlobal.length}");
+    for (var cam in camerasGlobal) {
+      print(" - ${cam.name} (${cam.lensDirection})");
+    }
   } on CameraException catch (e) {
-    print('Error finding cameras: ${e.code}, ${e.description}');
+    print('카메라 탐색 실패: $e');
+    camerasGlobal = [];
   }
 
-  runApp(const MyApp());
+  runApp(
+      MaterialApp(
+        home: SplashScreen(cameras: camerasGlobal),
+      )
+  );
 }
 
 class MyApp extends StatelessWidget {

@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:flutter/foundation.dart';
+import 'package:walk_guide/services/firestore_service.dart';
 
 class RealTimeSpeedService {
   static const String boxName = 'recent_steps';
@@ -59,13 +60,21 @@ class RealTimeSpeedService {
     final box = Hive.box<DateTime>(boxName);
 
     if (delay) {
-      Future.delayed(clearDelay, () {
+      Future.delayed(clearDelay, () async {
+        //firestore에 속도 정보 저장
+        if (_lastSpeed > 0.0) {
+          await FirestoreService.saveWalkingSpeed(_lastSpeed);
+        }
         box.clear();
         _lastSpeed = 0.0;
         _lastUpdateTime = null;
         debugPrint("🕒 recent_steps 지연 삭제됨");
       });
     } else {
+      //firestore에 속도 정보 저장
+      if (_lastSpeed > 0.0) {
+        FirestoreService.saveWalkingSpeed(_lastSpeed);
+      }
       box.clear();
       _lastSpeed = 0.0;
       _lastUpdateTime = null;

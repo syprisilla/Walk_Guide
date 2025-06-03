@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:walk_guide/services/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -11,12 +12,52 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final FlutterTts _flutterTts = FlutterTts();
+
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _emailFocus.addListener(() {
+      if (_emailFocus.hasFocus) {
+        _speak("이메일을 입력해주세요.");
+      }
+    });
+
+    _passwordFocus.addListener(() {
+      if (_passwordFocus.hasFocus) {
+        _speak("비밀번호를 입력해주세요.");
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    emailController.dispose();
+    passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(text);
+  }
 
   void _signUp() async {
+    _speak("회원가입을 진행합니다.");
+
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
+      _speak("이메일과 비밀번호를 입력해주세요.");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요')),
       );
@@ -25,13 +66,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     final authService = AuthService();
     await authService.signUpWithEmail(email, password, context);
-  }
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -50,6 +84,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: emailController,
+              focusNode: _emailFocus,
               decoration: InputDecoration(
                 hintText: '이메일',
                 filled: true,
@@ -70,6 +105,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: passwordController,
+              focusNode: _passwordFocus,
               decoration: InputDecoration(
                 hintText: '비밀번호',
                 filled: true,
@@ -108,22 +144,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 2,
               ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              elevation: 2,
+              icon: const Icon(Icons.login),
+              label: const Text(
+                'Google로 회원가입하기',
+                style: TextStyle(fontSize: 16),
+              ),
+              onPressed: () {
+                _speak("Google로 회원가입을 진행합니다.");
+                AuthService().signInWithGoogle(context);
+              },
             ),
-            icon: const Icon(Icons.login),
-            label: const Text(
-              'Google로 회원가입하기',
-            style: TextStyle(fontSize: 16),
-            ),
-            onPressed: () => AuthService().signInWithGoogle(context),
-          ),
-        ],
+          ],
         ),
       ),
     );

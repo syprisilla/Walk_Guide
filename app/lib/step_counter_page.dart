@@ -19,6 +19,8 @@ import './ObjectDetection/object_detection_view.dart';
 
 import 'package:walk_guide/user_profile.dart';
 
+import 'package:walk_guide/services/firestore_service.dart';
+
 class StepCounterPage extends StatefulWidget {
   final void Function(double Function())? onInitialized;
   final List<CameraDescription> cameras;
@@ -368,7 +370,7 @@ class _StepCounterPageState extends State<StepCounterPage> with WidgetsBindingOb
     return RealTimeSpeedService.getSpeed();
   }
 
-  void _saveSessionData() {
+  Future<void> _saveSessionData() async {
     if (_isDisposed) return;
     if (_startTime == null || _steps == 0) {
       debugPrint("세션 저장 스킵: 시작 시간이 없거나 걸음 수가 0입니다.");
@@ -396,6 +398,10 @@ class _StepCounterPageState extends State<StepCounterPage> with WidgetsBindingOb
 
     final box = Hive.box<WalkSession>('walk_sessions');
     box.add(session);
+
+    // Firestore 저장
+    await FirestoreService.saveDailySteps(_steps);
+    await FirestoreService.saveWalkingSpeed(getAverageSpeed());
 
     debugPrint("🟢 저장된 세션: $session");
     debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");
@@ -641,9 +647,159 @@ class _StepCounterPageState extends State<StepCounterPage> with WidgetsBindingOb
                       ],
                     ),
                   ),
+<<<<<<< HEAD
                 )),
             if (_sessionHistory.isNotEmpty)
               Positioned(
+=======
+          ),
+          Positioned(
+              top: 20,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 4.0, horizontal: 6.0),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.75),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        spreadRadius: 1,
+                        blurRadius: 2,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              _isMoving ? '🚶 보행 중' : '🛑 정지 상태',
+                              style: const TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$_steps 걸음',
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.amberAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        height: 50,
+                        width: 1,
+                        color: Colors.white30,
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text('평균 속도',
+                                style: TextStyle(
+                                    fontSize: 8, color: Colors.white70)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${getAverageSpeed().toStringAsFixed(2)} m/s',
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.lightGreenAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text('실시간 속도',
+                                style: TextStyle(
+                                    fontSize: 8, color: Colors.white70)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${getRealTimeSpeed().toStringAsFixed(2)} m/s',
+                              style: const TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+          if (_sessionHistory.isNotEmpty)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Opacity(
+                opacity: 0.9,
+                child: Container(
+                  height: 160,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: Colors.blueGrey[800],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black38)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          "최근 보행 기록",
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: _sessionHistory.length > 5
+                              ? 5
+                              : _sessionHistory.length,
+                          itemBuilder: (context, index) {
+                            final session = _sessionHistory[index];
+                            return Card(
+                              color: Colors.blueGrey[700],
+                              margin: const EdgeInsets.symmetric(vertical: 3.0),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  '${index + 1}) ${session.stepCount}걸음, 평균 ${session.averageSpeed.toStringAsFixed(2)} m/s (${(session.endTime.difference(session.startTime).inSeconds / 60).toStringAsFixed(1)}분)',
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned(
+>>>>>>> 8108573a166fd8447b8c50c2d42f1e16a1e0aa6b
                 bottom: 20,
                 left: 20,
                 right: 20,
