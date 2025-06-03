@@ -75,8 +75,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       appBar: AppBar(
         title: const Text('회원가입'),
         backgroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -152,7 +153,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 elevation: 2,
               ),
-              icon: const Icon(Icons.login),
+              icon: Image.asset(
+                  'assets/images/googlelogo.png',
+                  width: 24,
+                  height: 24,
+              ),
               label: const Text(
                 'Google로 회원가입하기',
                 style: TextStyle(fontSize: 16),
