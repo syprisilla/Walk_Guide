@@ -31,7 +31,15 @@ class _TechnologyPageState extends State<TechnologyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('사용된 기술 및 기능')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.amber,
+        title: const Text('사용된 기술 및 기능'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: ListView(
         children: [
           ExpansionTile(
