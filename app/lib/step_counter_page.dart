@@ -16,11 +16,10 @@ import 'walk_session.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/voice_guide_service.dart';
 
-// object_detection_view.dart에서 DetectedObjectInfo를 import 합니다.
-import './ObjectDetection/object_detection_view.dart' show DetectedObjectInfo; 
+
+import './ObjectDetection/object_detection_view.dart'; 
 
 import 'package:walk_guide/user_profile.dart';
-
 import 'package:walk_guide/services/firestore_service.dart';
 
 class StepCounterPage extends StatefulWidget {
@@ -195,9 +194,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
     final delay = getGuidanceDelay(_userProfile.avgSpeed);
 
     String sizeDesc = objectInfo.sizeDescription;
-    String positionDesc = objectInfo.positionalDescription; // <<< MODIFIED: Use positional description
+    String positionDesc = objectInfo.positionalDescription;
 
-    // Modified TTS message
     String message = "$positionDesc에"; 
     if (sizeDesc.isNotEmpty) {
       message += " $sizeDesc 크기의";
@@ -320,14 +318,12 @@ class _StepCounterPageState extends State<StepCounterPage> {
         await FirestoreService.saveWalkingSpeed(getAverageSpeed());
     }
 
-
     debugPrint("🟢 저장된 세션: $session");
     debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");
 
     if (mounted && !_isDisposed) {
         analyzeWalkingPattern();
     }
-
 
     _steps = 0;
     _initialSteps = null;
@@ -431,7 +427,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
         children: [
           Positioned.fill(
             child: (widget.cameras.isNotEmpty)
-                ? ObjectDetectionView(
+                ? ObjectDetectionView( // This should now be recognized
                     cameras: widget.cameras,
                     onObjectsDetected: _handleDetectedObjects,
                   )
@@ -631,7 +627,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     
     flutterTts.stop();
 
-
+    _setPortraitOrientation();
 
     super.dispose();
     print("StepCounterPage disposed successfully");

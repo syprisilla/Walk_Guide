@@ -9,10 +9,8 @@ import 'package:flutter/services.dart'; // For RootIsolateToken, DeviceOrientati
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 
-// Assuming IsolateDataHolder is defined in camera_screen.dart as per error messages
-// and mlkit_object_detection.dart contains the isolate entry points.
 import './camera_screen.dart' show IsolateDataHolder;
-import './mlkit_object_detection.dart'; // Contains detectObjectsIsolateEntry, getImageRotationIsolateEntry
+import './mlkit_object_detection.dart';
 import './object_painter.dart';
 
 
@@ -21,16 +19,16 @@ enum ObjectSizeCategory { small, medium, large, unknown }
 class DetectedObjectInfo {
   final DetectedObject object;
   final ObjectSizeCategory sizeCategory;
-  final Rect boundingBox;
-  final String? label;
-  final String positionalDescription; // New field for positional description
+  final Rect boundingBox; // 화면상의 바운딩 박스
+  final String? label; // ML Kit에서 제공하는 원본 레이블
+  final String positionalDescription; // "좌측 전방", "전방", "우측 전방"
 
   DetectedObjectInfo({
     required this.object,
     required this.sizeCategory,
     required this.boundingBox,
     this.label,
-    required this.positionalDescription, // Added to constructor
+    required this.positionalDescription,
   });
 
   String get sizeDescription {
@@ -73,7 +71,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   InputImageRotation? _imageRotation;
   ObjectDetector? _objectDetector;
   Size? _lastImageSize;
-  Size? _screenSize;
+  Size? _screenSize; // 화면 크기 저장
 
   Isolate? _objectDetectionIsolate;
   Isolate? _imageRotationIsolate;
@@ -321,27 +319,63 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         
         final String? mainLabel = largestMlKitObject.labels.isNotEmpty ? largestMlKitObject.labels.first.text : null;
 
-        // Determine positional description
+        // MODIFIED: Determine positional description based on occupancy
         String positionalDescription = "전방"; // Default
-        if (_screenSize != null && _screenSize!.width > 0 && displayRect.width > 0) {
-            final double objectCenterX = displayRect.left + displayRect.width / 2;
-            final double screenThird = _screenSize!.width / 3;
+        if (_screenSize != null && _screenSize!.width > 0 && !displayRect.isEmpty) {
+            final double screenWidth = _screenSize!.width;
+            final double screenHeight = _screenSize!.height; 
+            final double screenThird = screenWidth / 3;
 
-            if (objectCenterX < screenThird) {
+            final Rect leftSectionRect = Rect.fromLTWH(0, 0, screenThird, screenHeight);
+            final Rect middleSectionRect = Rect.fromLTWH(screenThird, 0, screenThird, screenHeight);
+            final Rect rightSectionRect = Rect.fromLTWH(screenThird * 2, 0, screenThird, screenHeight);
+
+            final Rect intersectionLeft = displayRect.intersect(leftSectionRect);
+            final Rect intersectionMiddle = displayRect.intersect(middleSectionRect);
+            final Rect intersectionRight = displayRect.intersect(rightSectionRect);
+
+            final double areaLeft = (intersectionLeft.width < 0 || intersectionLeft.height < 0) ? 0 : intersectionLeft.width * intersectionLeft.height;
+            final double areaMiddle = (intersectionMiddle.width < 0 || intersectionMiddle.height < 0) ? 0 : intersectionMiddle.width * intersectionMiddle.height;
+            final double areaRight = (intersectionRight.width < 0 || intersectionRight.height < 0) ? 0 : intersectionRight.width * intersectionRight.height;
+            
+            if (areaLeft == 0 && areaMiddle == 0 && areaRight == 0 && !displayRect.isEmpty) {
+                 // If no intersection but object exists, determine by center (fallback)
+                final double objectCenterX = displayRect.left + displayRect.width / 2;
+                if (objectCenterX < screenThird) {
+                    positionalDescription = "좌측 전방";
+                } else if (objectCenterX < screenThird * 2) {
+                    positionalDescription = "전방";
+                } else {
+                    positionalDescription = "우측 전방";
+                }
+            } else if (areaLeft > areaMiddle && areaLeft > areaRight) {
                 positionalDescription = "좌측 전방";
-            } else if (objectCenterX < screenThird * 2) {
-                positionalDescription = "전방";
-            } else {
+            } else if (areaRight > areaLeft && areaRight > areaMiddle) {
                 positionalDescription = "우측 전방";
+            } else if (areaMiddle >= areaLeft && areaMiddle >= areaRight && areaMiddle > 0) {
+                 positionalDescription = "전방";
+            } else {
+                // Fallback for ambiguous cases or if all areas are zero but object is somehow present
+                // (could happen if object is tiny or calculations are imperfect)
+                // For safety, default to "전방" if an object is detected but position is unclear.
+                 final double objectCenterX = displayRect.left + displayRect.width / 2;
+                if (objectCenterX < screenThird) {
+                    positionalDescription = "좌측 전방";
+                } else if (objectCenterX < screenThird * 2) {
+                    positionalDescription = "전방";
+                } else {
+                    positionalDescription = "우측 전방";
+                }
             }
         }
+
 
         newProcessedObjects.add(DetectedObjectInfo(
           object: largestMlKitObject,
           sizeCategory: sizeCategory,
           boundingBox: displayRect,
-          label: mainLabel,
-          positionalDescription: positionalDescription, // Pass new positional description
+          label: mainLabel, // Store original label if needed for other purposes
+          positionalDescription: positionalDescription, 
         ));
       }
     } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().startsWith('Error from DetectionIsolate')) {
@@ -628,7 +662,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       return;
     }
     
-    if (mounted && !_isDisposed) { // Ensure mounted before setState
+    if (mounted && !_isDisposed) { 
         setState(() { _isBusy = true; });
     } else {
          _isBusy = true; 
@@ -774,7 +808,7 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
                   rotation: _imageRotation!,
                   cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
                   cameraPreviewAspectRatio: cameraAspectRatio,
-                  showNameTags: false,
+                  showNameTags: false, // NameTag는 계속 그리지 않음
                 ),
               ),
           ],
