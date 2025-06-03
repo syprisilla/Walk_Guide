@@ -16,7 +16,8 @@ import 'walk_session.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/voice_guide_service.dart';
 
-import './ObjectDetection/object_detection_view.dart';
+// object_detection_view.dart에서 DetectedObjectInfo를 import 합니다.
+import './ObjectDetection/object_detection_view.dart' show DetectedObjectInfo; 
 
 import 'package:walk_guide/user_profile.dart';
 
@@ -67,8 +68,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
     flutterTts.setSpeechRate(0.5);
     flutterTts.setLanguage("ko-KR");
 
-    // 화면 방향 설정은 MainScreen에서 StepCounterPage로 이동할 때 처리됨
-
     requestPermission();
     loadSessions();
 
@@ -108,7 +107,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
         await Hive.openBox<DateTime>('recent_steps');
         debugPrint(" Hive 'recent_steps' 박스 열림 완료");
       }
-      if (mounted && !_isDisposed) { // Check mounted before starting services
+      if (mounted && !_isDisposed) { 
         startPedometer();
         startAccelerometer();
         startCheckingMovement();
@@ -196,11 +195,20 @@ class _StepCounterPageState extends State<StepCounterPage> {
     final delay = getGuidanceDelay(_userProfile.avgSpeed);
 
     String sizeDesc = objectInfo.sizeDescription;
-    String message = "전방에";
+    String positionDesc = objectInfo.positionalDescription; // <<< MODIFIED: Use positional description
+
+    // Modified TTS message
+    String message = "$positionDesc에"; 
     if (sizeDesc.isNotEmpty) {
       message += " $sizeDesc 크기의";
     }
-    message += " 장애물이 있습니다. 주의하세요.";
+    if (objectInfo.label != null && objectInfo.label!.isNotEmpty) {
+         message += " ${objectInfo.label}";
+    } else {
+        message += " 장애물이";
+    }
+    message += " 있습니다. 주의하세요.";
+
 
     debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정... TTS 메시지: $message");
 
@@ -307,7 +315,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     final box = Hive.box<WalkSession>('walk_sessions');
     box.add(session);
 
-    if (mounted && !_isDisposed) { // Check mounted before Firestore operations
+    if (mounted && !_isDisposed) { 
         await FirestoreService.saveDailySteps(_steps);
         await FirestoreService.saveWalkingSpeed(getAverageSpeed());
     }
@@ -375,11 +383,11 @@ class _StepCounterPageState extends State<StepCounterPage> {
       setState(() {
         _sessionHistory = loadedSessions;
       });
-    } else if (!_isDisposed) { // If not mounted but not disposed, update internal state
+    } else if (!_isDisposed) { 
       _sessionHistory = loadedSessions;
     }
     debugPrint("📦 불러온 세션 수: ${_sessionHistory.length}");
-    if (mounted && !_isDisposed) { // Ensure mounted before calling analyze
+    if (mounted && !_isDisposed) { 
         analyzeWalkingPattern();
     }
   }
@@ -611,10 +619,9 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   @override
   void dispose() {
-    _isDisposed = true; // Set dispose flag first
+    _isDisposed = true; 
     print("StepCounterPage dispose initiated");
 
-    // Cancel all subscriptions and timers
     _stepCountSubscription?.cancel();
     _stepCountSubscription = null;
     _accelerometerSubscription?.cancel();
@@ -622,12 +629,9 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _checkTimer?.cancel();
     _checkTimer = null;
     
-    // Stop TTS
     flutterTts.stop();
 
-    // Set orientation back to portrait.
-    // This is crucial to ensure the app returns to the correct state.
-    _setPortraitOrientation();
+
 
     super.dispose();
     print("StepCounterPage disposed successfully");
