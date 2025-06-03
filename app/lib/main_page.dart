@@ -179,10 +179,10 @@ class _MainScreenState extends State<MainScreen> {
                     point: _currentLocation!,
                     width: 50,
                     height: 50,
-                    child: const Icon(
-                      Icons.directions_walk,
-                      size: 40,
-                      color: Colors.redAccent,
+                    child: Image.asset(
+                      'assets/images/walkingIcon.png', // 실제 파일 경로로 바꿔줘
+                      width: 50,
+                      height: 50,
                     ),
                   ),
                 ],
