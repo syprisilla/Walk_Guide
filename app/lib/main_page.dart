@@ -31,6 +31,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    print("MainScreen initState 들어옴");
     _loadNicknameAndGreet();
     _getCurrentLocation();
 
@@ -116,6 +117,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print("MainScreen initState 들어옴");
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
