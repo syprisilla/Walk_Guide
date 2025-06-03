@@ -1,6 +1,6 @@
 // File: lib/main_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Added for SystemChrome
+import 'package:flutter/services.dart';
 import 'package:walk_guide/step_counter_page.dart';
 import 'package:walk_guide/description/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
@@ -17,7 +17,7 @@ import 'package:geolocator/geolocator.dart';
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  const MainScreen({super.key, required this.cameras}); //
+  const MainScreen({super.key, required this.cameras});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -34,38 +34,52 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     print("MainScreen initState 들어옴");
-    // Ensure portrait orientation when MainScreen is active
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    _setPortraitOrientation(); // Ensure portrait on init
     _loadNicknameAndGreet();
     _getCurrentLocation();
 
     _walkStartFocusNode.addListener(() async {
-      final enabled = await isNavigationVoiceEnabled(); //
-      if (_walkStartFocusNode.hasFocus && enabled) {
+      final enabled = await isNavigationVoiceEnabled();
+      if (_walkStartFocusNode.hasFocus && enabled && mounted) {
         _flutterTts.speak("보행을 시작하려면 이 버튼을 누르세요.");
       }
     });
   }
 
+  Future<void> _setPortraitOrientation() async {
+    print("MainScreen: Setting orientation to Portrait");
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
+  Future<void> _setLandscapeOrientation() async {
+    print("MainScreen: Setting orientation to Landscape");
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+
   @override
   void dispose() {
     _flutterTts.stop();
     _walkStartFocusNode.dispose();
+    print("MainScreen disposed");
     super.dispose();
   }
 
   Future<void> _loadNicknameAndGreet() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid; //
+      final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
         final doc =
-            await FirebaseFirestore.instance.collection('users').doc(uid).get(); //
-        final enabled = await isVoiceGuideEnabled(); //
-        if (doc.exists && enabled) {
-          final nickname = doc['nickname']; //
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final enabled = await isVoiceGuideEnabled();
+        if (doc.exists && enabled && mounted) {
+          final nickname = doc['nickname'];
           _speakWelcome(nickname);
         }
       }
@@ -75,32 +89,42 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled(); //
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
 
-    LocationPermission permission = await Geolocator.checkPermission(); //
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission(); //
+      permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) return;
     }
 
     if (permission == LocationPermission.deniedForever) return;
 
-    Position position = await Geolocator.getCurrentPosition(); //
-    final newLocation = LatLng(position.latitude, position.longitude); //
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      final newLocation = LatLng(position.latitude, position.longitude);
 
-    setState(() {
-      _currentLocation = newLocation;
-    });
-
-    _mapController.move(newLocation, 16.0); //
+      if (mounted) {
+          setState(() {
+            _currentLocation = newLocation;
+          });
+           _mapController.move(newLocation, 16.0);
+      }
+    } catch (e) {
+        print("위치 가져오기 실패: $e");
+        if(mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('현재 위치를 가져오는 데 실패했습니다.'))
+            );
+        }
+    }
   }
 
   Future<void> _speakWelcome(String nickname) async {
     final message = getTimeBasedWelcomeMessage(nickname);
-    await _flutterTts.setLanguage("ko-KR"); //
-    await _flutterTts.setSpeechRate(0.5); //
-    await _flutterTts.speak(message); //
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(message);
   }
 
   String getTimeBasedWelcomeMessage(String nickname) {
@@ -124,13 +148,9 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print("MainScreen build 들어옴");
-    // Ensure portrait orientation when MainScreen is active or rebuilt
-    // This is important if other pages might change it and not revert.
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    print("MainScreen build 들어옴. Ensuring portrait orientation.");
+    _setPortraitOrientation();
+
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
@@ -142,162 +162,158 @@ class _MainScreenState extends State<MainScreen> {
               icon: const Icon(Icons.menu),
               tooltip: '설명 보기',
               onPressed: () async {
-                final enabled = await isNavigationVoiceEnabled(); //
-                if (enabled) {
-                  await _flutterTts.setLanguage("ko-KR"); //
-                  await _flutterTts.setSpeechRate(0.5); //
-                  await _flutterTts.speak("관리 페이지로 이동합니다."); //
+                final enabled = await isNavigationVoiceEnabled();
+                if (enabled && mounted) {
+                  await _flutterTts.setLanguage("ko-KR");
+                  await _flutterTts.setSpeechRate(0.5);
+                  await _flutterTts.speak("관리 페이지로 이동합니다.");
                 }
 
-                await Navigator.push(
+                Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const DescriptionPage(), //
+                    builder: (context) => const DescriptionPage(),
                   ),
-                );
-
-                // 설명 페이지에서 돌아오면 음성 정지
-                await _flutterTts.stop();
+                ).then((_) async {
+                   if (mounted) await _flutterTts.stop();
+                });
               },
             ),
           ],
         ),
         body: FlutterMap(
-          mapController: _mapController, //
-          options: MapOptions( //
-            initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780), //
-            initialZoom: 15.0, //
-            minZoom: 3.0, //
-            maxZoom: 18.0, //
-            maxBounds: LatLngBounds( //
-              LatLng(-85.0, -180.0), //
-              LatLng(85.0, 180.0), //
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
+            initialZoom: 15.0,
+            minZoom: 3.0,
+            maxZoom: 18.0,
+            maxBounds: LatLngBounds(
+              LatLng(-85.0, -180.0),
+              LatLng(85.0, 180.0),
             ),
           ),
           children: [
-            TileLayer( //
+            TileLayer(
               urlTemplate:
-                  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", //
-              subdomains: const ['a', 'b', 'c'], //
-              userAgentPackageName: 'com.oss.walk_guide', //
-              tileProvider: NetworkTileProvider(), //
-              tileSize: 256, //
-              retinaMode: true, //
-              backgroundColor: Colors.white, //
+                  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+              subdomains: const ['a', 'b', 'c'],
+              userAgentPackageName: 'com.oss.walk_guide',
+              tileProvider: NetworkTileProvider(),
+              tileSize: 256,
+              retinaMode: true,
+              backgroundColor: Colors.white,
             ),
             if (_currentLocation != null)
-              MarkerLayer( //
+              MarkerLayer(
                 markers: [
-                  Marker( //
-                    point: _currentLocation!, //
-                    width: 50, //
-                    height: 50, //
-                    child: const Icon( //
-                      Icons.directions_walk, //
-                      size: 40, //
-                      color: Colors.redAccent, //
+                  Marker(
+                    point: _currentLocation!,
+                    width: 50,
+                    height: 50,
+                    child: const Icon(
+                      Icons.directions_walk,
+                      size: 40,
+                      color: Colors.redAccent,
                     ),
                   ),
                 ],
               ),
           ],
         ),
-        floatingActionButton: FloatingActionButton( //
-          backgroundColor: Colors.grey.withOpacity(0.6), //
-          elevation: 0, //
-          child: const Icon(Icons.my_location, //
-              color: Color.fromARGB(255, 254, 255, 255)), //
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.grey.withOpacity(0.6),
+          elevation: 0,
+          child: const Icon(Icons.my_location,
+              color: Color.fromARGB(255, 254, 255, 255)),
           onPressed: () {
             if (_currentLocation != null) {
-              _mapController.move(_currentLocation!, 16.0); //
+              _mapController.move(_currentLocation!, 16.0);
             } else {
-              ScaffoldMessenger.of(context).showSnackBar( //
-                const SnackBar(content: Text('현재 위치를 가져올 수 없습니다.')), //
-              );
+              if(mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('현재 위치를 가져올 수 없습니다.')),
+                );
+              }
             }
           },
         ),
-        bottomNavigationBar: BottomNavigationBar( //
-          selectedFontSize: 16, //
-          unselectedFontSize: 14, //
-          iconSize: 32, //
+        bottomNavigationBar: BottomNavigationBar(
+          selectedFontSize: 16,
+          unselectedFontSize: 14,
+          iconSize: 32,
           items: [
-            BottomNavigationBarItem( //
-              icon: Focus( //
-                focusNode: _walkStartFocusNode, //
-                child: const Icon(Icons.directions_walk), //
+            BottomNavigationBarItem(
+              icon: Focus(
+                focusNode: _walkStartFocusNode,
+                child: const Icon(Icons.directions_walk),
               ),
-              label: '보행시작하기', //
+              label: '보행시작하기',
             ),
-            const BottomNavigationBarItem( //
-              icon: Icon(Icons.bar_chart), //
-              label: '분석', //
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: '분석',
             ),
-            const BottomNavigationBarItem( //
-              icon: Icon(Icons.settings), //
-              label: '설정', //
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: '설정',
             ),
           ],
           onTap: (index) async {
-            final navigationVoiceEnabled = await isNavigationVoiceEnabled(); //
+            final navigationVoiceEnabled = await isNavigationVoiceEnabled();
 
-            if (index == 0) { // 보행시작하기 버튼
+            if (index == 0) {
               if (widget.cameras.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar( //
-                  const SnackBar(content: Text('사용 가능한 카메라가 없습니다.')), //
-                );
+                 if(mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('사용 가능한 카메라가 없습니다.')),
+                    );
+                 }
                 return;
               }
 
-              // 화면을 가로 모드로 변경
-              await SystemChrome.setPreferredOrientations([
-                DeviceOrientation.landscapeLeft,
-                DeviceOrientation.landscapeRight,
-              ]);
+              await _setLandscapeOrientation();
 
-              if (navigationVoiceEnabled) {
-                await _flutterTts.speak("보행을 시작합니다."); //
+              if (navigationVoiceEnabled && mounted) {
+                await _flutterTts.speak("보행을 시작합니다.");
               }
 
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => StepCounterPage( //
+                  builder: (context) => StepCounterPage(
                     onInitialized: (double Function() fn) {
                       _getSpeed = fn;
                     },
-                    cameras: widget.cameras, //
+                    cameras: widget.cameras,
                   ),
                 ),
               ).then((_) {
-                // StepCounterPage에서 돌아왔을 때 MainScreen이 Portrait을 유지하도록 다시 설정
-                 SystemChrome.setPreferredOrientations([
-                  DeviceOrientation.portraitUp,
-                  DeviceOrientation.portraitDown,
-                ]);
+                print("Returned from StepCounterPage. Ensuring portrait orientation in MainScreen.");
+                _setPortraitOrientation();
               });
             } else if (index == 1) {
-              if (navigationVoiceEnabled) {
-                await _flutterTts.speak("분석 페이지로 이동합니다."); //
+              if (navigationVoiceEnabled && mounted) {
+                await _flutterTts.speak("분석 페이지로 이동합니다.");
               }
-
-              Navigator.push( //
+              await _setPortraitOrientation(); // Ensure portrait before navigating
+              Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AnalyticsDashboardPage(), //
+                  builder: (context) => const AnalyticsDashboardPage(),
                 ),
-              );
+              ).then((_) => _setPortraitOrientation());
             } else if (index == 2) {
-              if (navigationVoiceEnabled) {
-                await _flutterTts.speak("설정 페이지로 이동합니다."); //
+              if (navigationVoiceEnabled && mounted) {
+                await _flutterTts.speak("설정 페이지로 이동합니다.");
               }
-
-              Navigator.push( //
+              await _setPortraitOrientation(); // Ensure portrait before navigating
+              Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const SettingsPage(), //
+                  builder: (context) => const SettingsPage(),
                 ),
-              );
+              ).then((_) => _setPortraitOrientation());
             }
           },
         ),
