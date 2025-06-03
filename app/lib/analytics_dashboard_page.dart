@@ -187,7 +187,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('최근 일주일 평균 속도 변화',
+            const Text('최근 일주일 평균 걸음 수 변화',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 160,
@@ -238,7 +238,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 }),
               ),
             ),
-          ),    
+          ),
+          const SizedBox(height: 16),
+            const Text('최근 일주일 평균 속도 변화',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),    
             SizedBox(
               height: 160,
               child: BarChart(
