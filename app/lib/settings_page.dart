@@ -48,6 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('설정'),
         backgroundColor: Colors.amber,
       ),
+      backgroundColor: Colors.white,
       body: ListView(
         children: [
           SwitchListTile(
@@ -55,12 +56,16 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: const Text('앱 실행 시 음성 환영 메시지 재생'),
             value: _voiceEnabled,
             onChanged: _toggleVoiceSetting,
+            activeColor: Colors.white,         
+            activeTrackColor: Colors.lightBlueAccent
           ),
           SwitchListTile(
             title: const Text('페이지 이동 음성 안내'),
             subtitle: const Text('버튼 터치 시 목적지를 음성으로 알려줍니다'),
             value: _navigationVoiceEnabled,
             onChanged: _toggleNavigationVoiceSetting,
+            activeColor: Colors.white,         
+            activeTrackColor: Colors.lightBlueAccent
           ),
         ],
       ),

@@ -30,11 +30,25 @@ class _FAQPageState extends State<FAQPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('자주 묻는 질문')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.amber,
+        title: const Text('자주 묻는 질문'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: ListView(
         children: [
           ExpansionTile(
-            title: const Text('앱이 아무 말도 하지 않아요.'),
+            title: const Text(
+              '앱이 아무 말도 하지 않아요.',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(
@@ -52,7 +66,13 @@ class _FAQPageState extends State<FAQPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('데이터가 초기화됐어요.'),
+            title: const Text(
+              '데이터가 초기화됐어요.',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(
@@ -70,7 +90,13 @@ class _FAQPageState extends State<FAQPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('앱이 갑자기 종료돼요.'),
+            title: const Text(
+              '앱이 갑자기 종료돼요.',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                ),
+              ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(
@@ -88,7 +114,13 @@ class _FAQPageState extends State<FAQPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('피드백을 보내고 싶어요.'),
+            title: const Text(
+              '피드백을 보내고 싶어요.',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                ),  
+              ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(
@@ -105,7 +137,13 @@ class _FAQPageState extends State<FAQPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('실행 속도가 제대로 안 떠요.'),
+            title: const Text(
+              '실행 속도가 제대로 안 떠요.',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(

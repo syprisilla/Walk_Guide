@@ -151,6 +151,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     );
     final dates = weeklyAverages.keys.toList();
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('📊 보행 데이터 분석'),
         backgroundColor: Colors.amber,
@@ -187,7 +188,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('최근 일주일 평균 걸음 수 변화',
+            const Text('최근 일주일 걸음 수 변화',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 160,
@@ -231,7 +232,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       BarChartRodData(
                         toY: steps.toDouble(),
                         width: 12,
-                        color: Colors.deepOrange, // 원하는 색상 지정
+                        color: Colors.purple.shade200,
                       ),
                     ],
                   );
@@ -281,7 +282,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       x: index,
                       barRods: [
                         BarChartRodData(
-                            toY: speed, width: 12, color: Colors.teal)
+                            toY: speed, width: 12, color: Colors.lightBlue)
                       ],
                     );
                   }),
@@ -326,12 +327,16 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             const Text('데이터 초기화 및 백업',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             Row(
               children: [
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade100,
+                  ),
                   onPressed: () async {
                     await clearAllSessions();
                     if (context.mounted) {
@@ -340,10 +345,19 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       );
                     }
                   },
-                  child: const Text('초기화'),
+                  child: const Text(
+                    '초기화',
+                    style: TextStyle(
+                      fontSize: 16,         // 글씨 크기
+                      color: Colors.black,  // 글씨 색깔
+                    ),  
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 14),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade100,
+                  ),
                   onPressed: () async {
                     await backupSessionsToJson();
                     if (context.mounted) {
@@ -352,10 +366,19 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       );
                     }
                   },
-                  child: const Text('백업'),
+                  child: const Text(
+                    '백업',
+                    style: TextStyle(
+                      fontSize: 16,         // 글씨 크기
+                      color: Colors.black,  // 글씨 색깔
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 14),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade100,
+                  ),
                   onPressed: () async {
                     await restoreSessionsFromJson();
                     if (context.mounted) {
@@ -365,7 +388,13 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       setState(() {});
                     }
                   },
-                  child: const Text('복원'),
+                  child: const Text(
+                    '복원',
+                    style: TextStyle(
+                      fontSize: 16,         // 글씨 크기
+                      color: Colors.black,  // 글씨 색깔
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -177,21 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _login,
                 child: const Text('로그인'),
               ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  _speak("회원가입 페이지로 이동하겠습니다.");
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignUpScreen()),
-                  );
-                },
-                child: const Text(
-                  '회원가입',
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 20), // 간격 조절
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -202,7 +188,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 2,
                 ),
-                icon: const Icon(Icons.login),
+                icon: Image.asset(
+                  'assets/images/googlelogo.png',
+                  width: 24,
+                  height: 24,
+                ),
                 label: const Text(
                   'Google로 로그인하기',
                   style: TextStyle(fontSize: 16),
@@ -212,6 +202,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   AuthService().signInWithGoogle(context);
                 },
               ),
+              const SizedBox(height: 20),
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    _speak("회원가입 페이지로 이동하겠습니다.");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                    );
+                  },
+                  child: const Text(
+                    '회원가입',
+                    style: TextStyle(
+                      color: Colors.black,
+                      decoration: TextDecoration.underline, // 밑줄 스타일
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              )
             ],
           ),
         ),
