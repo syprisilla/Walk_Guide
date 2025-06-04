@@ -404,8 +404,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 160,
+              width: double.infinity,
               child: BarChart(
                 BarChartData(
+                  maxY: 1000,
                   barGroups: List.generate(dates.length, (i) {
                     final date = dates[i];
                     final steps = weeklyStepCounts[date]?.toDouble() ?? 0;
@@ -413,7 +415,16 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       x: i,
                       barRods: [
                         BarChartRodData(
-                            toY: steps, width: 12, color: Colors.deepOrange)
+                          toY: steps,
+                          width: 30,
+                          borderRadius: BorderRadius.circular(4),
+                          rodStackItems: [
+                            BarChartRodStackItem(0, 1000, Colors.grey.shade200),
+                          ],
+                          color: steps > 0
+                              ? Colors.blueAccent
+                              : Colors.transparent,
+                        )
                       ],
                     );
                   }),
@@ -425,12 +436,39 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                           final i = value.toInt();
                           if (i < 0 || i >= dates.length)
                             return const SizedBox();
-                          return Text(dates[i].substring(5),
-                              style: const TextStyle(fontSize: 10));
+                          return Text(
+                            dates[i].substring(5),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
                         },
                       ),
                     ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 500,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, _) => Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
+                  gridData: FlGridData(show: false), // 점선 제거
+                  borderData: FlBorderData(show: true),
                 ),
               ),
             ),
