@@ -332,6 +332,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 160,
+              width: double.infinity,
               child: BarChart(
                 BarChartData(
                   barGroups: List.generate(dates.length, (i) {
@@ -341,7 +342,16 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       x: i,
                       barRods: [
                         BarChartRodData(
-                            toY: speed, width: 12, color: Colors.green)
+                          toY: speed,
+                          width: 30,
+                          borderRadius: BorderRadius.circular(4),
+                          rodStackItems: [
+                            BarChartRodStackItem(0, 2, Colors.grey.shade200),
+                          ],
+                          color: speed > 0
+                              ? Colors.blueAccent
+                              : Colors.transparent,
+                        )
                       ],
                     );
                   }),
@@ -353,12 +363,39 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                           final i = value.toInt();
                           if (i < 0 || i >= dates.length)
                             return const SizedBox();
-                          return Text(dates[i].substring(5),
-                              style: const TextStyle(fontSize: 10));
+                          return Text(
+                            dates[i].substring(5),
+                            style: const TextStyle(
+                              fontSize: 14, //  글자 크기 키움
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
                         },
                       ),
                     ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1.0,
+                        getTitlesWidget: (value, _) => Text(
+                          value.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
+                  gridData: FlGridData(show: false),
+                  borderData: FlBorderData(show: true),
+                  maxY: 2,
                 ),
               ),
             ),
