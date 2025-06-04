@@ -139,6 +139,30 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       final box = Hive.box<WalkSession>('walk_sessions');
       await box.clear();
       await box.addAll(restored);
+
+      // Firestore에도 복원
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final collection = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('walking_data');
+
+// 기존 Firestore 데이터 삭제
+      final snapshot = await collection.get();
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+
+//  복원된 데이터 Firestore에 Timestamp로 저장
+      for (final session in restored) {
+        final timestamp = session.startTime.toIso8601String();
+        await collection.doc(timestamp).set({
+          'timestamp': Timestamp.fromDate(session.startTime),
+          'speed': session.averageSpeed,
+        });
+      }
     } catch (e) {
       debugPrint('❌ 복원 오류: $e');
     }
