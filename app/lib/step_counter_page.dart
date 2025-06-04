@@ -1,7 +1,9 @@
+// File: lib/step_counter_page.dart
 import 'dart:math';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,10 +16,10 @@ import 'walk_session.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/voice_guide_service.dart';
 
-import './ObjectDetection/object_detection_view.dart';
+
+import './ObjectDetection/object_detection_view.dart'; 
 
 import 'package:walk_guide/user_profile.dart';
-
 import 'package:walk_guide/services/firestore_service.dart';
 
 class StepCounterPage extends StatefulWidget {
@@ -53,12 +55,14 @@ class _StepCounterPageState extends State<StepCounterPage> {
   List<WalkSession> _sessionHistory = [];
 
   static const double movementThreshold = 1.5;
-  bool _isDisposed = false; // dispose 상태 플래그
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
     _isDisposed = false;
+    print("StepCounterPage initState");
+
     flutterTts = FlutterTts();
     flutterTts.setSpeechRate(0.5);
     flutterTts.setLanguage("ko-KR");
@@ -66,13 +70,21 @@ class _StepCounterPageState extends State<StepCounterPage> {
     requestPermission();
     loadSessions();
 
-    // 사용자 맞춤형 프로필 초기화
     final box = Hive.box<WalkSession>('walk_sessions');
     final sessions = box.values.toList();
     _userProfile = UserProfile.fromSessions(sessions);
 
     widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
   }
+
+  Future<void> _setPortraitOrientation() async {
+    print("StepCounterPage: Setting orientation to Portrait in dispose");
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
 
   void _handleDetectedObjects(List<DetectedObjectInfo> objectsInfo) {
     if (!mounted || _isDisposed) return;
@@ -83,6 +95,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   Future<void> requestPermission() async {
+    if (_isDisposed) return;
     var status = await Permission.activityRecognition.status;
     if (!status.isGranted) {
       status = await Permission.activityRecognition.request();
@@ -93,11 +106,13 @@ class _StepCounterPageState extends State<StepCounterPage> {
         await Hive.openBox<DateTime>('recent_steps');
         debugPrint(" Hive 'recent_steps' 박스 열림 완료");
       }
-      startPedometer();
-      startAccelerometer();
-      startCheckingMovement();
+      if (mounted && !_isDisposed) { 
+        startPedometer();
+        startAccelerometer();
+        startCheckingMovement();
+      }
     } else {
-      if (context.mounted && !_isDisposed) {
+      if (mounted && !_isDisposed) {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
@@ -105,7 +120,9 @@ class _StepCounterPageState extends State<StepCounterPage> {
             content: const Text('걸음 측정을 위해 활동 인식 권한을 허용해 주세요.'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if(mounted) Navigator.of(context).pop();
+                } ,
                 child: const Text('확인'),
               ),
             ],
@@ -116,7 +133,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void startPedometer() {
-    if (_isDisposed) return;
+    if (_isDisposed || !mounted) return;
     _stepCountSubscription?.cancel();
     _stepCountStream = Pedometer.stepCountStream;
     _stepCountSubscription = _stepCountStream.listen(
@@ -127,10 +144,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void startAccelerometer() {
-    if (_isDisposed) return;
+    if (_isDisposed || !mounted) return;
     _accelerometerSubscription?.cancel();
     _accelerometerSubscription = accelerometerEvents.listen((event) {
-      if (_isDisposed || !mounted) return; // mounted 추가 확인
+      if (_isDisposed || !mounted) return;
       double totalAcceleration =
           sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
       double movement = (totalAcceleration - 9.8).abs();
@@ -139,7 +156,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
         _lastMovementTime = DateTime.now();
         if (!_isMoving) {
           if (mounted && !_isDisposed) {
-            // setState 호출 전 mounted, _isDisposed 확인
             setState(() {
               _isMoving = true;
             });
@@ -161,7 +177,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void guideWhenObjectDetected(DetectedObjectInfo objectInfo) async {
-    if (_isDisposed) return;
+    if (_isDisposed || !mounted) return;
     final now = DateTime.now();
     if (_lastGuidanceTime != null &&
         now.difference(_lastGuidanceTime!).inSeconds < 3) {
@@ -178,16 +194,20 @@ class _StepCounterPageState extends State<StepCounterPage> {
     final delay = getGuidanceDelay(_userProfile.avgSpeed);
 
     String sizeDesc = objectInfo.sizeDescription;
-    String message = "전방에";
+    String positionDesc = objectInfo.positionalDescription;
+
+    // MODIFIED: Unified object naming to "장애물"
+    String message = "$positionDesc에"; 
     if (sizeDesc.isNotEmpty) {
       message += " $sizeDesc 크기의";
     }
-    message += " 장애물이 있습니다. 주의하세요.";
+    // Always use "장애물" regardless of objectInfo.label
+    message += " 장애물이 있습니다. 주의하세요."; 
 
     debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정... TTS 메시지: $message");
 
     await Future.delayed(delay);
-    if (_isDisposed) return;
+    if (_isDisposed || !mounted) return;
 
     await flutterTts.speak(message);
     debugPrint("🔊 안내 완료: $message");
@@ -195,37 +215,35 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void onStepCount(StepCount event) async {
-    if (!mounted || _isDisposed) return;
+    if (_isDisposed || !mounted) return;
 
     debugPrint(
         "걸음 수 이벤트 발생: ${event.steps}, 현재 _steps: $_steps, _initialSteps: $_initialSteps, _previousSteps: $_previousSteps");
 
     if (_initialSteps == null) {
-      // 세션 시작 또는 앱 첫 실행 시
       _initialSteps = event.steps;
       _previousSteps = event.steps;
       _startTime = DateTime.now();
       _lastMovementTime = DateTime.now();
       RealTimeSpeedService.clear(delay: true);
-      _steps = 0; // 새 세션 시작이므로 _steps는 0으로 초기화
+      _steps = 0;
       if (mounted && !_isDisposed) {
-        setState(() {}); // UI에 초기값 반영 (예: 0걸음)
+        setState(() {});
       }
       debugPrint("세션 시작: _initialSteps = $_initialSteps, _steps = $_steps");
       return;
     }
 
-    // _initialSteps가 설정된 이후에는 _previousSteps를 기준으로 증분 계산
     int currentPedometerSteps = event.steps;
     int stepDelta =
         currentPedometerSteps - (_previousSteps ?? currentPedometerSteps);
 
     if (stepDelta > 0) {
       _steps += stepDelta;
-      final baseTime = DateTime.now(); //  고정 기준 시간
+      final baseTime = DateTime.now();
       for (int i = 0; i < stepDelta; i++) {
         await RealTimeSpeedService.recordStep(
-          baseTime.add(Duration(milliseconds: i * 100)), //  시간 차이 줘서 기록
+          baseTime.add(Duration(milliseconds: i * 100)),
         );
       }
       _lastMovementTime = DateTime.now();
@@ -233,7 +251,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
         setState(() {});
       }
     }
-    _previousSteps = currentPedometerSteps; // 이전 pedometer 값 업데이트
+    _previousSteps = currentPedometerSteps;
     debugPrint(
         "걸음 업데이트: stepDelta = $stepDelta, _steps = $_steps, _previousSteps = $_previousSteps");
   }
@@ -263,19 +281,12 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   Future<void> _saveSessionData() async {
-    if (_isDisposed) return;
+    if (_isDisposed || !mounted) return;
     if (_startTime == null || _steps == 0) {
       debugPrint("세션 저장 스킵: 시작 시간이 없거나 걸음 수가 0입니다.");
-      // _steps와 _startTime 등은 다음 세션 시작 시 onStepCount에서 초기화됨
-      // 다만, _isMoving 상태는 여기서 false로 바꿔주는 것이 좋을 수 있음 (startCheckingMovement와 연관)
-      if (_isMoving && mounted && !_isDisposed) {
-        // setState(() => _isMoving = false); // 이미 startCheckingMovement에서 처리할 수 있음
-      }
-      // _initialSteps와 _previousSteps는 pedometer의 절대값이므로 여기서 null로 만들면
-      // 다음에 onStepCount가 호출될 때 새 세션처럼 동작함.
       _initialSteps = null;
       _previousSteps = null;
-      _steps = 0; // UI 표시용 걸음수는 0으로
+      _steps = 0;
       _startTime = null;
       RealTimeSpeedService.clear(delay: true);
       if (mounted && !_isDisposed) setState(() {});
@@ -290,25 +301,26 @@ class _StepCounterPageState extends State<StepCounterPage> {
       averageSpeed: getAverageSpeed(),
     );
 
-    _sessionHistory.insert(0, session); // 최신 기록을 맨 앞에 추가
+    _sessionHistory.insert(0, session);
     if (_sessionHistory.length > 20) {
-      // 예시: 최대 20개 기록 유지
       _sessionHistory.removeLast();
     }
 
     final box = Hive.box<WalkSession>('walk_sessions');
     box.add(session);
 
-    // Firestore 저장
-    await FirestoreService.saveDailySteps(_steps);
-    await FirestoreService.saveWalkingSpeed(getAverageSpeed());
+    if (mounted && !_isDisposed) { 
+        await FirestoreService.saveDailySteps(_steps);
+        await FirestoreService.saveWalkingSpeed(getAverageSpeed());
+    }
 
     debugPrint("🟢 저장된 세션: $session");
     debugPrint("💾 Hive에 저장된 세션 수: ${box.length}");
 
-    analyzeWalkingPattern();
+    if (mounted && !_isDisposed) {
+        analyzeWalkingPattern();
+    }
 
-    // 다음 세션을 위해 상태 초기화
     _steps = 0;
     _initialSteps = null;
     _previousSteps = null;
@@ -318,10 +330,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
   }
 
   void startCheckingMovement() {
-    if (_isDisposed) return;
+    if (_isDisposed || !mounted) return;
     _checkTimer?.cancel();
     _checkTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (!mounted || _isDisposed) {
+      if (_isDisposed || !mounted) {
         timer.cancel();
         return;
       }
@@ -338,14 +350,12 @@ class _StepCounterPageState extends State<StepCounterPage> {
           _saveSessionData();
         }
       } else if (_lastMovementTime == null && _isMoving) {
-        // 비정상 상태 수정
         if (mounted && !_isDisposed) {
           setState(() {
             _isMoving = false;
           });
         }
       } else if (_isMoving && _startTime == null) {
-        // 세션 시작이 안됐는데 움직이는 상태로 되어있는 경우 (예: 앱 재시작 후)
         if (mounted && !_isDisposed) {
           setState(() {
             _isMoving = false;
@@ -359,18 +369,19 @@ class _StepCounterPageState extends State<StepCounterPage> {
     if (_isDisposed) return;
     final box = Hive.box<WalkSession>('walk_sessions');
     final loadedSessions = box.values.toList();
-    // 최근 데이터가 위로 오도록 정렬 (startTime 기준 내림차순)
     loadedSessions.sort((a, b) => b.startTime.compareTo(a.startTime));
 
     if (mounted && !_isDisposed) {
       setState(() {
         _sessionHistory = loadedSessions;
       });
-    } else if (!_isDisposed) {
+    } else if (!_isDisposed) { 
       _sessionHistory = loadedSessions;
     }
     debugPrint("📦 불러온 세션 수: ${_sessionHistory.length}");
-    analyzeWalkingPattern();
+    if (mounted && !_isDisposed) { 
+        analyzeWalkingPattern();
+    }
   }
 
   void analyzeWalkingPattern() {
@@ -412,7 +423,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
         children: [
           Positioned.fill(
             child: (widget.cameras.isNotEmpty)
-                ? ObjectDetectionView(
+                ? ObjectDetectionView( 
                     cameras: widget.cameras,
                     onObjectsDetected: _handleDetectedObjects,
                   )
@@ -429,23 +440,23 @@ class _StepCounterPageState extends State<StepCounterPage> {
                   ),
           ),
           Positioned(
-              top: 20,
+              top: 10,
               left: 0,
               right: 0,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      vertical: 4.0, horizontal: 6.0),
+                      vertical: 2.0, horizontal: 4.0),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.75),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.25),
                         spreadRadius: 1,
                         blurRadius: 2,
-                        offset: const Offset(0, 2),
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
@@ -461,15 +472,15 @@ class _StepCounterPageState extends State<StepCounterPage> {
                             Text(
                               _isMoving ? '🚶 보행 중' : '🛑 정지 상태',
                               style: const TextStyle(
-                                  fontSize: 8,
+                                  fontSize: 6,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               '$_steps 걸음',
                               style: const TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 7,
                                   color: Colors.amberAccent,
                                   fontWeight: FontWeight.bold),
                             ),
@@ -477,10 +488,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
                         ),
                       ),
                       Container(
-                        height: 50,
+                        height: 25,
                         width: 1,
                         color: Colors.white30,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        margin: const EdgeInsets.symmetric(horizontal: 5),
                       ),
                       Expanded(
                         child: Column(
@@ -489,24 +500,24 @@ class _StepCounterPageState extends State<StepCounterPage> {
                           children: [
                             const Text('평균 속도',
                                 style: TextStyle(
-                                    fontSize: 8, color: Colors.white70)),
-                            const SizedBox(height: 2),
+                                    fontSize: 6, color: Colors.white70)),
+                            const SizedBox(height: 1),
                             Text(
                               '${getAverageSpeed().toStringAsFixed(2)} m/s',
                               style: const TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 7,
                                   color: Colors.lightGreenAccent,
                                   fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 2),
                             const Text('실시간 속도',
                                 style: TextStyle(
-                                    fontSize: 8, color: Colors.white70)),
-                            const SizedBox(height: 2),
+                                    fontSize: 6, color: Colors.white70)),
+                            const SizedBox(height: 1),
                             Text(
                               '${getRealTimeSpeed().toStringAsFixed(2)} m/s',
                               style: const TextStyle(
-                                  fontSize: 8,
+                                  fontSize: 6,
                                   color: Colors.cyanAccent,
                                   fontWeight: FontWeight.bold),
                             ),
@@ -600,12 +611,21 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
   @override
   void dispose() {
-    _isDisposed = true;
+    _isDisposed = true; 
+    print("StepCounterPage dispose initiated");
+
     _stepCountSubscription?.cancel();
+    _stepCountSubscription = null;
     _accelerometerSubscription?.cancel();
+    _accelerometerSubscription = null;
     _checkTimer?.cancel();
+    _checkTimer = null;
+    
     flutterTts.stop();
+
+    _setPortraitOrientation();
+
     super.dispose();
-    print("StepCounterPage disposed");
+    print("StepCounterPage disposed successfully");
   }
 }
