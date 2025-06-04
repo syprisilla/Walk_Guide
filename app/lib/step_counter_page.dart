@@ -16,7 +16,6 @@ import 'walk_session.dart';
 import 'package:walk_guide/real_time_speed_service.dart';
 import 'package:walk_guide/voice_guide_service.dart';
 
-
 import './ObjectDetection/object_detection_view.dart'; 
 
 import 'package:walk_guide/user_profile.dart';
@@ -42,7 +41,11 @@ class _StepCounterPageState extends State<StepCounterPage> {
   StreamSubscription<StepCount>? _stepCountSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   Timer? _checkTimer;
+  
   late FlutterTts flutterTts;
+  bool _isCurrentlySpeaking = false;
+  final List<String> _ttsQueue = [];
+
 
   int _steps = 0;
   int? _initialSteps;
@@ -63,9 +66,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _isDisposed = false;
     print("StepCounterPage initState");
 
-    flutterTts = FlutterTts();
-    flutterTts.setSpeechRate(0.5);
-    flutterTts.setLanguage("ko-KR");
+    _initTts(); // TTS 초기화 및 핸들러 설정
 
     requestPermission();
     loadSessions();
@@ -76,6 +77,74 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
     widget.onInitialized?.call(() => RealTimeSpeedService.getSpeed());
   }
+
+  void _initTts() {
+    flutterTts = FlutterTts();
+    flutterTts.setSpeechRate(0.5);
+    flutterTts.setLanguage("ko-KR");
+
+    flutterTts.setCompletionHandler(() {
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCurrentlySpeaking = false;
+        });
+        _speakNextInQueue(); 
+      }
+    });
+
+    flutterTts.setErrorHandler((msg) {
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCurrentlySpeaking = false;
+        });
+         debugPrint("TTS Error: $msg");
+        _speakNextInQueue(); 
+      }
+    });
+  }
+
+  void _addToTtsQueue(String message) {
+    if (_isDisposed) return;
+    _ttsQueue.add(message);
+    if (!_isCurrentlySpeaking) {
+      _speakNextInQueue();
+    }
+  }
+
+  void _speakNextInQueue() {
+    if (_isDisposed || _ttsQueue.isEmpty || _isCurrentlySpeaking) {
+      return;
+    }
+    
+    // setState는 UI 변경이 필요할 때만 호출
+    if (mounted && !_isDisposed) {
+         _isCurrentlySpeaking = true; // UI 변경 없으므로 setState 불필요
+    } else {
+       _isCurrentlySpeaking = true;
+    }
+
+
+    String messageToSpeak = _ttsQueue.removeAt(0);
+    // speak 호출 전 _isCurrentlySpeaking을 true로 설정했으므로, setState는 speak 호출 이후 상태 변경 시에만 필요
+    flutterTts.speak(messageToSpeak).then((result) {
+        if (result != 1 && mounted && !_isDisposed) { // speak가 즉시 실패한 경우 (안드로이드에서 1이 아니면 실패)
+            setState(() {
+                _isCurrentlySpeaking = false; 
+            });
+            _speakNextInQueue(); // 다음 메시지 시도
+        }
+    }).catchError((e) {
+        if (mounted && !_isDisposed) {
+            setState(() {
+                _isCurrentlySpeaking = false;
+            });
+            debugPrint("TTS speak error: $e");
+            _speakNextInQueue();
+        }
+    });
+    debugPrint("🔊 TTS 재생 시도: $messageToSpeak");
+  }
+
 
   Future<void> _setPortraitOrientation() async {
     print("StepCounterPage: Setting orientation to Portrait in dispose");
@@ -179,9 +248,10 @@ class _StepCounterPageState extends State<StepCounterPage> {
   void guideWhenObjectDetected(DetectedObjectInfo objectInfo) async {
     if (_isDisposed || !mounted) return;
     final now = DateTime.now();
+    
     if (_lastGuidanceTime != null &&
-        now.difference(_lastGuidanceTime!).inSeconds < 3) {
-      debugPrint("⏳ 쿨다운 중 - 음성 안내 생략 (마지막 안내: $_lastGuidanceTime)");
+        now.difference(_lastGuidanceTime!).inSeconds < 2) { 
+      debugPrint("⏳ TTS 쿨다운 중 - 메시지 추가 건너뜀 (마지막 안내: $_lastGuidanceTime)");
       return;
     }
 
@@ -191,27 +261,18 @@ class _StepCounterPageState extends State<StepCounterPage> {
       return;
     }
 
-    final delay = getGuidanceDelay(_userProfile.avgSpeed);
-
     String sizeDesc = objectInfo.sizeDescription;
     String positionDesc = objectInfo.positionalDescription;
 
-    // MODIFIED: Unified object naming to "장애물"
     String message = "$positionDesc에"; 
     if (sizeDesc.isNotEmpty) {
       message += " $sizeDesc 크기의";
     }
-    // Always use "장애물" regardless of objectInfo.label
     message += " 장애물이 있습니다. 주의하세요."; 
 
-    debugPrint("🕒 ${delay.inMilliseconds}ms 후 안내 예정... TTS 메시지: $message");
-
-    await Future.delayed(delay);
-    if (_isDisposed || !mounted) return;
-
-    await flutterTts.speak(message);
-    debugPrint("🔊 안내 완료: $message");
-    _lastGuidanceTime = DateTime.now();
+    debugPrint("➕ TTS 큐 추가 요청: $message");
+    _addToTtsQueue(message); 
+    _lastGuidanceTime = DateTime.now(); 
   }
 
   void onStepCount(StepCount event) async {
@@ -622,6 +683,8 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _checkTimer = null;
     
     flutterTts.stop();
+    _ttsQueue.clear();
+    _isCurrentlySpeaking = false;
 
     _setPortraitOrientation();
 
