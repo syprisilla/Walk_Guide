@@ -1,16 +1,17 @@
-// analytics_dashboard_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:walk_guide/session_detail_page.dart';
 import 'package:walk_guide/walk_session.dart';
 import 'package:walk_guide/services/firestore_service.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   const AnalyticsDashboardPage({super.key});
@@ -20,6 +21,7 @@ class AnalyticsDashboardPage extends StatefulWidget {
 }
 
 class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
+  final FlutterTts _flutterTts = FlutterTts();
   List<HourlySpeed> todaySpeedChart = [];
   Map<String, double> weeklyAverageSpeed = {};
   Map<String, int> weeklyStepCounts = {};
@@ -28,11 +30,59 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   @override
   void initState() {
     super.initState();
-    loadTodaySpeedChart();
-    loadWeeklySummaries();
+    _flutterTts.awaitSpeakCompletion(true);
+    loadData();
   }
 
-// 오늘 하루 Firestore 속도 데이터 불러오기
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
+
+  Future<void> loadData() async {
+    await loadTodaySpeedChart();
+    await loadWeeklySummaries();
+    await _speakSummary();
+  }
+
+  Future<void> _speakSummary() async {
+    final enabled = await isNavigationVoiceEnabled();
+    if (!enabled) return;
+
+    if (todaySpeedChart.isEmpty || weeklyAverageSpeed.isEmpty) return;
+
+    final todayAvgSpeed =
+        todaySpeedChart.map((e) => e.averageSpeed).reduce((a, b) => a + b) /
+            todaySpeedChart.length;
+    final weeklyAvg = weeklyAverageSpeed.values.reduce((a, b) => a + b) /
+        weeklyAverageSpeed.length;
+    final diff = todayAvgSpeed - weeklyAvg;
+    final speedCompare = diff.abs() < 0.1
+        ? '오늘은 평소와 비슷한 속도로 걸으셨어요.'
+        : (diff > 0 ? '오늘은 평소보다 빠르게 걸으셨어요.' : '오늘은 평소보다 느리게 걸으셨어요.');
+
+    final todayKey = getDateKey(DateTime.now());
+    final steps = weeklyStepCounts[todayKey] ?? 0;
+    final stepMsg = '오늘은 총 $steps 걸음을 걸으셨어요.';
+
+    final message = '$speedCompare $stepMsg';
+
+    await _flutterTts.awaitSpeakCompletion(true);
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(message);
+  }
+
+  Future<void> _speak(String message) async {
+    final enabled = await isNavigationVoiceEnabled();
+    if (!enabled) return;
+    await _flutterTts.awaitSpeakCompletion(true);
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(message);
+  }
+
   Future<void> loadTodaySpeedChart() async {
     final result = await FirestoreService.fetchTodaySpeedData();
     setState(() {
@@ -40,28 +90,6 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     });
   }
 
-// Firestore에 저장된 모든 walking_data 삭제
-  Future<void> clearAllFirestoreSpeedData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final uid = user.uid;
-    final collection = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('walking_data');
-
-    try {
-      final snapshot = await collection.get();
-      for (var doc in snapshot.docs) {
-        await doc.reference.delete();
-      }
-    } catch (e) {
-      debugPrint('❌ Firestore 삭제 오류: $e');
-    }
-  }
-
-// Hive에 저장된 일주일 데이터 요약 불러오기
   Future<void> loadWeeklySummaries() async {
     final box = Hive.box<WalkSession>('walk_sessions');
     final sessions = box.values.toList();
@@ -76,12 +104,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       final key = getDateKey(session.startTime);
       speedGrouped.putIfAbsent(key, () => []);
       speedGrouped[key]!.add(session.averageSpeed);
-
-      stepsGrouped.update(
-        key,
-        (v) => v + session.stepCount,
-        ifAbsent: () => session.stepCount,
-      );
+      stepsGrouped.update(key, (v) => v + session.stepCount,
+          ifAbsent: () => session.stepCount);
     }
 
     final resultSpeed = <String, double>{};
@@ -107,6 +131,22 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     setState(() {
       todaySpeedChart.clear();
     });
+  }
+
+  Future<void> clearAllFirestoreSpeedData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final uid = user.uid;
+    final collection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('walking_data');
+
+    final snapshot = await collection.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
   }
 
   Future<void> backupSessionsToJson() async {
@@ -166,6 +206,26 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     } catch (e) {
       debugPrint('❌ 복원 오류: $e');
     }
+  }
+
+  Future<void> onClearPressed() async {
+    await clearAllSessions();
+    await clearAllFirestoreSpeedData();
+    await loadTodaySpeedChart();
+    await loadWeeklySummaries();
+    await _speak("모든 데이터를 초기화했습니다.");
+  }
+
+  Future<void> onBackupPressed() async {
+    await backupSessionsToJson();
+    await _speak("백업 버튼을 눌렀습니다.");
+  }
+
+  Future<void> onRestorePressed() async {
+    await restoreSessionsFromJson();
+    await loadWeeklySummaries();
+    await loadTodaySpeedChart();
+    await _speak("복원 버튼을 눌렀습니다.");
   }
 
   @override
@@ -383,7 +443,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                     await clearAllSessions(); // Hive 데이터 삭제
                     await clearAllFirestoreSpeedData(); // Firestore 속도 삭제
                     await loadTodaySpeedChart(); // 그래프 갱신
-                    await loadWeeklySummaries(); // 주간 요약도 갱신
+                    await loadWeeklySummaries();
+                    await _speak("모든 데이터를 초기화했습니다.");
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('모든 데이터가 초기화되었습니다')),
@@ -395,6 +456,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 ElevatedButton(
                   onPressed: () async {
                     await backupSessionsToJson();
+                    await _speak("백업 버튼을 눌렀습니다.");
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('JSON으로 백업됨')),
@@ -408,6 +470,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                     await restoreSessionsFromJson();
                     await loadWeeklySummaries(); // 세션 다시 불러오기
                     await loadTodaySpeedChart(); // 그래프 갱신 추가
+                    await _speak("복원 버튼을 눌렀습니다.");
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text(' 복원 완료')),
