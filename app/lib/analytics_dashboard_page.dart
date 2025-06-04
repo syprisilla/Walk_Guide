@@ -64,7 +64,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
 
     final todayKey = getDateKey(DateTime.now());
     final steps = weeklyStepCounts[todayKey] ?? 0;
-    final stepMsg = '오늘은 총 $steps 걸음을 걸으셨어요.';
+    final stepMsg = '그리고 총 $steps 걸음을 걸으셨어요.';
 
     final message = '$speedCompare $stepMsg';
 
@@ -514,10 +514,21 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
             Row(
               children: [
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey, // 배경도 변경 가능
+                    foregroundColor: Colors.grey.shade200, //  글자색 변경
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 둥근 직사각형
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12), // 크기 조정
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   onPressed: () async {
-                    await clearAllSessions(); // Hive 데이터 삭제
-                    await clearAllFirestoreSpeedData(); // Firestore 속도 삭제
-                    await loadTodaySpeedChart(); // 그래프 갱신
+                    await clearAllSessions();
+                    await clearAllFirestoreSpeedData();
+                    await loadTodaySpeedChart();
                     await loadWeeklySummaries();
                     await _speak("모든 데이터를 초기화했습니다.");
                     if (!context.mounted) return;
@@ -529,6 +540,17 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey, // 배경도 변경 가능
+                    foregroundColor: Colors.grey.shade200, //  글자색 변경
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 둥근 직사각형
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12), // 크기 조정
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   onPressed: () async {
                     await backupSessionsToJson();
                     await _speak("백업 버튼을 눌렀습니다.");
@@ -541,6 +563,17 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey, // 배경도 변경 가능
+                    foregroundColor: Colors.grey.shade200, //  글자색 변경
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 둥근 직사각형
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12), // 크기 조정
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   onPressed: () async {
                     await restoreSessionsFromJson();
                     await loadWeeklySummaries(); // 세션 다시 불러오기
