@@ -77,12 +77,13 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
             if (email != null)
               Text(
                 '이메일: $email',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
+                style: const TextStyle(fontSize: 20, color: Colors.black),
               ),
+              const SizedBox(height: 8), 
             if (loginMethod != null)
               Text(
                 '로그인 방식: $loginMethod',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
+                style: const TextStyle(fontSize: 20, color: Colors.black),
               ),
           ],  
         ),
