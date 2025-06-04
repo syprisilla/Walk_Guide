@@ -75,8 +75,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       appBar: AppBar(
         title: const Text('회원가입'),
         backgroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,26 +143,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: const Text('회원가입'),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                elevation: 2,
-              ),
-              icon: const Icon(Icons.login),
-              label: const Text(
-                'Google로 회원가입하기',
-                style: TextStyle(fontSize: 16),
-              ),
-              onPressed: () {
-                _speak("Google로 회원가입을 진행합니다.");
-                AuthService().signInWithGoogle(context);
-              },
-            ),
           ],
         ),
       ),

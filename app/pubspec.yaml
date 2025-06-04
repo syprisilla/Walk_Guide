@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  url_launcher: ^6.2.5
 
   # 기본 의존성
   cupertino_icons: ^1.0.8

@@ -211,10 +211,10 @@ class _MainScreenState extends State<MainScreen> {
                     point: _currentLocation!,
                     width: 50,
                     height: 50,
-                    child: const Icon(
-                      Icons.directions_walk,
-                      size: 40,
-                      color: Colors.redAccent,
+                    child: Image.asset(
+                      'assets/images/walkingIcon.png',
+                      width: 50,
+                      height: 50,
                     ),
                   ),
                 ],
@@ -239,6 +239,9 @@ class _MainScreenState extends State<MainScreen> {
           },
         ),
         bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.black54,
+          unselectedItemColor: Colors.black54,
           selectedFontSize: 16,
           unselectedFontSize: 14,
           iconSize: 32,
