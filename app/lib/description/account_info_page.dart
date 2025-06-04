@@ -12,14 +12,16 @@ class AccountInfoPage extends StatefulWidget {
 
 class _AccountInfoPageState extends State<AccountInfoPage> {
   String? nickname;
+  String? email;
+  String? loginMethod;
 
   @override
   void initState() {
     super.initState();
-    fetchNickname();
+    fetchUserInfo();
   }
 
-  Future<void> fetchNickname() async {
+  Future<void> fetchUserInfo() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final doc = await FirebaseFirestore.instance
@@ -28,6 +30,10 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
           .get();
       setState(() {
         nickname = doc.data()?['nickname'] ?? '사용자';
+        email = user.email;
+        loginMethod = user.providerData.first.providerId == 'password'
+            ? '이메일 로그인'
+            : 'Google 로그인';
       });
     }
   }
@@ -45,63 +51,40 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '개인서비스',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
             Row(
               children: [
                 Container(
                   width: 80,
                   height: 80,
-                  decoration: BoxDecoration(
-                    image: const DecorationImage(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
                       image: AssetImage('assets/images/profile.jpg'),
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nickname != null ? '$nickname님' : '...',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.amber[600],
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.white,
-                            child: Text('10',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                          SizedBox(width: 4),
-                          Text('LEVEL',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12)),
-                        ],
-                      ),
-                    )
-                  ],
-                )
+                Text(
+                  nickname != null ? '$nickname님' : '...',
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
-          ],
+            const SizedBox(height: 24),
+            if (email != null)
+              Text(
+                '이메일: $email',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            if (loginMethod != null)
+              Text(
+                '로그인 방식: $loginMethod',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+          ],  
         ),
       ),
       bottomNavigationBar: Padding(
