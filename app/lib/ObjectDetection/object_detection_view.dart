@@ -1,29 +1,34 @@
+// File: lib/ObjectDetection/object_detection_view.dart
 import 'dart:async';
-import 'dart:io';
+import 'dart:io'; // For Platform
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // For RootIsolateToken, DeviceOrientation
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
-import 'mlkit_object_detection.dart';
-import 'object_painter.dart';
-import 'camera_screen.dart' show IsolateDataHolder;
+
+import './camera_screen.dart' show IsolateDataHolder;
+import './mlkit_object_detection.dart';
+import './object_painter.dart';
+
 
 enum ObjectSizeCategory { small, medium, large, unknown }
 
 class DetectedObjectInfo {
   final DetectedObject object;
   final ObjectSizeCategory sizeCategory;
-  final Rect boundingBox;
-  final String? label;
+  final Rect boundingBox; // 화면상의 바운딩 박스
+  final String? label; // ML Kit에서 제공하는 원본 레이블
+  final String positionalDescription; // "좌측 전방", "전방", "우측 전방"
 
   DetectedObjectInfo({
     required this.object,
     required this.sizeCategory,
     required this.boundingBox,
     this.label,
+    required this.positionalDescription,
   });
 
   String get sizeDescription {
@@ -31,7 +36,7 @@ class DetectedObjectInfo {
       case ObjectSizeCategory.small:
         return "작은";
       case ObjectSizeCategory.medium:
-        return "중간 크기의";
+        return "중간";
       case ObjectSizeCategory.large:
         return "큰";
       default:
@@ -64,14 +69,14 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   bool _isBusy = false;
   List<DetectedObjectInfo> _processedObjects = [];
   InputImageRotation? _imageRotation;
-  late ObjectDetector _objectDetector;
+  ObjectDetector? _objectDetector;
   Size? _lastImageSize;
-  Size? _screenSize;
+  Size? _screenSize; // 화면 크기 저장
 
   Isolate? _objectDetectionIsolate;
   Isolate? _imageRotationIsolate;
-  late ReceivePort _objectDetectionReceivePort;
-  late ReceivePort _imageRotationReceivePort;
+  ReceivePort? _objectDetectionReceivePort;
+  ReceivePort? _imageRotationReceivePort;
   SendPort? _objectDetectionIsolateSendPort;
   SendPort? _imageRotationIsolateSendPort;
   StreamSubscription? _objectDetectionSubscription;
@@ -90,13 +95,15 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   Orientation? _currentDeviceOrientation;
 
   bool _isDisposed = false;
+  bool _isolatesShuttingDown = false;
 
   @override
   void initState() {
     super.initState();
     _isDisposed = false;
+    print("ObjectDetectionView: initState");
     if (widget.cameras.isEmpty) {
-      if (mounted && !_isDisposed) {
+      if (mounted) {
         setState(() {
           _initializationErrorMsg = "사용 가능한 카메라가 없습니다.\n앱 권한을 확인하거나 재시작해주세요.";
         });
@@ -107,12 +114,10 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     print("ObjectDetectionView: Main isolate ObjectDetector initialized.");
 
     _spawnIsolates().then((success) {
-      if (!success) {
-        if (mounted && !_isDisposed) {
+      if (!success && mounted && !_isDisposed) {
           setState(() {
             _initializationErrorMsg = "백그라운드 작업 초기화에 실패했습니다.";
           });
-        }
         return;
       }
       if (widget.cameras.isNotEmpty) {
@@ -130,32 +135,29 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
 
   @override
   void dispose() {
-    print("****** ObjectDetectionView: Dispose called.");
     _isDisposed = true;
+    print("****** ObjectDetectionView: Dispose called. _isDisposed set to true.");
 
     Future.microtask(() async {
+      print("****** ObjectDetectionView: Dispose microtask initiated.");
+
       await _stopCameraStream();
+      print("****** ObjectDetectionView: Camera stream stopped.");
 
       await _objectDetectionSubscription?.cancel();
       _objectDetectionSubscription = null;
       await _imageRotationSubscription?.cancel();
       _imageRotationSubscription = null;
-      print("****** ObjectDetectionView: Subscriptions cancelled.");
+      print("****** ObjectDetectionView: Stream subscriptions cancelled.");
+      
+      await _shutdownIsolates();
+      print("****** ObjectDetectionView: Isolates shutdown process completed.");
 
-      try {
-        _objectDetectionReceivePort.close();
-        print("****** ObjectDetectionView: Object detection receive port closed.");
-      } catch (e) {
-        print("****** ObjectDetectionView: Error closing object detection receive port: $e");
-      }
-      try {
-        _imageRotationReceivePort.close();
-        print("****** ObjectDetectionView: Image rotation receive port closed.");
-      } catch (e) {
-        print("****** ObjectDetectionView: Error closing image rotation receive port: $e");
-      }
-
-      _killIsolates();
+      _objectDetectionReceivePort?.close();
+      _objectDetectionReceivePort = null;
+      _imageRotationReceivePort?.close();
+      _imageRotationReceivePort = null;
+      print("****** ObjectDetectionView: Receive ports closed.");
 
       try {
         await _cameraController?.dispose();
@@ -166,18 +168,24 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       _cameraController = null;
 
       try {
-        await _objectDetector.close();
+        await _objectDetector?.close();
         print("****** ObjectDetectionView: Main ObjectDetector closed.");
       } catch (e, stacktrace) {
         print('****** ObjectDetectionView: Error closing main ObjectDetector: $e\n$stacktrace');
       }
+      _objectDetector = null;
+
+       print("****** ObjectDetectionView: All resources cleaned up in dispose microtask.");
     });
 
     super.dispose();
-    print("****** ObjectDetectionView: Dispose completed for super.");
+    print("****** ObjectDetectionView: super.dispose() completed.");
   }
 
   Future<bool> _spawnIsolates() async {
+    if (_isDisposed) return false;
+    _isolatesShuttingDown = false;
+
     final RootIsolateToken? rootIsolateToken = RootIsolateToken.instance;
     if (rootIsolateToken == null) {
       print("****** ObjectDetectionView: RootIsolateToken is null. Cannot spawn isolates.");
@@ -187,70 +195,97 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     try {
       _objectDetectionReceivePort = ReceivePort();
       _objectDetectionIsolate = await Isolate.spawn(
-          detectObjectsIsolateEntry,
-          IsolateDataHolder(_objectDetectionReceivePort.sendPort, rootIsolateToken),
-          onError: _objectDetectionReceivePort.sendPort,
-          onExit: _objectDetectionReceivePort.sendPort,
+          detectObjectsIsolateEntry, 
+          IsolateDataHolder(_objectDetectionReceivePort!.sendPort, rootIsolateToken), 
+          onError: _objectDetectionReceivePort!.sendPort,
+          onExit: _objectDetectionReceivePort!.sendPort, 
           debugName: "ObjectDetectionIsolate_View");
-      _objectDetectionSubscription = _objectDetectionReceivePort.listen(_handleDetectionResult);
+      _objectDetectionSubscription = _objectDetectionReceivePort!.listen(_handleDetectionResult);
       print("****** ObjectDetectionView: ObjectDetectionIsolate spawned.");
 
       _imageRotationReceivePort = ReceivePort();
       _imageRotationIsolate = await Isolate.spawn(
-          getImageRotationIsolateEntry, _imageRotationReceivePort.sendPort,
-          onError: _imageRotationReceivePort.sendPort,
-          onExit: _imageRotationReceivePort.sendPort,
+          getImageRotationIsolateEntry, 
+          _imageRotationReceivePort!.sendPort, 
+          onError: _imageRotationReceivePort!.sendPort,
+          onExit: _imageRotationReceivePort!.sendPort,
           debugName: "ImageRotationIsolate_View");
-      _imageRotationSubscription = _imageRotationReceivePort.listen(_handleRotationResult);
+      _imageRotationSubscription = _imageRotationReceivePort!.listen(_handleRotationResult);
       print("****** ObjectDetectionView: ImageRotationIsolate spawned.");
       return true;
     } catch (e, stacktrace) {
       print("****** ObjectDetectionView: Failed to spawn isolates: $e\n$stacktrace");
-      _initializationErrorMsg = "백그라운드 작업 생성 실패: $e";
-      if(mounted && !_isDisposed) setState(() {});
+       if (mounted && !_isDisposed) {
+          setState(() {
+            _initializationErrorMsg = "백그라운드 작업 생성 실패: $e";
+          });
+       }
       return false;
     }
   }
 
-  void _killIsolates() {
-    if (_objectDetectionIsolateSendPort != null && !_isDisposed) {
-        _objectDetectionIsolateSendPort!.send('shutdown');
-        print("****** ObjectDetectionView: Sent 'shutdown' to DetectionIsolate.");
+  Future<void> _shutdownIsolates() async {
+    if (_isolatesShuttingDown) return;
+    _isolatesShuttingDown = true;
+    print("****** ObjectDetectionView: Attempting to gracefully shutdown isolates...");
+
+    if (_objectDetectionIsolateSendPort != null && _objectDetectionIsolate != null) {
+        try {
+            _objectDetectionIsolateSendPort!.send('shutdown');
+            print("****** ObjectDetectionView: Sent 'shutdown' to DetectionIsolate.");
+        } catch (e) {
+            print("****** ObjectDetectionView: Error sending shutdown to DetectionIsolate: $e. Killing directly.");
+            _objectDetectionIsolate?.kill(priority: Isolate.immediate);
+        }
     } else {
-      _objectDetectionIsolate?.kill(priority: Isolate.immediate);
-      _objectDetectionIsolate = null;
-      print("****** ObjectDetectionView: DetectionIsolate killed (no SendPort or already disposed).");
+        _objectDetectionIsolate?.kill(priority: Isolate.immediate);
     }
+    
+    if (_imageRotationIsolateSendPort != null && _imageRotationIsolate != null) {
+        try {
+            _imageRotationIsolateSendPort!.send('shutdown');
+            print("****** ObjectDetectionView: Sent 'shutdown' to RotationIsolate.");
+        } catch (e) {
+            print("****** ObjectDetectionView: Error sending shutdown to RotationIsolate: $e. Killing directly.");
+            _imageRotationIsolate?.kill(priority: Isolate.immediate);
+        }
+    } else {
+        _imageRotationIsolate?.kill(priority: Isolate.immediate);
+    }
+
+    await Future.delayed(const Duration(milliseconds: 300)); 
+
+    print("****** ObjectDetectionView: Proceeding to nullify isolate resources.");
+    _objectDetectionIsolate?.kill(priority: Isolate.immediate); 
+    _objectDetectionIsolate = null;
     _objectDetectionIsolateSendPort = null;
 
-    if (_imageRotationIsolateSendPort != null && !_isDisposed) {
-        _imageRotationIsolateSendPort!.send('shutdown');
-        print("****** ObjectDetectionView: Sent 'shutdown' to RotationIsolate.");
-    } else {
-      _imageRotationIsolate?.kill(priority: Isolate.immediate);
-      _imageRotationIsolate = null;
-      print("****** ObjectDetectionView: RotationIsolate killed (no SendPort or already disposed).");
-    }
+    _imageRotationIsolate?.kill(priority: Isolate.immediate); 
+    _imageRotationIsolate = null;
     _imageRotationIsolateSendPort = null;
+    
+    print("****** ObjectDetectionView: Isolates assumed terminated and resources nulled.");
+    _isolatesShuttingDown = false;
   }
 
+
   void _handleDetectionResult(dynamic message) {
-    if (_isDisposed || !mounted) return;
+    if (_isDisposed || !mounted || _isolatesShuttingDown) return;
 
     if (message == 'isolate_shutdown_ack_detection') {
-        print("****** ObjectDetectionView: Detection isolate acknowledged shutdown. Killing now.");
-        _objectDetectionIsolate?.kill(priority: Isolate.immediate);
-        _objectDetectionIsolate = null;
+        print("****** ObjectDetectionView: Detection isolate acknowledged shutdown. It should self-terminate.");
         return;
     }
-
+    
     if (_objectDetectionIsolateSendPort == null && message is SendPort) {
       _objectDetectionIsolateSendPort = message;
       print("****** ObjectDetectionView: ObjectDetectionIsolate SendPort received.");
-    } else if (message is List<DetectedObject>) {
-      List<DetectedObjectInfo> newProcessedObjects = [];
-
-      if (message.isNotEmpty && _lastImageSize != null && _screenSize != null && _imageRotation != null && _cameraController != null) {
+      return; 
+    }
+    
+    List<DetectedObjectInfo> newProcessedObjects = [];
+    if (message is List<DetectedObject>) {
+      if (message.isNotEmpty && _lastImageSize != null && _screenSize != null && _imageRotation != null && _cameraController != null && _cameraController!.value.isInitialized) {
         DetectedObject largestMlKitObject = message.reduce((curr, next) {
           final double areaCurr = curr.boundingBox.width * curr.boundingBox.height;
           final double areaNext = next.boundingBox.width * next.boundingBox.height;
@@ -270,9 +305,9 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         if (_screenSize!.width > 0 && _screenSize!.height > 0) {
             final double screenArea = _screenSize!.width * _screenSize!.height;
             final double objectArea = displayRect.width * displayRect.height;
-            if (screenArea > 0) {
+            if (screenArea > 0) { 
                 final double areaRatio = objectArea / screenArea;
-                if (areaRatio > 0.20) {
+                if (areaRatio > 0.20) { 
                     sizeCategory = ObjectSizeCategory.large;
                 } else if (areaRatio > 0.05) {
                     sizeCategory = ObjectSizeCategory.medium;
@@ -284,43 +319,84 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         
         final String? mainLabel = largestMlKitObject.labels.isNotEmpty ? largestMlKitObject.labels.first.text : null;
 
+        // MODIFIED: Determine positional description based on occupancy
+        String positionalDescription = "전방"; // Default
+        if (_screenSize != null && _screenSize!.width > 0 && !displayRect.isEmpty) {
+            final double screenWidth = _screenSize!.width;
+            final double screenHeight = _screenSize!.height; 
+            final double screenThird = screenWidth / 3;
+
+            final Rect leftSectionRect = Rect.fromLTWH(0, 0, screenThird, screenHeight);
+            final Rect middleSectionRect = Rect.fromLTWH(screenThird, 0, screenThird, screenHeight);
+            final Rect rightSectionRect = Rect.fromLTWH(screenThird * 2, 0, screenThird, screenHeight);
+
+            final Rect intersectionLeft = displayRect.intersect(leftSectionRect);
+            final Rect intersectionMiddle = displayRect.intersect(middleSectionRect);
+            final Rect intersectionRight = displayRect.intersect(rightSectionRect);
+
+            final double areaLeft = (intersectionLeft.width < 0 || intersectionLeft.height < 0) ? 0 : intersectionLeft.width * intersectionLeft.height;
+            final double areaMiddle = (intersectionMiddle.width < 0 || intersectionMiddle.height < 0) ? 0 : intersectionMiddle.width * intersectionMiddle.height;
+            final double areaRight = (intersectionRight.width < 0 || intersectionRight.height < 0) ? 0 : intersectionRight.width * intersectionRight.height;
+            
+            if (areaLeft == 0 && areaMiddle == 0 && areaRight == 0 && !displayRect.isEmpty) {
+                 // If no intersection but object exists, determine by center (fallback)
+                final double objectCenterX = displayRect.left + displayRect.width / 2;
+                if (objectCenterX < screenThird) {
+                    positionalDescription = "좌측 전방";
+                } else if (objectCenterX < screenThird * 2) {
+                    positionalDescription = "전방";
+                } else {
+                    positionalDescription = "우측 전방";
+                }
+            } else if (areaLeft > areaMiddle && areaLeft > areaRight) {
+                positionalDescription = "좌측 전방";
+            } else if (areaRight > areaLeft && areaRight > areaMiddle) {
+                positionalDescription = "우측 전방";
+            } else if (areaMiddle >= areaLeft && areaMiddle >= areaRight && areaMiddle > 0) {
+                 positionalDescription = "전방";
+            } else {
+                // Fallback for ambiguous cases or if all areas are zero but object is somehow present
+                // (could happen if object is tiny or calculations are imperfect)
+                // For safety, default to "전방" if an object is detected but position is unclear.
+                 final double objectCenterX = displayRect.left + displayRect.width / 2;
+                if (objectCenterX < screenThird) {
+                    positionalDescription = "좌측 전방";
+                } else if (objectCenterX < screenThird * 2) {
+                    positionalDescription = "전방";
+                } else {
+                    positionalDescription = "우측 전방";
+                }
+            }
+        }
+
+
         newProcessedObjects.add(DetectedObjectInfo(
           object: largestMlKitObject,
           sizeCategory: sizeCategory,
           boundingBox: displayRect,
-          label: mainLabel,
+          label: mainLabel, // Store original label if needed for other purposes
+          positionalDescription: positionalDescription, 
         ));
       }
-
-      _isWaitingForDetection = false;
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _processedObjects = newProcessedObjects;
-        });
-      }
-      widget.onObjectsDetected?.call(newProcessedObjects);
-
-      if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
-        _isBusy = false;
-      }
-    } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().contains('Error')) {
-      print('****** ObjectDetectionView: Detection Isolate Error: ${message[1]}');
-      if (mounted && !_isDisposed) setState(() => _processedObjects = []);
-      widget.onObjectsDetected?.call([]);
-      _isWaitingForDetection = false;
-      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
-    } else if (message == null || (message is List && message.isEmpty && message is! List<DetectedObject>)) {
-      print('****** ObjectDetectionView: Detection Isolate exited or sent empty/null message ($message).');
-      if (mounted && !_isDisposed) setState(() => _processedObjects = []);
-      widget.onObjectsDetected?.call([]);
-      _isWaitingForDetection = false;
-      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().startsWith('Error from DetectionIsolate')) {
+      print('****** ObjectDetectionView: Received error from Detection Isolate: ${message[1]}');
+    } else if (message == null || (message is List && message.isEmpty && message is! List<DetectedObject>)) { 
+      print('****** ObjectDetectionView: Detection Isolate exited or sent empty/null message. Message: $message');
     } else {
       print('****** ObjectDetectionView: Unexpected message from Detection Isolate: ${message.runtimeType} - $message');
-      if (mounted && !_isDisposed) setState(() => _processedObjects = []);
-      widget.onObjectsDetected?.call([]);
-      _isWaitingForDetection = false;
-      if (!_isWaitingForRotation && _isBusy) _isBusy = false;
+    }
+
+    _isWaitingForDetection = false;
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _processedObjects = newProcessedObjects;
+      });
+       widget.onObjectsDetected?.call(newProcessedObjects);
+    }
+
+
+    if (!_isWaitingForRotation && !_isWaitingForDetection && _isBusy) {
+       if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
     }
   }
 
@@ -415,19 +491,20 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   }
 
   void _handleRotationResult(dynamic message) {
-    if (_isDisposed || !mounted) return;
-
+    if (_isDisposed || !mounted || _isolatesShuttingDown) return;
+    
     if (message == 'isolate_shutdown_ack_rotation') {
-        print("****** ObjectDetectionView: Rotation isolate acknowledged shutdown. Killing now.");
-        _imageRotationIsolate?.kill(priority: Isolate.immediate);
-        _imageRotationIsolate = null;
+        print("****** ObjectDetectionView: Rotation isolate acknowledged shutdown. It should self-terminate.");
         return;
     }
 
     if (_imageRotationIsolateSendPort == null && message is SendPort) {
       _imageRotationIsolateSendPort = message;
       print("****** ObjectDetectionView: ImageRotationIsolate SendPort received.");
-    } else if (message is InputImageRotation?) {
+      return;
+    }
+    
+    if (message is InputImageRotation?) {
       _isWaitingForRotation = false;
       _lastCalculatedRotation = message;
       _imageRotation = message;
@@ -446,36 +523,50 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
              _objectDetectionIsolateSendPort!.send(payload);
         } else {
           print("****** ObjectDetectionView: Not sending to detection isolate (disposed or no sendPort)");
+           _isWaitingForDetection = false;
         }
         _pendingImageDataBytes = null;
       } else {
-        if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+        if (!_isWaitingForDetection && _isBusy) {
+             if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
+        }
       }
-    } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().contains('Error')) {
-      print('****** ObjectDetectionView: Rotation Isolate Error: ${message[1]}');
+    } else if (message is List && message.length == 2 && message[0] is String && message[0].toString().startsWith('Error from RotationIsolate')) {
+      print('****** ObjectDetectionView: Received error from Rotation Isolate: ${message[1]}');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
-      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+      if (!_isWaitingForDetection && _isBusy) {
+          if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
+      }
     } else if (message == null || (message is List && message.isEmpty && message is! InputImageRotation)) {
-      print('****** ObjectDetectionView: Rotation Isolate exited or sent empty/null message ($message).');
+       print('****** ObjectDetectionView: Rotation Isolate exited or sent empty/null message. Message: $message');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
-      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+      if (!_isWaitingForDetection && _isBusy) {
+          if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
+      }
     } else {
       print('****** ObjectDetectionView: Unexpected message from Rotation Isolate: ${message.runtimeType} - $message');
       _isWaitingForRotation = false;
       _pendingImageDataBytes = null;
-      if (!_isWaitingForDetection && _isBusy) _isBusy = false;
+      if (!_isWaitingForDetection && _isBusy) {
+          if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
+      }
     }
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
-    if (_isDisposed) return;
+    if (_isDisposed) {
+        print("****** ObjectDetectionView: Attempted to initialize camera after dispose.");
+        return;
+    }
+    print("****** ObjectDetectionView: Initializing camera: ${cameraDescription.name}");
     if (_cameraController != null) {
+      print("****** ObjectDetectionView: Disposing existing camera controller before new init.");
       await _stopCameraStream(); 
       await _cameraController!.dispose();
       _cameraController = null;
-      print("****** ObjectDetectionView: Old CameraController disposed before new init for ${cameraDescription.name}.");
+      print("****** ObjectDetectionView: Old CameraController disposed.");
     }
     if (mounted && !_isDisposed) {
       setState(() {
@@ -492,7 +583,12 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     );
     try {
       await _cameraController!.initialize();
-      print("****** ObjectDetectionView: New CameraController initialized for ${cameraDescription.name}.");
+      print("****** ObjectDetectionView: New CameraController initialized for ${cameraDescription.name}. AspectRatio: ${_cameraController!.value.aspectRatio}");
+      
+      if (_cameraController!.value.aspectRatio <= 0) {
+          throw CameraException("Invalid Camera AspectRatio", "Aspect ratio is zero or negative, cannot proceed.");
+      }
+
       await _startCameraStream();
       if (mounted && !_isDisposed) {
         setState(() {
@@ -512,10 +608,18 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   }
 
   Future<void> _startCameraStream() async {
-    if (_isDisposed || _cameraController == null || !_cameraController!.value.isInitialized || _cameraController!.value.isStreamingImages) return;
+    if (_isDisposed || _cameraController == null || !_cameraController!.value.isInitialized || _cameraController!.value.isStreamingImages) {
+        print("****** ObjectDetectionView: Start stream skipped. Disposed: $_isDisposed, Controller: ${_cameraController == null}, Initialized: ${_cameraController?.value.isInitialized}, Streaming: ${_cameraController?.value.isStreamingImages}");
+        return;
+    }
     try {
       await _cameraController!.startImageStream(_processCameraImage);
       print("****** ObjectDetectionView: Camera stream started for ${_cameraController?.description.name}.");
+        if (mounted && !_isDisposed) { 
+            setState(() { _isBusy = false; }); 
+        } else {
+            _isBusy = false;
+        }
     } catch (e, stacktrace) {
       print('****** ObjectDetectionView: Start stream error: $e\n$stacktrace');
       if (mounted && !_isDisposed) {
@@ -527,33 +631,42 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
   }
 
   Future<void> _stopCameraStream() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || !_cameraController!.value.isStreamingImages) {
-      _isBusy = false;
-      _isWaitingForRotation = false;
-      _isWaitingForDetection = false;
-      _pendingImageDataBytes = null;
-      return;
+    print("****** ObjectDetectionView: Attempting to stop camera stream.");
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+        print("****** ObjectDetectionView: CameraController is null or not initialized in _stopCameraStream. Skipping stop stream.");
+        _isBusy = false; 
+        return;
     }
+    if (!_cameraController!.value.isStreamingImages) {
+        print("****** ObjectDetectionView: Camera is not streaming in _stopCameraStream. Skipping stop stream.");
+        _isBusy = false;
+        return;
+    }
+    
     try {
       await _cameraController!.stopImageStream();
-      print("****** ObjectDetectionView: Camera stream stopped in _stopCameraStream for ${_cameraController?.description.name}.");
+      print("****** ObjectDetectionView: Camera stream stopped successfully in _stopCameraStream for ${_cameraController?.description.name}.");
     } catch (e, stacktrace) {
       print('****** ObjectDetectionView: Stop stream error in _stopCameraStream: $e\n$stacktrace');
     } finally {
-      _isBusy = false;
-      _isWaitingForRotation = false;
-      _isWaitingForDetection = false;
-      _pendingImageDataBytes = null;
+         _isBusy = false; 
+         _isWaitingForRotation = false;
+         _isWaitingForDetection = false;
+         _pendingImageDataBytes = null;
+        print("****** ObjectDetectionView: Processing flags reset after _stopCameraStream attempt.");
     }
   }
 
   void _processCameraImage(CameraImage image) {
-    if (_isDisposed || !mounted || _isBusy || _imageRotationIsolateSendPort == null) {
-      if(_isBusy && !_isDisposed) {
-      }
+    if (_isDisposed || !mounted || _isBusy || _imageRotationIsolateSendPort == null || _isolatesShuttingDown) {
       return;
     }
-    _isBusy = true;
+    
+    if (mounted && !_isDisposed) { 
+        setState(() { _isBusy = true; });
+    } else {
+         _isBusy = true; 
+    }
     _isWaitingForRotation = true;
 
     try {
@@ -570,27 +683,32 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
       _lastImageSize = Size(image.width.toDouble(), image.height.toDouble());
 
       final camera = widget.cameras[_cameraIndex];
-      final orientation = _currentDeviceOrientation ?? MediaQuery.of(context).orientation;
-      final DeviceOrientation deviceRotation = (orientation == Orientation.landscape)
+      
+      final Orientation currentContextOrientation = MediaQuery.of(context).orientation;
+      final Orientation orientationToUse = _currentDeviceOrientation ?? currentContextOrientation;
+      
+      final DeviceOrientation deviceRotation = (orientationToUse == Orientation.landscape)
           ? (Platform.isIOS ? DeviceOrientation.landscapeRight : DeviceOrientation.landscapeLeft)
           : DeviceOrientation.portraitUp;
+      
       final Map<String, dynamic> rotationPayload = {
         'sensorOrientation': camera.sensorOrientation,
         'deviceOrientationIndex': deviceRotation.index,
       };
+
       if (!_isDisposed && _imageRotationIsolateSendPort != null) { 
          _imageRotationIsolateSendPort!.send(rotationPayload);
       } else {
          print("****** ObjectDetectionView: Not sending to rotation isolate (disposed or no sendPort)");
          _pendingImageDataBytes = null; 
          _isWaitingForRotation = false;
-         _isBusy = false;
+         if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
       }
     } catch (e, stacktrace) {
       print("****** ObjectDetectionView: Error processing image: $e\n$stacktrace");
       _pendingImageDataBytes = null;
       _isWaitingForRotation = false;
-      _isBusy = false;
+       if(mounted && !_isDisposed) setState(() => _isBusy = false); else _isBusy = false;
     }
   }
 
@@ -598,9 +716,11 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
     if (_isDisposed || widget.cameras.length < 2 || _isBusy) return;
     print("****** ObjectDetectionView: Switching camera...");
     final newIndex = (_cameraIndex + 1) % widget.cameras.length;
+    
     Future.microtask(() async {
+        if (_isDisposed) return;
         await _stopCameraStream(); 
-        if (!_isDisposed && mounted) { 
+        if (mounted && !_isDisposed) { 
             await _initializeCamera(widget.cameras[newIndex]); 
         }
     });
@@ -629,7 +749,10 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         ));
     }
 
-    final double cameraAspectRatio = _cameraController!.value.aspectRatio;
+    final double cameraAspectRatio = _cameraController!.value.isInitialized && _cameraController!.value.aspectRatio > 0 
+                                      ? _cameraController!.value.aspectRatio 
+                                      : 16.0/9.0; 
+
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -638,36 +761,54 @@ class _ObjectDetectionViewState extends State<ObjectDetectionView> {
         double previewWidth;
         double previewHeight;
 
-        if (parentSize.width / parentSize.height > cameraAspectRatio) { 
+        if (parentSize.isEmpty) { 
+            previewWidth = 0;
+            previewHeight = 0;
+        } else if (parentSize.width / parentSize.height > cameraAspectRatio) { 
           previewHeight = parentSize.height;
           previewWidth = previewHeight * cameraAspectRatio;
         } else {
           previewWidth = parentSize.width;
           previewHeight = previewWidth / cameraAspectRatio;
         }
+        
+        if (previewWidth <= 0 || previewHeight <= 0 && !parentSize.isEmpty) {
+            previewWidth = parentSize.width; 
+            previewHeight = parentSize.height;
+        }
+
 
         return Stack(
           fit: StackFit.expand,
           alignment: Alignment.center,
           children: [
-            Center(
-              child: SizedBox(
-                width: previewWidth,
-                height: previewHeight,
-                child: CameraPreview(_cameraController!),
-              ),
-            ),
-            if (_processedObjects.isNotEmpty && _lastImageSize != null && _imageRotation != null && _screenSize != null)
+            if (_cameraController!.value.isInitialized && previewWidth > 0 && previewHeight > 0)
+                Center(
+                child: SizedBox(
+                    width: previewWidth,
+                    height: previewHeight,
+                    child: CameraPreview(_cameraController!),
+                ),
+                )
+            else
+                const Center(child: Text("카메라 미리보기를 로드할 수 없습니다.")),
+            
+            if (_processedObjects.isNotEmpty && 
+                _lastImageSize != null && 
+                _imageRotation != null && 
+                _screenSize != null && 
+                _cameraController!.value.isInitialized &&
+                cameraAspectRatio > 0)
               CustomPaint(
-                size: parentSize,
+                size: parentSize, 
                 painter: ObjectPainter(
                   objects: _processedObjects.map((info) => info.object).toList(),
                   imageSize: _lastImageSize!,
-                  screenSize: _screenSize!,
+                  screenSize: _screenSize!, 
                   rotation: _imageRotation!,
                   cameraLensDirection: widget.cameras[_cameraIndex].lensDirection,
                   cameraPreviewAspectRatio: cameraAspectRatio,
-                  showNameTags: false, // NameTag 그리지 않음
+                  showNameTags: false, // NameTag는 계속 그리지 않음
                 ),
               ),
           ],
