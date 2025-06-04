@@ -309,14 +309,14 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                         return FlSpot(x, e.averageSpeed);
                       }).toList(),
                       isCurved: false,
-                      color: const Color.fromARGB(255, 161, 222, 255),
+                      color: const Color.fromARGB(255, 208, 221, 227),
                       barWidth: 4, // 선 두께 증가
                       dotData: FlDotData(
                         show: true,
                         getDotPainter: (spot, percent, bar, index) {
                           return FlDotCirclePainter(
                             radius: 4,
-                            color: Colors.lightBlueAccent,
+                            color: const Color.fromARGB(255, 51, 54, 55),
                             strokeWidth: 1,
                             strokeColor: Colors.blueGrey,
                           );
@@ -393,7 +393,18 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       sideTitles: SideTitles(showTitles: false),
                     ),
                   ),
-                  gridData: FlGridData(show: false),
+                  gridData: FlGridData(
+                    show: true, // 점선 다시 표시
+                    drawVerticalLine: false, // 세로선은 끔
+                    horizontalInterval: 0.5,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.shade300, //  연한 회색선
+                        strokeWidth: 1,
+                        dashArray: [5, 5], // 점선 느낌 (선택사항, 없애도 됨)
+                      );
+                    },
+                  ),
                   borderData: FlBorderData(show: true),
                   maxY: 2,
                 ),
@@ -418,11 +429,9 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                           toY: steps,
                           width: 30,
                           borderRadius: BorderRadius.circular(4),
-                          rodStackItems: [
-                            BarChartRodStackItem(0, 1000, Colors.grey.shade200),
-                          ],
+                          // 회색 배경 rod 제거
                           color: steps > 0
-                              ? Colors.blueAccent
+                              ? Colors.grey.shade300
                               : Colors.transparent,
                         )
                       ],
@@ -467,7 +476,18 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                       sideTitles: SideTitles(showTitles: false),
                     ),
                   ),
-                  gridData: FlGridData(show: false), // 점선 제거
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: 300,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.shade300,
+                        strokeWidth: 1,
+                        dashArray: [5, 5], // 점선 형태 (필요 없으면 이 줄 삭제)
+                      );
+                    },
+                  ),
                   borderData: FlBorderData(show: true),
                 ),
               ),
