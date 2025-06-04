@@ -122,8 +122,16 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📊 보행 데이터 분석'),
+        centerTitle: true, // 가운데 정렬
         backgroundColor: Colors.amber,
+        title: const Text(
+          '보행 데이터 분석',
+          style: TextStyle(
+            fontFamily: 'Gugi', // 궁서체 느낌의 폰트
+            fontWeight: FontWeight.bold, // 두껍게
+            fontSize: 22, // 보기 좋게 크기 조절
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -141,22 +149,25 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                   minY: 0,
                   maxY: 2,
                   titlesData: FlTitlesData(
+                    show: true,
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // 상단 숫자 숨김
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // 오른쪽 숫자 숨김
+                    ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         interval: 2,
-                        getTitlesWidget: (value, _) => Text('${value.toInt()}시',
-                            style: const TextStyle(fontSize: 10)),
+                        getTitlesWidget: (value, _) => Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ),
                     ),
                     leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 0.5,
-                        getTitlesWidget: (value, _) => Text(
-                            value.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10)),
-                      ),
+                      sideTitles: SideTitles(showTitles: false), // 왼쪽 y축 숫자 숨김
                     ),
                   ),
                   gridData: FlGridData(show: true),
