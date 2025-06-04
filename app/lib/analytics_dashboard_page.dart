@@ -32,6 +32,7 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     loadWeeklySummaries();
   }
 
+// 오늘 하루 Firestore 속도 데이터 불러오기
   Future<void> loadTodaySpeedChart() async {
     final result = await FirestoreService.fetchTodaySpeedData();
     setState(() {
@@ -39,6 +40,28 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     });
   }
 
+// Firestore에 저장된 모든 walking_data 삭제
+  Future<void> clearAllFirestoreSpeedData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final uid = user.uid;
+    final collection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('walking_data');
+
+    try {
+      final snapshot = await collection.get();
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      debugPrint('❌ Firestore 삭제 오류: $e');
+    }
+  }
+
+// Hive에 저장된 일주일 데이터 요약 불러오기
   Future<void> loadWeeklySummaries() async {
     final box = Hive.box<WalkSession>('walk_sessions');
     final sessions = box.values.toList();
@@ -54,8 +77,11 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
       speedGrouped.putIfAbsent(key, () => []);
       speedGrouped[key]!.add(session.averageSpeed);
 
-      stepsGrouped.update(key, (v) => v + session.stepCount,
-          ifAbsent: () => session.stepCount);
+      stepsGrouped.update(
+        key,
+        (v) => v + session.stepCount,
+        ifAbsent: () => session.stepCount,
+      );
     }
 
     final resultSpeed = <String, double>{};
@@ -330,10 +356,14 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
               children: [
                 ElevatedButton(
                   onPressed: () async {
-                    await clearAllSessions();
+                    await clearAllSessions(); // Hive 데이터 삭제
+                    await clearAllFirestoreSpeedData(); // Firestore 속도 삭제
+                    await loadTodaySpeedChart(); // 그래프 갱신
+                    await loadWeeklySummaries(); // 주간 요약도 갱신
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('🗑️ 모든 세션이 삭제되었습니다')));
+                      const SnackBar(content: Text('모든 데이터가 초기화되었습니다')),
+                    );
                   },
                   child: const Text('초기화'),
                 ),
@@ -343,7 +373,8 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                     await backupSessionsToJson();
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ JSON으로 백업됨')));
+                      const SnackBar(content: Text('JSON으로 백업됨')),
+                    );
                   },
                   child: const Text('백업'),
                 ),
@@ -351,10 +382,13 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 ElevatedButton(
                   onPressed: () async {
                     await restoreSessionsFromJson();
+                    await loadWeeklySummaries(); // 세션 다시 불러오기
+                    await loadTodaySpeedChart(); // 그래프 갱신 추가
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text('✅ 복원 완료')));
-                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text(' 복원 완료')),
+                    );
+                    setState(() {}); // 위 두 개가 있더라도 이건 재렌더링을 위해 유지
                   },
                   child: const Text('복원'),
                 ),
