@@ -151,10 +151,10 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                   titlesData: FlTitlesData(
                     show: true,
                     topTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false), // 상단 숫자 숨김
+                      sideTitles: SideTitles(showTitles: false),
                     ),
                     rightTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false), // 오른쪽 숫자 숨김
+                      sideTitles: SideTitles(showTitles: false),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
@@ -162,17 +162,36 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                         interval: 2,
                         getTitlesWidget: (value, _) => Text(
                           '${value.toInt()}',
-                          style: const TextStyle(fontSize: 14),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                     leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false), // 왼쪽 y축 숫자 숨김
+                      sideTitles: SideTitles(showTitles: false),
                     ),
                   ),
                   gridData: FlGridData(show: true),
                   borderData: FlBorderData(show: true),
-                  lineTouchData: LineTouchData(enabled: false),
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    touchTooltipData: LineTouchTooltipData(
+                      tooltipRoundedRadius: 6,
+                      getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                        return touchedSpots.map((spot) {
+                          return LineTooltipItem(
+                            '${spot.y.toStringAsFixed(2)} m/s',
+                            const TextStyle(
+                              color: Colors.white,
+                              backgroundColor: Colors.black87,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
                   lineBarsData: [
                     LineChartBarData(
                       spots: todaySpeedChart.map((e) {
@@ -180,10 +199,20 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                         return FlSpot(x, e.averageSpeed);
                       }).toList(),
                       isCurved: false,
-                      color: Colors.purple,
-                      barWidth: 2,
-                      dotData: FlDotData(show: false),
-                    )
+                      color: const Color.fromARGB(255, 161, 222, 255),
+                      barWidth: 4, // 선 두께 증가
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, bar, index) {
+                          return FlDotCirclePainter(
+                            radius: 4,
+                            color: Colors.lightBlueAccent,
+                            strokeWidth: 1,
+                            strokeColor: Colors.blueGrey,
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
