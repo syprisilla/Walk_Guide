@@ -78,12 +78,17 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
 
   Future<void> _speakIntroText() async {
     final enabled = await isNavigationVoiceEnabled();
-    if (enabled) {
-      const text = '앱 제작자 소개 페이지입니다. 충북대학교 컴퓨터공학과. 팀명 SCORE. 김병우, 권오섭, 전수영, 김선영';
-      await _flutterTts.setLanguage("ko-KR");
-      await _flutterTts.setSpeechRate(0.5);
-      await _flutterTts.speak(text);
-    }
+    if (!enabled) return;
+
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+
+    await _flutterTts.speak('앱 제작자 소개 페이지입니다. 충북대학교 컴퓨터공학과. 팀명 S.CORE.');
+
+    await _flutterTts.speak('김병우. 바운더리 박스 구현, 객체 감지 정확성 향상 및 버그 수정을 담당했습니다.');
+    await _flutterTts.speak('권오섭. 카메라 초기설정, 엠엘 킷 기반 객체 감지 로직 구현을 담당했습니다.');
+    await _flutterTts.speak('전수영. 로그인과 회원가입 기능, 앱 전체 UI 구성을 맡았습니다.');
+    await _flutterTts.speak('김선영. 보행자 속도 분석 기능과 앱 음성 안내 기능을 담당했습니다.');
   }
 
   @override
@@ -114,7 +119,6 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
           const SizedBox(height: 12),
           const Text('팀명: S.CORE', style: TextStyle(fontSize: 16)),
           const Divider(height: 32),
-
           buildContributor(
             name: '김병우',
             role: '바운더리 박스 구현, 객체 감지 정확성 향상 및 버그 수정',
@@ -132,7 +136,7 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
           ),
           buildContributor(
             name: '김선영',
-            role: 'AI 보행자 속도 분석 기능 담당, 앱 음성 안내 기능 담당',
+            role: '보행자 속도 분석 기능 담당, 앱 음성 안내 기능 담당',
             githubUrl: 'https://github.com/syprisilla',
           ),
         ],
