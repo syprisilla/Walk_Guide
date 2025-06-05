@@ -15,8 +15,10 @@ class _FAQPageState extends State<FAQPage> {
   Future<void> _speakIfEnabled(String text) async {
     final enabled = await isNavigationVoiceEnabled();
     if (enabled) {
+      await _flutterTts.stop(); // 이전 음성 중지
       await _flutterTts.setLanguage("ko-KR");
       await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.awaitSpeakCompletion(true); // 음성 끝날 때까지 대기
       await _flutterTts.speak(text);
     }
   }
@@ -36,7 +38,10 @@ class _FAQPageState extends State<FAQPage> {
         title: const Text('자주 묻는 질문'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            _flutterTts.stop();
+            Navigator.pop(context);
+          },
         ),
       ),
       body: ListView(
@@ -44,10 +49,7 @@ class _FAQPageState extends State<FAQPage> {
           ExpansionTile(
             title: const Text(
               '앱이 아무 말도 하지 않아요.',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
@@ -68,10 +70,7 @@ class _FAQPageState extends State<FAQPage> {
           ExpansionTile(
             title: const Text(
               '데이터가 초기화됐어요.',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
@@ -92,11 +91,8 @@ class _FAQPageState extends State<FAQPage> {
           ExpansionTile(
             title: const Text(
               '앱이 갑자기 종료돼요.',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.black,
-                ),
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(
@@ -116,11 +112,8 @@ class _FAQPageState extends State<FAQPage> {
           ExpansionTile(
             title: const Text(
               '피드백을 보내고 싶어요.',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.black,
-                ),  
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled(
@@ -139,10 +132,7 @@ class _FAQPageState extends State<FAQPage> {
           ExpansionTile(
             title: const Text(
               '실행 속도가 제대로 안 떠요.',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
