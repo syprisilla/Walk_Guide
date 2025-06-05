@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:walk_guide/services/auth_service.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 
 class AccountInfoPage extends StatefulWidget {
   const AccountInfoPage({super.key});
@@ -14,11 +16,18 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   String? nickname;
   String? email;
   String? loginMethod;
+  final FlutterTts _flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
     fetchUserInfo();
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop(); // 페이지 벗어날 때 음성 정지
+    super.dispose();
   }
 
   Future<void> fetchUserInfo() async {
@@ -28,6 +37,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
           .collection('users')
           .doc(user.uid)
           .get();
+
       setState(() {
         nickname = doc.data()?['nickname'] ?? '사용자';
         email = user.email;
@@ -35,6 +45,20 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
             ? '이메일 로그인'
             : 'Google 로그인';
       });
+
+      // ✅ 음성 안내 실행
+      final enabled = await isNavigationVoiceEnabled();
+      if (enabled && mounted) {
+        final speakableEmail =
+            (email ?? '').replaceAll('@', ' 골뱅이 ').replaceAll('.', ' 점 ');
+        final message = "계정 정보를 확인하는 페이지입니다. "
+            "이메일 주소는 $speakableEmail 입니다. "
+            "로그인 방식은 $loginMethod 입니다.";
+
+        await _flutterTts.setLanguage("ko-KR");
+        await _flutterTts.setSpeechRate(0.5);
+        await _flutterTts.speak(message);
+      }
     }
   }
 
@@ -79,13 +103,13 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                 '이메일: $email',
                 style: const TextStyle(fontSize: 20, color: Colors.black),
               ),
-              const SizedBox(height: 8), 
+            const SizedBox(height: 8),
             if (loginMethod != null)
               Text(
                 '로그인 방식: $loginMethod',
                 style: const TextStyle(fontSize: 20, color: Colors.black),
               ),
-          ],  
+          ],
         ),
       ),
       bottomNavigationBar: Padding(

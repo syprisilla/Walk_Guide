@@ -66,7 +66,7 @@ class _TechnologyPageState extends State<TechnologyPage> {
           ),
           ExpansionTile(
             title: const Text(
-              'AI 기반 안내',
+              'ML Kit 기반 객체 감지',
               style: TextStyle(
                 fontSize: 20,
                 color: Colors.black,
@@ -74,15 +74,15 @@ class _TechnologyPageState extends State<TechnologyPage> {
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
-                _speakIfEnabled("AI 기반 안내",
-                    "사용자의 걸음 수와 이동 시간을 기반으로 보행 속도를 계산하고, 이를 지속적으로 학습하여 개인 맞춤형 보행 패턴을 생성합니다.");
+                _speakIfEnabled("ML Kit 기반 객체 감지",
+                    "이 앱은 구글 ML 킷을 활용해, 사용자의 카메라 화면에서 실시간으로 물체를 감지하는 기술이 적용되었습니다.");
               }
             },
             children: const [
               Padding(
                 padding: EdgeInsets.all(8),
                 child: Text(
-                    '사용자의 걸음 수와 이동 시간을 기반으로 보행 속도를 계산하고, 이를 지속적으로 학습하여 개인 맞춤형 보행 패턴을 생성합니다.'),
+                    '이 앱은 구글 ML 킷을 활용해, 사용자의 카메라 화면에서 실시간으로 물체를 감지하는 기술이 적용되었습니다.'),
               ),
             ],
           ),

@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:walk_guide/voice_guide_service.dart';
+import 'package:walk_guide/voice_guide_service.dart'; // 추가
 import 'account_info_page.dart';
 import 'privacy_policy_page.dart';
 import 'app_guide_page.dart';
@@ -48,18 +48,13 @@ class _DescriptionPageState extends State<DescriptionPage> {
     }
   }
 
-  Future<void> _speakWithoutBlocking(String text) async {
-    final enabled = await isNavigationVoiceEnabled();
+  Future<void> _speakIfEnabled(String text) async {
+    final enabled = await isNavigationVoiceEnabled(); // 설정 불러오기
     if (enabled) {
       await _flutterTts.setLanguage("ko-KR");
       await _flutterTts.setSpeechRate(0.5);
-      await _flutterTts.awaitSpeakCompletion(false);
-      _flutterTts.speak(text);
+      await _flutterTts.speak(text);
     }
-  }
-
-  String _makeEmailSpeakable(String email) {
-    return email.replaceAll('@', ' 골뱅이 ').replaceAll('.', ' 점 ');
   }
 
   @override
@@ -81,26 +76,12 @@ class _DescriptionPageState extends State<DescriptionPage> {
           children: [
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () {
-                final user = FirebaseAuth.instance.currentUser;
-                final email = user?.email ?? '이메일 정보를 불러올 수 없습니다';
-                final providerId = user?.providerData.first.providerId;
-                final method =
-                    (providerId == 'google.com') ? '구글 로그인' : '이메일 로그인';
-
-                final speakableEmail = _makeEmailSpeakable(email);
-
+              onTap: () async {
+                await _speakIfEnabled("계정 정보를 확인하는 페이지로 이동합니다."); // 조건부 음성 안내
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AccountInfoPage()),
                 );
-
-                // 하나로 합쳐서 음성 안내
-                final combinedMessage = "계정 정보를 확인하는 페이지로 이동합니다. "
-                    "이메일 주소는 $speakableEmail 입니다. "
-                    "로그인 방식은 $method 입니다.";
-
-                _speakWithoutBlocking(combinedMessage);
               },
               child: Row(
                 children: [
@@ -138,12 +119,13 @@ class _DescriptionPageState extends State<DescriptionPage> {
             ...items.map((item) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   child: GestureDetector(
-                    onTap: () {
+                    onTap: () async {
+                      await _speakIfEnabled(
+                          "${item.title} 페이지로 이동합니다."); // 조건부 음성 안내
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => item.page),
                       );
-                      _speakWithoutBlocking("${item.title} 페이지로 이동합니다.");
                     },
                     child: Text(
                       item.title,
