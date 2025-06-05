@@ -31,11 +31,25 @@ class _TechnologyPageState extends State<TechnologyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('사용된 기술 및 기능')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.amber,
+        title: const Text('사용된 기술 및 기능'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: ListView(
         children: [
           ExpansionTile(
-            title: const Text('센서 사용'),
+            title: const Text(
+              '센서 사용',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled("센서 사용",
@@ -51,7 +65,13 @@ class _TechnologyPageState extends State<TechnologyPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('AI 기반 안내'),
+            title: const Text(
+              'AI 기반 안내',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled("AI 기반 안내",
@@ -67,7 +87,13 @@ class _TechnologyPageState extends State<TechnologyPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('음성 안내'),
+            title: const Text(
+              '음성 안내',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled("음성 안내",
@@ -83,7 +109,13 @@ class _TechnologyPageState extends State<TechnologyPage> {
             ],
           ),
           ExpansionTile(
-            title: const Text('로컬 저장소 Hive'),
+            title: const Text(
+              '로컬 저장소 Hive',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
             onExpansionChanged: (expanded) {
               if (expanded) {
                 _speakIfEnabled("로컬 저장소 Hive",
