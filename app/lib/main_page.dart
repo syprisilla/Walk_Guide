@@ -6,13 +6,14 @@ import 'package:walk_guide/description/description_page.dart';
 import 'package:walk_guide/analytics_dashboard_page.dart';
 import 'package:walk_guide/settings_page.dart';
 import 'package:walk_guide/voice_guide_service.dart';
+import 'package:walk_guide/map/map_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 class MainScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -34,7 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     print("MainScreen initState 들어옴");
-    _setPortraitOrientation(); // Ensure portrait on init
+    _setPortraitOrientation();
     _loadNicknameAndGreet();
     _getCurrentLocation();
 
@@ -61,7 +62,6 @@ class _MainScreenState extends State<MainScreen> {
       DeviceOrientation.landscapeRight,
     ]);
   }
-
 
   @override
   void dispose() {
@@ -105,18 +105,18 @@ class _MainScreenState extends State<MainScreen> {
       final newLocation = LatLng(position.latitude, position.longitude);
 
       if (mounted) {
-          setState(() {
-            _currentLocation = newLocation;
-          });
-           _mapController.move(newLocation, 16.0);
+        setState(() {
+          _currentLocation = newLocation;
+        });
+        _mapController.move(newLocation, 16.0);
       }
     } catch (e) {
-        print("위치 가져오기 실패: $e");
-        if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('현재 위치를 가져오는 데 실패했습니다.'))
-            );
-        }
+      print("위치 가져오기 실패: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('현재 위치를 가져오는 데 실패했습니다.')),
+        );
+      }
     }
   }
 
@@ -172,54 +172,17 @@ class _MainScreenState extends State<MainScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const DescriptionPage(),
-                  ),
+                      builder: (context) => const DescriptionPage()),
                 ).then((_) async {
-                   if (mounted) await _flutterTts.stop();
+                  if (mounted) await _flutterTts.stop();
                 });
               },
             ),
           ],
         ),
-        body: FlutterMap(
+        body: MapScreen(
+          currentLocation: _currentLocation,
           mapController: _mapController,
-          options: MapOptions(
-            initialCenter: _currentLocation ?? LatLng(37.5665, 126.9780),
-            initialZoom: 15.0,
-            minZoom: 3.0,
-            maxZoom: 18.0,
-            maxBounds: LatLngBounds(
-              LatLng(-85.0, -180.0),
-              LatLng(85.0, 180.0),
-            ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate:
-                  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-              subdomains: const ['a', 'b', 'c'],
-              userAgentPackageName: 'com.oss.walk_guide',
-              tileProvider: NetworkTileProvider(),
-              tileSize: 256,
-              retinaMode: true,
-              backgroundColor: Colors.white,
-            ),
-            if (_currentLocation != null)
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _currentLocation!,
-                    width: 50,
-                    height: 50,
-                    child: Image.asset(
-                      'assets/images/walkingIcon.png',
-                      width: 50,
-                      height: 50,
-                    ),
-                  ),
-                ],
-              ),
-          ],
         ),
         floatingActionButton: FloatingActionButton(
           backgroundColor: Colors.grey.withOpacity(0.6),
@@ -230,7 +193,7 @@ class _MainScreenState extends State<MainScreen> {
             if (_currentLocation != null) {
               _mapController.move(_currentLocation!, 16.0);
             } else {
-              if(mounted) {
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('현재 위치를 가져올 수 없습니다.')),
                 );
@@ -267,11 +230,11 @@ class _MainScreenState extends State<MainScreen> {
 
             if (index == 0) {
               if (widget.cameras.isEmpty) {
-                 if(mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('사용 가능한 카메라가 없습니다.')),
-                    );
-                 }
+                  );
+                }
                 return;
               }
 
@@ -292,30 +255,28 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
               ).then((_) {
-                print("Returned from StepCounterPage. Ensuring portrait orientation in MainScreen.");
+                print(
+                    "Returned from StepCounterPage. Ensuring portrait orientation in MainScreen.");
                 _setPortraitOrientation();
               });
             } else if (index == 1) {
               if (navigationVoiceEnabled && mounted) {
                 await _flutterTts.speak("분석 페이지로 이동합니다.");
               }
-              await _setPortraitOrientation(); // Ensure portrait before navigating
+              await _setPortraitOrientation();
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AnalyticsDashboardPage(),
-                ),
+                    builder: (context) => const AnalyticsDashboardPage()),
               ).then((_) => _setPortraitOrientation());
             } else if (index == 2) {
               if (navigationVoiceEnabled && mounted) {
                 await _flutterTts.speak("설정 페이지로 이동합니다.");
               }
-              await _setPortraitOrientation(); // Ensure portrait before navigating
+              await _setPortraitOrientation();
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const SettingsPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
               ).then((_) => _setPortraitOrientation());
             }
           },
