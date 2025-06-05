@@ -1,4 +1,3 @@
-// File: lib/ObjectDetection/object_painter.dart
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
@@ -21,7 +20,7 @@ class ObjectPainter extends CustomPainter {
     required this.rotation,
     required this.cameraLensDirection,
     required this.cameraPreviewAspectRatio,
-    this.showNameTags = false, 
+    this.showNameTags = false, // 기본값 false (NameTag 안 그림)
   });
 
   @override
@@ -118,31 +117,9 @@ class ObjectPainter extends CustomPainter {
           displayRect.bottom.clamp(cameraViewRect.top, cameraViewRect.bottom));
 
       if (displayRect.width > 0 && displayRect.height > 0) {
-        // --- 바운더리 박스 좌우 크기 미세 조정 시작 ---
-        const double horizontalPaddingFactor = 0.05; // 예: 박스 너비의 5%만큼 좌우로 줄임 (총 10%)
-        final double horizontalPaddingAmount = displayRect.width * horizontalPaddingFactor;
+        canvas.drawRect(displayRect, paintRect);
 
-        Rect adjustedDisplayRect = Rect.fromLTRB(
-          displayRect.left + horizontalPaddingAmount,
-          displayRect.top, 
-          displayRect.right - horizontalPaddingAmount,
-          displayRect.bottom,
-        );
-
-        // 조정된 박스의 너비가 0보다 작아지지 않도록 보정
-        if (adjustedDisplayRect.width < 0) {
-          // 너비가 음수면 중앙으로 모으거나, 원본을 사용
-           adjustedDisplayRect = Rect.fromCenter(
-                center: displayRect.center,
-                width: 0, // 혹은 아주 작은 값
-                height: displayRect.height,
-            );
-            if(adjustedDisplayRect.width < 0) adjustedDisplayRect = displayRect; // 최종 fallback
-        }
-        // --- 바운더리 박스 좌우 크기 미세 조정 끝 ---
-
-        canvas.drawRect(adjustedDisplayRect, paintRect); // 조정된 박스를 그림
-
+        // NameTag 표시 로직 (showNameTags 플래그가 true일 때만 실행)
         if (showNameTags && detectedObject.labels.isNotEmpty) {
           final Paint backgroundPaint = Paint()..color = Colors.black.withOpacity(0.6);
           final label = detectedObject.labels.first;
@@ -160,33 +137,23 @@ class ObjectPainter extends CustomPainter {
           );
           tp.layout();
 
-          // NameTag 위치를 adjustedDisplayRect 기준으로 계산
-          double textBgTop = adjustedDisplayRect.top - tp.height - 4;
-          if (textBgTop < cameraViewRect.top) { // 화면 상단 밖으로 나가지 않도록
-            textBgTop = adjustedDisplayRect.bottom + 2;
+          double textBgTop = displayRect.top - tp.height - 4;
+          if (textBgTop < cameraViewRect.top) {
+            textBgTop = displayRect.bottom + 2;
           }
-          // 화면 하단 밖으로 나가지 않도록 추가 조정
-          if (textBgTop + tp.height + 4 > cameraViewRect.bottom) {
-             if (adjustedDisplayRect.top - tp.height - 4 >= cameraViewRect.top) { // 위로 붙일 공간이 있다면
-                textBgTop = adjustedDisplayRect.top - tp.height - 4;
-             } else { // 그것도 안되면 최대한 아래쪽
-                textBgTop = cameraViewRect.bottom - tp.height - 4;
-             }
+          if (textBgTop + tp.height + 4 > cameraViewRect.bottom && displayRect.top - tp.height - 4 >= cameraViewRect.top) {
+             textBgTop = displayRect.top - tp.height - 4;
+          } else if (textBgTop + tp.height + 4 > cameraViewRect.bottom) {
+             textBgTop = cameraViewRect.bottom - tp.height - 4;
           }
 
-
-          double textBgLeft = adjustedDisplayRect.left;
-          if (textBgLeft + tp.width + 8 > cameraViewRect.right) { // 화면 오른쪽 밖으로 나가지 않도록
+          double textBgLeft = displayRect.left;
+          if (textBgLeft + tp.width + 8 > cameraViewRect.right) {
             textBgLeft = cameraViewRect.right - tp.width - 8;
           }
-          if (textBgLeft < cameraViewRect.left) { // 화면 왼쪽 밖으로 나가지 않도록
+          if (textBgLeft < cameraViewRect.left) {
             textBgLeft = cameraViewRect.left;
           }
-          
-          // 최종적으로 화면 경계 내에 있도록 한 번 더 clamp
-          textBgTop = textBgTop.clamp(cameraViewRect.top, cameraViewRect.bottom - tp.height - 4);
-          textBgLeft = textBgLeft.clamp(cameraViewRect.left, cameraViewRect.right - tp.width - 8);
-
 
           final Rect textBackgroundRect = Rect.fromLTWH(textBgLeft, textBgTop, tp.width + 8, tp.height + 4);
 
@@ -205,6 +172,6 @@ class ObjectPainter extends CustomPainter {
         oldDelegate.rotation != rotation ||
         oldDelegate.cameraLensDirection != cameraLensDirection ||
         oldDelegate.cameraPreviewAspectRatio != cameraPreviewAspectRatio ||
-        oldDelegate.showNameTags != showNameTags;
+        oldDelegate.showNameTags != showNameTags; // showNameTags 변경 시에도 다시 그리도록
   }
 }
