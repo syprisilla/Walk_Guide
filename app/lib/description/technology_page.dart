@@ -15,16 +15,17 @@ class _TechnologyPageState extends State<TechnologyPage> {
   Future<void> _speakIfEnabled(String title, String detail) async {
     final enabled = await isNavigationVoiceEnabled();
     if (enabled) {
-      final String fullText = "$title. $detail";
+      await _flutterTts.stop(); // 이전 음성 중단
       await _flutterTts.setLanguage("ko-KR");
       await _flutterTts.setSpeechRate(0.5);
-      await _flutterTts.speak(fullText);
+      await _flutterTts.awaitSpeakCompletion(true); // 말 끝날 때까지 대기
+      await _flutterTts.speak("$title. $detail");
     }
   }
 
   @override
   void dispose() {
-    _flutterTts.stop(); // 페이지 나갈 때 음성 안내 중지
+    _flutterTts.stop(); // 페이지 나갈 때 음성 중지
     super.dispose();
   }
 
@@ -37,7 +38,10 @@ class _TechnologyPageState extends State<TechnologyPage> {
         title: const Text('사용된 기술 및 기능'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            _flutterTts.stop(); // 뒤로 갈 때도 음성 중지
+            Navigator.pop(context);
+          },
         ),
       ),
       body: ListView(
@@ -45,10 +49,7 @@ class _TechnologyPageState extends State<TechnologyPage> {
           ExpansionTile(
             title: const Text(
               '센서 사용',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
@@ -67,10 +68,7 @@ class _TechnologyPageState extends State<TechnologyPage> {
           ExpansionTile(
             title: const Text(
               'ML Kit 기반 객체 감지',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
@@ -89,10 +87,7 @@ class _TechnologyPageState extends State<TechnologyPage> {
           ExpansionTile(
             title: const Text(
               '음성 안내',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {
@@ -111,10 +106,7 @@ class _TechnologyPageState extends State<TechnologyPage> {
           ExpansionTile(
             title: const Text(
               '로컬 저장소 Hive',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.black),
             ),
             onExpansionChanged: (expanded) {
               if (expanded) {

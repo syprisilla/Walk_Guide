@@ -21,7 +21,10 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   @override
   void initState() {
     super.initState();
-    fetchUserInfo();
+    // 페이지가 그려진 후에 사용자 정보 로드 + 음성 재생
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchUserInfo();
+    });
   }
 
   @override
@@ -46,7 +49,6 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
             : 'Google 로그인';
       });
 
-      // ✅ 음성 안내 실행
       final enabled = await isNavigationVoiceEnabled();
       if (enabled && mounted) {
         final speakableEmail =
