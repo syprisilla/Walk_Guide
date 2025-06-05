@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:walk_guide/real_time_speed_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:walk_guide/session_detail_page.dart';
 import 'package:walk_guide/walk_session.dart';
-import 'package:walk_guide/services/statistics_service.dart';
+import 'package:walk_guide/services/firestore_service.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   const AnalyticsDashboardPage({super.key});
@@ -19,75 +21,103 @@ class AnalyticsDashboardPage extends StatefulWidget {
 }
 
 class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
-  List<double> speedData = [];
-  Map<String, double> weeklyAverages = {};
-  Timer? _speedTimer;
+  final FlutterTts _flutterTts = FlutterTts();
+  List<HourlySpeed> todaySpeedChart = [];
+  Map<String, double> weeklyAverageSpeed = {};
+  Map<String, int> weeklyStepCounts = {};
+  List<String> dates = [];
 
   @override
   void initState() {
     super.initState();
-    _startSpeedTracking();
-    loadWeeklyAverages();
-  }
-
-  void _startSpeedTracking() {
-    _speedTimer?.cancel();
-
-    _speedTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      final box = Hive.box<DateTime>('recent_steps');
-      final now = DateTime.now();
-
-      // Hive에 저장된 전체 recent_steps 로그 수 출력
-      debugPrint("📦 Hive recent_steps 전체: ${box.length}");
-
-      // 유효한 걸음만 필터링 (5초 이내)
-      final validSteps =
-          box.values.where((t) => now.difference(t).inSeconds <= 5).toList();
-
-      for (final stepTime in box.values) {
-        final diff = now.difference(stepTime).inSeconds;
-        debugPrint("⏱️ 기록된 시간: $stepTime, 차이: ${diff}초");
-      }
-
-      final double speed = validSteps.length * 0.7 / 5;
-      debugPrint("📈 계산된 실시간 속도 (Hive 기반): $speed");
-
-      // speed가 0이더라도 항상 setState 호출
-      setState(() {
-        speedData.add(speed);
-        if (speedData.length > 30) speedData.removeAt(0);
-      });
-    });
+    _flutterTts.awaitSpeakCompletion(true);
+    loadData();
   }
 
   @override
   void dispose() {
-    _speedTimer?.cancel();
+    _flutterTts.stop();
     super.dispose();
   }
 
-  Future<void> loadWeeklyAverages() async {
+  Future<void> loadData() async {
+    await loadTodaySpeedChart();
+    await loadWeeklySummaries();
+    await _speakSummary();
+  }
+
+  Future<void> _speakSummary() async {
+    final enabled = await isNavigationVoiceEnabled();
+    if (!enabled) return;
+
+    if (todaySpeedChart.isEmpty || weeklyAverageSpeed.isEmpty) return;
+
+    final todayAvgSpeed =
+        todaySpeedChart.map((e) => e.averageSpeed).reduce((a, b) => a + b) /
+            todaySpeedChart.length;
+    final weeklyAvg = weeklyAverageSpeed.values.reduce((a, b) => a + b) /
+        weeklyAverageSpeed.length;
+    final diff = todayAvgSpeed - weeklyAvg;
+    final speedCompare = diff.abs() < 0.1
+        ? '오늘은 평소와 비슷한 속도로 걸으셨어요.'
+        : (diff > 0 ? '오늘은 평소보다 빠르게 걸으셨어요.' : '오늘은 평소보다 느리게 걸으셨어요.');
+
+    final todayKey = getDateKey(DateTime.now());
+    final steps = weeklyStepCounts[todayKey] ?? 0;
+    final stepMsg = '그리고 총 $steps 걸음을 걸으셨어요.';
+
+    final message = '$speedCompare $stepMsg';
+
+    await _flutterTts.awaitSpeakCompletion(true);
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(message);
+  }
+
+  Future<void> _speak(String message) async {
+    final enabled = await isNavigationVoiceEnabled();
+    if (!enabled) return;
+    await _flutterTts.awaitSpeakCompletion(true);
+    await _flutterTts.setLanguage("ko-KR");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.speak(message);
+  }
+
+  Future<void> loadTodaySpeedChart() async {
+    final result = await FirestoreService.fetchTodaySpeedData();
+    setState(() {
+      todaySpeedChart = result;
+    });
+  }
+
+  Future<void> loadWeeklySummaries() async {
     final box = Hive.box<WalkSession>('walk_sessions');
-    final allSessions = box.values.toList();
+    final sessions = box.values.toList();
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 6));
 
-    final Map<String, List<double>> grouped = {};
-    for (final session in allSessions) {
+    final Map<String, List<double>> speedGrouped = {};
+    final Map<String, int> stepsGrouped = {};
+
+    for (final session in sessions) {
       if (session.startTime.isBefore(sevenDaysAgo)) continue;
-      final dateKey = getDateKey(session.startTime);
-      grouped.putIfAbsent(dateKey, () => []);
-      grouped[dateKey]!.add(session.averageSpeed);
+      final key = getDateKey(session.startTime);
+      speedGrouped.putIfAbsent(key, () => []);
+      speedGrouped[key]!.add(session.averageSpeed);
+      stepsGrouped.update(key, (v) => v + session.stepCount,
+          ifAbsent: () => session.stepCount);
     }
 
-    final Map<String, double> result = {};
-    for (final entry in grouped.entries) {
+    final resultSpeed = <String, double>{};
+    for (var entry in speedGrouped.entries) {
       final avg = entry.value.reduce((a, b) => a + b) / entry.value.length;
-      result[entry.key] = double.parse(avg.toStringAsFixed(2));
+      resultSpeed[entry.key] = double.parse(avg.toStringAsFixed(2));
     }
 
     setState(() {
-      weeklyAverages = result;
+      weeklyAverageSpeed = resultSpeed;
+      weeklyStepCounts = stepsGrouped;
+      dates = resultSpeed.keys.toList();
     });
   }
 
@@ -99,91 +129,284 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
     final box = Hive.box<WalkSession>('walk_sessions');
     await box.clear();
     setState(() {
-      speedData.clear();
+      todaySpeedChart.clear();
     });
+  }
+
+  Future<void> clearAllFirestoreSpeedData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final uid = user.uid;
+    final collection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('walking_data');
+
+    final snapshot = await collection.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
   }
 
   Future<void> backupSessionsToJson() async {
     final box = Hive.box<WalkSession>('walk_sessions');
     final sessions = box.values.toList();
-    final jsonList = sessions.map((s) => s.toJson()).toList();
-    final jsonString = jsonEncode(jsonList);
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/walk_sessions_backup.json');
+    final jsonString = jsonEncode(sessions.map((s) => s.toJson()).toList());
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/walk_sessions_backup.json');
     await file.writeAsString(jsonString);
-    debugPrint('✅ 백업 완료: ${file.path}');
   }
 
   Future<void> restoreSessionsFromJson() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/walk_sessions_backup.json');
-
-      if (!await file.exists()) {
-        debugPrint('⚠️ 백업 파일이 존재하지 않습니다');
-        return;
-      }
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/walk_sessions_backup.json');
+      if (!await file.exists()) return;
 
       final jsonString = await file.readAsString();
-      final List<dynamic> jsonList = jsonDecode(jsonString);
-
-      final restoredSessions = jsonList.map((json) => WalkSession(
-            startTime: DateTime.parse(json['startTime']),
-            endTime: DateTime.parse(json['endTime']),
-            stepCount: json['stepCount'],
-            averageSpeed: (json['averageSpeed'] as num).toDouble(),
-          ));
+      final jsonList = jsonDecode(jsonString);
+      final restored = (jsonList as List)
+          .map((json) => WalkSession(
+                startTime: DateTime.parse(json['startTime']),
+                endTime: DateTime.parse(json['endTime']),
+                stepCount: json['stepCount'],
+                averageSpeed: (json['averageSpeed'] as num).toDouble(),
+              ))
+          .toList();
 
       final box = Hive.box<WalkSession>('walk_sessions');
       await box.clear();
-      await box.addAll(restoredSessions);
+      await box.addAll(restored);
 
-      debugPrint('✅ 복원 완료: ${restoredSessions.length}개의 세션 복구됨');
+      // Firestore에도 복원
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final collection = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('walking_data');
+
+// 기존 Firestore 데이터 삭제
+      final snapshot = await collection.get();
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+
+//  복원된 데이터 Firestore에 Timestamp로 저장
+      for (final session in restored) {
+        final timestamp = session.startTime.toIso8601String();
+        await collection.doc(timestamp).set({
+          'timestamp': Timestamp.fromDate(session.startTime),
+          'speed': session.averageSpeed,
+        });
+      }
     } catch (e) {
-      debugPrint('❌ 복원 중 오류 발생: $e');
+      debugPrint('❌ 복원 오류: $e');
     }
+  }
+
+  Future<void> onClearPressed() async {
+    await clearAllSessions();
+    await clearAllFirestoreSpeedData();
+    await loadTodaySpeedChart();
+    await loadWeeklySummaries();
+    await _speak("모든 데이터를 초기화했습니다.");
+  }
+
+  Future<void> onBackupPressed() async {
+    await backupSessionsToJson();
+    await _speak("백업 버튼을 눌렀습니다.");
+  }
+
+  Future<void> onRestorePressed() async {
+    await restoreSessionsFromJson();
+    await loadWeeklySummaries();
+    await loadTodaySpeedChart();
+    await _speak("복원 버튼을 눌렀습니다.");
   }
 
   @override
   Widget build(BuildContext context) {
-    final weeklyStepData = StatisticsService.getWeeklyStepData(
-      Hive.box<WalkSession>('walk_sessions').values.toList(),
-    );
-    final dates = weeklyAverages.keys.toList();
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('📊 보행 데이터 분석'),
+        centerTitle: true, // 가운데 정렬
         backgroundColor: Colors.amber,
-        centerTitle: true,
+        title: const Text(
+          '보행 데이터 분석',
+          style: TextStyle(
+            fontFamily: 'Gugi', // 궁서체 느낌의 폰트
+            fontWeight: FontWeight.bold, // 두껍게
+            fontSize: 22, // 보기 좋게 크기 조절
+          ),
+        ),
       ),
       body: SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('실시간 속도 그래프',
+            const Text('오늘 하루 속도 변화',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
-              height: 120,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                child: LineChart(
-                  LineChartData(
-                    titlesData: FlTitlesData(show: false),
-                    borderData: FlBorderData(show: false),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: List.generate(speedData.length,
-                            (i) => FlSpot(i.toDouble(), speedData[i])),
-                        isCurved: true,
-                        barWidth: 3,
-                        dotData: FlDotData(show: false),
-                        color: Colors.blue,
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  minX: 0,
+                  maxX: 24,
+                  minY: 0,
+                  maxY: 2,
+                  titlesData: FlTitlesData(
+                    show: true,
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 2,
+                        getTitlesWidget: (value, _) => Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ],
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
+                  gridData: FlGridData(show: true),
+                  borderData: FlBorderData(show: true),
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    touchTooltipData: LineTouchTooltipData(
+                      tooltipRoundedRadius: 6,
+                      getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                        return touchedSpots.map((spot) {
+                          return LineTooltipItem(
+                            '${spot.y.toStringAsFixed(2)} m/s',
+                            const TextStyle(
+                              color: Colors.white,
+                              backgroundColor: Colors.black87,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: todaySpeedChart.map((e) {
+                        final x = e.time.hour + (e.time.minute / 60.0);
+                        return FlSpot(x, e.averageSpeed);
+                      }).toList(),
+                      isCurved: false,
+                      color: const Color.fromARGB(255, 208, 221, 227),
+                      barWidth: 4, // 선 두께 증가
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, bar, index) {
+                          return FlDotCirclePainter(
+                            radius: 4,
+                            color: const Color.fromARGB(255, 51, 54, 55),
+                            strokeWidth: 1,
+                            strokeColor: Colors.blueGrey,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('최근 일주일 평균 속도 변화',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(
+              height: 160,
+              width: double.infinity,
+              child: BarChart(
+                BarChartData(
+                  barGroups: List.generate(dates.length, (i) {
+                    final date = dates[i];
+                    final speed = weeklyAverageSpeed[date]!;
+                    return BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: speed,
+                          width: 30,
+                          borderRadius: BorderRadius.circular(4),
+                          rodStackItems: [
+                            BarChartRodStackItem(0, 2, Colors.grey.shade200),
+                          ],
+                          color: speed > 0
+                              ? Colors.blueAccent
+                              : Colors.transparent,
+                        )
+                      ],
+                    );
+                  }),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, _) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= dates.length)
+                            return const SizedBox();
+                          return Text(
+                            dates[i].substring(5),
+                            style: const TextStyle(
+                              fontSize: 14, //  글자 크기 키움
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1.0,
+                        getTitlesWidget: (value, _) => Text(
+                          value.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+                  gridData: FlGridData(
+                    show: true, // 점선 다시 표시
+                    drawVerticalLine: false, // 세로선은 끔
+                    horizontalInterval: 0.5,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.shade300, //  연한 회색선
+                        strokeWidth: 1,
+                        dashArray: [5, 5], // 점선 느낌 (선택사항, 없애도 됨)
+                      );
+                    },
+                  ),
+                  borderData: FlBorderData(show: true),
+                  maxY: 2,
                 ),
               ),
             ),
@@ -192,100 +415,80 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 160,
+              width: double.infinity,
               child: BarChart(
                 BarChartData(
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      if (group.x.toInt() >= dates.length) return null;
-                      final date = dates[group.x.toInt()];
-                      final steps = rod.toY.toInt();
-                      return BarTooltipItem(
-                        '$date\n걸음 수: $steps',
-                        const TextStyle(color: Colors.white, fontSize: 14),
-                      );
-                    },
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= dates.length) {
-                          return const SizedBox();
-                        }
-                        final date = dates[index];
-                        return Text(date.substring(5), style: const TextStyle(fontSize: 10));
-                      },
-                    ),
-                  ),
-                ),
-                barGroups: List.generate(dates.length, (index) {
-                  final date = dates[index];
-                  final steps = weeklyStepData[date] ?? 0;
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(
-                        toY: steps.toDouble(),
-                        width: 12,
-                        color: Colors.purple.shade200,
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-            const Text('최근 일주일 평균 속도 변화',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),    
-            SizedBox(
-              height: 160,
-              child: BarChart(
-                BarChartData(
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        if (group.x.toInt() >= dates.length) return null;
-                        final date = dates[group.x.toInt()];
-                        final speed = rod.toY.toStringAsFixed(2);
-                        return BarTooltipItem('$date\n속도: $speed m/s',
-                            const TextStyle(color: Colors.white, fontSize: 14));
-                      },
-                    ),
-                  ),
+                  maxY: 1000,
+                  barGroups: List.generate(dates.length, (i) {
+                    final date = dates[i];
+                    final steps = weeklyStepCounts[date]?.toDouble() ?? 0;
+                    return BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: steps,
+                          width: 30,
+                          borderRadius: BorderRadius.circular(4),
+                          // 회색 배경 rod 제거
+                          color: steps > 0
+                              ? Colors.grey.shade300
+                              : Colors.transparent,
+                        )
+                      ],
+                    );
+                  }),
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= dates.length) {
+                        getTitlesWidget: (value, _) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= dates.length)
                             return const SizedBox();
-                          }
-                          final date = dates[index];
-                          return Text(date.substring(5),
-                              style: const TextStyle(fontSize: 10));
+                          return Text(
+                            dates[i].substring(5),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
                         },
                       ),
                     ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 500,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, _) => Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
-                  barGroups: List.generate(dates.length, (index) {
-                    final date = dates[index];
-                    final speed = weeklyAverages[date]!;
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                            toY: speed, width: 12, color: Colors.lightBlue)
-                      ],
-                    );
-                  }),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: 300,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.shade300,
+                        strokeWidth: 1,
+                        dashArray: [5, 5], // 점선 형태 (필요 없으면 이 줄 삭제)
+                      );
+                    },
+                  ),
+                  borderData: FlBorderData(show: true),
                 ),
               ),
             ),
@@ -305,20 +508,18 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                   return ListView.builder(
                     itemCount: sessions.length,
                     itemBuilder: (context, index) {
-                      final session = sessions[index];
-                      final date = getDateKey(session.startTime);
+                      final s = sessions[index];
                       return ListTile(
-                        title: Text(date),
+                        title: Text(getDateKey(s.startTime)),
                         subtitle: Text(
-                            '걸음 수: ${session.stepCount} / 평균 속도: ${session.averageSpeed.toStringAsFixed(2)} m/s'),
-                        leading: const Icon(Icons.directions_walk),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            '걸음 수: ${s.stepCount}, 평균 속도: ${s.averageSpeed.toStringAsFixed(2)} m/s'),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    SessionDetailPage(session: session)),
+                              builder: (context) =>
+                                  SessionDetailPage(session: s),
+                            ),
                           );
                         },
                       );
@@ -327,80 +528,89 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
                 },
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             const Text('데이터 초기화 및 백업',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
             Row(
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade100,
+                    backgroundColor: Colors.blueGrey, // 배경도 변경 가능
+                    foregroundColor: Colors.grey.shade200, //  글자색 변경
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 둥근 직사각형
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12), // 크기 조정
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () async {
                     await clearAllSessions();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('🗑️ 모든 세션이 삭제되었습니다')),
-                      );
-                    }
+                    await clearAllFirestoreSpeedData();
+                    await loadTodaySpeedChart();
+                    await loadWeeklySummaries();
+                    await _speak("모든 데이터를 초기화했습니다.");
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('모든 데이터가 초기화되었습니다')),
+                    );
                   },
-                  child: const Text(
-                    '초기화',
-                    style: TextStyle(
-                      fontSize: 16,         // 글씨 크기
-                      color: Colors.black,  // 글씨 색깔
-                    ),  
-                  ),
+                  child: const Text('초기화'),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade100,
+                    backgroundColor: Colors.blueGrey, // 배경도 변경 가능
+                    foregroundColor: Colors.grey.shade200, //  글자색 변경
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 둥근 직사각형
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12), // 크기 조정
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () async {
                     await backupSessionsToJson();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ 데이터가 JSON으로 백업되었습니다')),
-                      );
-                    }
+                    await _speak("백업 버튼을 눌렀습니다.");
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('JSON으로 백업됨')),
+                    );
                   },
-                  child: const Text(
-                    '백업',
-                    style: TextStyle(
-                      fontSize: 16,         // 글씨 크기
-                      color: Colors.black,  // 글씨 색깔
-                    ),
-                  ),
+                  child: const Text('백업'),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade100,
+                    backgroundColor: Colors.blueGrey, // 배경도 변경 가능
+                    foregroundColor: Colors.grey.shade200, //  글자색 변경
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 둥근 직사각형
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12), // 크기 조정
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () async {
                     await restoreSessionsFromJson();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ 백업 데이터에서 세션을 복원했습니다')),
-                      );
-                      setState(() {});
-                    }
+                    await loadWeeklySummaries(); // 세션 다시 불러오기
+                    await loadTodaySpeedChart(); // 그래프 갱신 추가
+                    await _speak("복원 버튼을 눌렀습니다.");
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text(' 복원 완료')),
+                    );
+                    setState(() {}); // 위 두 개가 있더라도 이건 재렌더링을 위해 유지
                   },
-                  child: const Text(
-                    '복원',
-                    style: TextStyle(
-                      fontSize: 16,         // 글씨 크기
-                      color: Colors.black,  // 글씨 색깔
-                    ),
-                  ),
+                  child: const Text('복원'),
                 ),
               ],
             ),
           ],
         ),
-      ),
       ),
     );
   }
