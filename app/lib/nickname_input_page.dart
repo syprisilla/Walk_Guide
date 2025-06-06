@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:walk_guide/main_page.dart';
 import 'package:walk_guide/main.dart';
+import 'package:walk_guide/voice_guide_service.dart';
 
 class NicknameInputPage extends StatefulWidget {
   const NicknameInputPage({super.key});
@@ -14,7 +16,24 @@ class NicknameInputPage extends StatefulWidget {
 class _NicknameInputPageState extends State<NicknameInputPage> {
   final _nicknameController = TextEditingController();
   final FocusNode _nicknameFocus = FocusNode();
+  final FlutterTts _flutterTts = FlutterTts();
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 400), _speakIntroIfEnabled);
+  }
+
+  Future<void> _speakIntroIfEnabled() async {
+    final enabled = await isNavigationVoiceEnabled();
+    if (enabled) {
+      await _flutterTts.setLanguage("ko-KR");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.awaitSpeakCompletion(true); // 이거 추가
+      await _flutterTts.speak("닉네임 입력 페이지입니다. 사용할 닉네임을 입력해주세요.");
+    }
+  }
 
   Future<bool> isNicknameTaken(String nickname) async {
     final query = await FirebaseFirestore.instance
@@ -91,6 +110,7 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
   void dispose() {
     _nicknameController.dispose();
     _nicknameFocus.dispose();
+    _flutterTts.stop();
     super.dispose();
   }
 
@@ -124,8 +144,8 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
                   hintText: '닉네임',
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 20),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
@@ -141,12 +161,13 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
               ),
               const SizedBox(height: 24),
               SizedBox(
-                width: double.infinity, // 👈 가로 전체 너비
+                width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(243, 244, 195, 35), // 노란색
+                    backgroundColor: const Color.fromARGB(243, 244, 195, 35),
                     foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    shape:
+                        RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     textStyle: const TextStyle(
                       fontSize: 16,
@@ -161,9 +182,9 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('저장하고 시작하기'),
-                  ),                
                 ),
-              ],
+              ),
+            ],
           ),
         ),
       ),
