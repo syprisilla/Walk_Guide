@@ -3,25 +3,25 @@
 
 ## OSS Project
 
-- [Project summary](#project-summary)
+- [Project Summary](#project-summary)
   - [Purpose](#purpose)
 - [Requirements](#requirements)
-- [How to use](#how-to-use)
-  - [로딩페이지](#로딩페이지)
-  - [로그인 화면](#로그인-화면)
-  - [회원가입](#회원가입)
-  - [닉네임 페이지](#닉네임-페이지)
-  - [메인화면](#메인화면)
-  - [객체 탐지](#객체-탐지)
-  - [실시간 보행 속도 분석 화면](#실시간-보행-속도-분석-화면)
-  - [설정페이지](#설정페이지)
-  - [관리 페이지](#관리-페이지)
-  - [계정 정보 페이지](#계정-정보-페이지)
-- [설치 및 실행 방법](#how-to-use)
-- [기술 스택](#기술-스택)
-- [기여 방법](#기여-방법)
-- [TEAM : S.CORE](#team--score)
-- [라이선스](#라이선스)
+- [How to Use](#how-to-use)
+  - [로딩페이지 (Loading Page)](#로딩페이지-loading-page)
+  - [로그인 화면 (Login Screen)](#로그인-화면-login-screen)
+  - [회원가입 (Sign Up)](#회원가입-sign-up)
+  - [닉네임 페이지 (Nickname Page)](#닉네임-페이지-nickname-page)
+  - [메인화면 (Main Screen)](#메인화면-main-screen)
+  - [객체 탐지 (Object Detection)](#객체-탐지-object-detection)
+  - [실시간 보행 속도 분석 화면 (Real-Time Speed Analysis)](#실시간-보행-속도-분석-화면-real-time-speed-analysis)
+  - [설정페이지 (Settings Page)](#설정페이지-settings-page)
+  - [관리 페이지 (Admin Page)](#관리-페이지-admin-page)
+  - [계정 정보 페이지 (Account Info Page)](#계정-정보-페이지-account-info-page)
+- [Installation & Run Guide](#installation--run-guide)
+- [Tech Stack](#tech-stack)
+- [How to Contribute](#how-to-contribute)
+- [Team: S.CORE](#team-score)
+- [License](#license)
 
 
 ---
@@ -306,7 +306,7 @@ Google 계정으로 로그인한 경우에는
 
 
 
-## How to use
+## Installation & Run Guide
 
 ### 1. 저장소 클론
 
@@ -346,7 +346,7 @@ flutter run
 4. 브랜치에 푸시합니다: `git push origin feature/새로운기능`
 5. Pull Request를 생성합니다.
    
-## TEAM : S.CORE
+## Team: S.CORE
 
 | 이름 | 역할 | GitHub | Email |
 |------|------|--------|-------|
