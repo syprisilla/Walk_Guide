@@ -5,7 +5,9 @@
 
 - [Project summary](#project-summary)
   - [Purpose](#purpose)
+- [Requirements](#requirements)
 - [How to use](#how-to-use)
+  - [로딩페이지](#로딩페이지)
   - [로그인 화면](#로그인-화면)
   - [회원가입](#회원가입)
   - [닉네임 페이지](#닉네임-페이지)
@@ -14,15 +16,43 @@
   - [실시간 보행 속도 분석 화면](#실시간-보행-속도-분석-화면)
   - [설정페이지](#설정페이지)
   - [관리 페이지](#관리-페이지)
-- [ 설치 및 실행 방법](#️-설치-및-실행-방법)
-- [ 기술 스택](#️-기술-스택)
-- [ 기여 방법](#-기여-방법)
-- [ 라이선스](#-라이선스)
+  - [계정 정보 페이지](#계정-정보-페이지)
+- [설치 및 실행 방법](#how-to-use)
+- [기술 스택](#기술-스택)
+- [기여 방법](#기여-방법)
+- [TEAM : S.CORE](#team--score)
+- [라이선스](#라이선스)
+
 
 ---
+## Requirements
 
-
-
+- cupertino_icons==1.0.8  
+- pedometer==4.1.1  
+- sensors_plus==6.1.1  
+- permission_handler==12.0.0+1  
+- url_launcher==6.2.5  
+- camera==0.10.5+9  
+- google_mlkit_object_detection==0.11.0  
+- google_mlkit_commons==0.6.0  
+- isolate==2.1.1  
+- hive==2.2.3  
+- hive_flutter==1.1.0  
+- path_provider==2.0.15  
+- flutter_tts==3.8.2  
+- fl_chart==0.71.0  
+- firebase_core==2.27.0  
+- firebase_auth==4.17.4  
+- cloud_firestore==4.13.3  
+- google_sign_in==6.1.4  
+- shared_preferences==2.2.2  
+- flutter_map==6.1.0  
+- geolocator==11.0.0  
+- latlong2==0.9.0  
+- build_runner==2.4.6  
+- hive_generator==2.0.1  
+- test==1.25.15  
+- flutter_lints==5.0.0  
 
 
 ## Project summary
@@ -276,7 +306,7 @@ Google 계정으로 로그인한 경우에는
 
 
 
-## 🛠️ 설치 및 실행 방법
+## How to use
 
 ### 1. 저장소 클론
 
@@ -299,7 +329,7 @@ flutter run
 
 > **참고**: Flutter가 설치되어 있어야 하며, 연결된 디바이스 또는 에뮬레이터가 필요합니다.
 
-## ⚙️ 기술 스택
+## Tech Stack
 
 - **Flutter**: UI 개발
 - **Dart**: 프로그래밍 언어
@@ -308,15 +338,26 @@ flutter run
 - **Swift**: iOS 플랫폼 지원
 - **HTML**: 일부 웹 구성 요소
 
-## 🤝 기여 방법
+## How to Contribute
 
 1. 이 저장소를 포크합니다.
 2. 새로운 브랜치를 생성합니다: `git checkout -b feature/새로운기능`
 3. 변경 사항을 커밋합니다: `git commit -m '새로운 기능 추가'`
 4. 브랜치에 푸시합니다: `git push origin feature/새로운기능`
 5. Pull Request를 생성합니다.
+   
+## TEAM : S.CORE
 
-## 📄 라이선스
+| 이름 | 역할 | GitHub | Email |
+|------|------|--------|-------|
+| **김병우** | 바운더리 박스 구현, 객체 감지 정확성 향상 및 버그 수정 | [https://github.com/xnoa03](https://github.com/xnoa03) | xnoa03@naver.com |
+| **권오섭** | 카메라 초기설정, ML Kit 기반 객체 감지 로직 구현 | [https://github.com/kos6490](https://github.com/kos6490) | kos-6490@naver.com |
+| **전수영** | 로그인과 회원가입 기능 담당, 앱 전체 UI 구성 | [https://github.com/Jeonsooyoung](https://github.com/Jeonsooyoung) | jsooyoung05@gmail.com |
+| **김선영** | 보행자 속도 분석 기능 담당, 앱 음성 안내 기능 담당 | [https://github.com/syprisilla](https://github.com/syprisilla) | kt28805546@gmail.com |
+
+
+
+## License
 
 이 프로젝트는 MIT 라이선스 하에 제공됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
 
