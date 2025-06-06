@@ -30,7 +30,7 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
     if (enabled) {
       await _flutterTts.setLanguage("ko-KR");
       await _flutterTts.setSpeechRate(0.5);
-      await _flutterTts.awaitSpeakCompletion(true); // 이거 추가
+      await _flutterTts.awaitSpeakCompletion(true);
       await _flutterTts.speak("닉네임 입력 페이지입니다. 사용할 닉네임을 입력해주세요.");
     }
   }
@@ -48,6 +48,12 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (nickname.isEmpty || user == null) return;
+
+    final enabled = await isNavigationVoiceEnabled();
+    if (enabled) {
+      await _flutterTts.awaitSpeakCompletion(true);
+      await _flutterTts.speak("닉네임 저장 중입니다. 잠시만 기다려주세요.");
+    }
 
     setState(() {
       _isSaving = true;
@@ -96,6 +102,11 @@ class _NicknameInputPageState extends State<NicknameInputPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('닉네임 저장에 실패했습니다. 다시 시도해주세요.')),
         );
+        final enabled = await isNavigationVoiceEnabled();
+        if (enabled) {
+          await _flutterTts.awaitSpeakCompletion(true);
+          await _flutterTts.speak("닉네임 저장에 실패했습니다. 다시 시도해주세요.");
+        }
       }
     } finally {
       if (mounted) {
