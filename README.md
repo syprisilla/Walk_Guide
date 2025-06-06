@@ -350,7 +350,7 @@ flutter run
 
 | 이름 | 역할 | GitHub | Email |
 |------|------|--------|-------|
-| **김병우** | 바운더리 박스 구현, 객체 감지 정확성 향상 및 버그 수정 | [https://github.com/xnoa03](https://github.com/xnoa03) | xnoa03@naver.com |
+| **김병우(팀장)** | 바운더리 박스 구현, 객체 감지 정확성 향상 및 버그 수정 | [https://github.com/xnoa03](https://github.com/xnoa03) | xnoa03@naver.com |
 | **권오섭** | 카메라 초기설정, ML Kit 기반 객체 감지 로직 구현 | [https://github.com/kos6490](https://github.com/kos6490) | kos-6490@naver.com |
 | **전수영** | 로그인과 회원가입 기능 담당, 앱 전체 UI 구성 | [https://github.com/Jeonsooyoung](https://github.com/Jeonsooyoung) | jsooyoung05@gmail.com |
 | **김선영** | 보행자 속도 분석 기능 담당, 앱 음성 안내 기능 담당 | [https://github.com/syprisilla](https://github.com/syprisilla) | kt28805546@gmail.com |
