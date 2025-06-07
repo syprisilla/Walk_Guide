@@ -25,7 +25,7 @@ class NameTagUtils {
 
     textPainter.layout(minWidth: 0, maxWidth: canvasSize.width);
 
-    // 텍스트 위치 계산 및 조정
+    
     double textY = boundingBoxRect.top - textPainter.height;
     if (textY < 0) {
       textY = boundingBoxRect.top + 2;
@@ -34,11 +34,11 @@ class NameTagUtils {
       }
     }
     
-    // [수정] clamp의 상한값이 음수가 되지 않도록 max(0.0, ...)를 사용하여 방어합니다.
+    
     final double upperClamp = max(0.0, canvasSize.height - textPainter.height);
     final Offset textOffset = Offset(boundingBoxRect.left, textY.clamp(0.0, upperClamp));
 
-    // 텍스트 그리기
+    
     textPainter.paint(canvas, textOffset);
   }
 }
