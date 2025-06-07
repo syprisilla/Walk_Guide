@@ -3,7 +3,22 @@ import os
 target_files = [
     'lib/map/map_screen.dart',
     'lib/services/auth_service_testable.dart',
-    'lib/main_testable.dart'
+    'lib/ObjectDetection/mlkit_object_detection.dart',
+    'lib/ObjectDetection/object_detection_combine.dart',
+    'lib/ObjectDetection/object_detection_view.dart',
+    'lib/services/firestore_service.dart',
+    'lib/services/statistics_service.dart',
+    'lib/analytics_dashboard_page.dart',
+    'lib/main_testable.dart',
+    'lib/login_page.dart',
+    'lib/nickname_input_page.dart',
+    'lib/real_time_speed_service.dart',
+    'lib/signup_page.dart',
+    'lib/step_counter_page.dart',
+    'lib/user_profile.dart',
+    'lib/voice_guide_service.dart',
+    'lib/walk_session.dart'
+
 ]
 
 lcov_path = 'coverage/lcov.info'

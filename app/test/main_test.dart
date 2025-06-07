@@ -14,6 +14,5 @@ void main() {
       (WidgetTester tester) async {
     await test_app.testableMain(); // isTest: false
     await tester.pump();
-    // 굳이 expect 없어도 커버리지 목적엔 OK
   });
 }
