@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:walk_guide/main_page.dart';
+import 'package:walk_guide/main/main_page.dart';
 import 'package:walk_guide/main.dart';
-import 'package:walk_guide/voice_guide_service.dart';
+import 'package:walk_guide/services/voice_guide_service.dart';
 
 class NicknameInputPage extends StatefulWidget {
   const NicknameInputPage({super.key});

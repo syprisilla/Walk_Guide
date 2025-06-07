@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:walk_guide/voice_guide_service.dart'; // 추가
+import 'package:walk_guide/services/voice_guide_service.dart'; // 추가
 import 'account_info_page.dart';
 import 'privacy_policy_page.dart';
 import 'app_guide_page.dart';
