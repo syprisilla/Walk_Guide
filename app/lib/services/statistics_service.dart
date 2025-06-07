@@ -11,7 +11,8 @@ class StatisticsService {
     int weekSteps = 0;
 
     for (final session in sessions) {
-      final date = DateTime(session.startTime.year, session.startTime.month, session.startTime.day);
+      final date = DateTime(session.startTime.year, session.startTime.month,
+          session.startTime.day);
 
       if (!date.isBefore(sevenDaysAgo)) {
         weekSteps += session.stepCount;
@@ -37,13 +38,14 @@ class StatisticsService {
     final Map<String, int> stepMap = {};
     for (int i = 0; i < 7; i++) {
       final date = sevenDaysAgo.add(Duration(days: i));
-      final key = _formatDateKey(date);
+      final key = formatDateKey(date); // ← 수정됨
       stepMap[key] = 0;
     }
 
     for (final session in sessions) {
-      final date = DateTime(session.startTime.year, session.startTime.month, session.startTime.day);
-      final key = _formatDateKey(date);
+      final date = DateTime(session.startTime.year, session.startTime.month,
+          session.startTime.day);
+      final key = formatDateKey(date); // ← 수정됨
       if (stepMap.containsKey(key)) {
         stepMap[key] = stepMap[key]! + session.stepCount;
       }
@@ -52,8 +54,8 @@ class StatisticsService {
     return stepMap;
   }
 
-  // yyyy-MM-dd 형식으로 날짜 문자열 변환
-  static String _formatDateKey(DateTime date) {
+  // 🔓 공개로 바꿈: 테스트 접근 가능
+  static String formatDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }
