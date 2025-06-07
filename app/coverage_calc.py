@@ -1,5 +1,6 @@
 import os
 
+
 target_files = [
     'lib/map/map_screen.dart',
     'lib/services/auth_service_testable.dart',
@@ -20,6 +21,7 @@ target_files = [
     'lib/walk_session.dart'
 ]
 
+
 lcov_path = 'coverage/lcov.info'
 
 if not os.path.exists(lcov_path):
@@ -29,10 +31,13 @@ if not os.path.exists(lcov_path):
 with open(lcov_path, 'r') as file:
     lines = file.readlines()
 
+
 header = f"{'File':<45} {'Stmts':<6} {'Miss':<6} {'Cover':<6}"
+
 separator = "-" * len(header)
 print(header)
 print(separator)
+
 
 total_stmts = 0
 total_miss = 0
@@ -73,3 +78,4 @@ if total_stmts > 0:
     total_coverage = (total_stmts - total_miss) / total_stmts * 100
     print(separator)
     print(f"{'TOTAL':<45} {total_stmts:<6} {total_miss:<6} {total_coverage:>5.1f}%")
+
