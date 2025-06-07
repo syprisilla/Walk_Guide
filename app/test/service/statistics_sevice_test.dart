@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:walk_guide/services/statistics_service.dart';
-import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/models/walk_session.dart';
 
 void main() {
   group('StatisticsService', () {

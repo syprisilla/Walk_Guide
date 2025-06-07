@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:walk_guide/analytics_dashboard_page.dart';
+import 'package:walk_guide/analytics/analytics_dashboard_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/models/walk_session.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 

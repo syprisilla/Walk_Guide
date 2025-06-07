@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:walk_guide/main_page.dart';
-import 'package:walk_guide/login_page.dart';
-import 'package:walk_guide/nickname_input_page.dart';
+import 'package:walk_guide/main/main_page.dart';
+import 'package:walk_guide/login/login_page.dart';
+import 'package:walk_guide/nickname/nickname_input_page.dart';
 import 'package:camera/camera.dart';
 
 class SplashScreen extends StatefulWidget {

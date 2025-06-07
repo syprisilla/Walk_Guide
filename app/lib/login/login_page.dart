@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:walk_guide/services/auth_service.dart';
-import 'package:walk_guide/main_page.dart';
-import 'package:walk_guide/signup_page.dart';
+import 'package:walk_guide/main/main_page.dart';
+import 'package:walk_guide/signup/signup_page.dart';
 import 'package:camera/camera.dart';
 import 'package:walk_guide/main.dart';
 

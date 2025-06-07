@@ -1,11 +1,11 @@
 // File: lib/main_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:walk_guide/step_counter_page.dart';
+import 'package:walk_guide/step_counter/step_counter_page.dart';
 import 'package:walk_guide/description/description_page.dart';
-import 'package:walk_guide/analytics_dashboard_page.dart';
-import 'package:walk_guide/settings_page.dart';
-import 'package:walk_guide/voice_guide_service.dart';
+import 'package:walk_guide/analytics/analytics_dashboard_page.dart';
+import 'package:walk_guide/settings/settings_page.dart';
+import 'package:walk_guide/services/voice_guide_service.dart';
 import 'package:walk_guide/map/map_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';

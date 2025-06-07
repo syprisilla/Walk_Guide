@@ -7,9 +7,9 @@ import 'package:camera/camera.dart'; // CameraLensDirection
 class BoundingBoxUtils {
   // 화면 좌표 계산 함수
   static Rect scaleAndTranslateRect({
-    required Rect boundingBox,         // ML Kit 결과의 원본 박스
-    required Size imageSize,           // 원본 이미지 크기
-    required Size canvasSize,          // 그림을 그릴 캔버스 크기
+    required Rect boundingBox, // ML Kit 결과의 원본 박스
+    required Size imageSize, // 원본 이미지 크기
+    required Size canvasSize, // 그림을 그릴 캔버스 크기
     required InputImageRotation rotation, // 이미지 회전
     required CameraLensDirection cameraLensDirection, // 카메라 렌즈 방향 (미러링용)
   }) {
@@ -31,20 +31,56 @@ class BoundingBoxUtils {
     // 좌표 변환
     double L, T, R, B;
     switch (rotation) {
-      case InputImageRotation.rotation90deg: L = boundingBox.top * scaleX; T = (imageWidth - boundingBox.right) * scaleY; R = boundingBox.bottom * scaleX; B = (imageWidth - boundingBox.left) * scaleY; break;
-      case InputImageRotation.rotation180deg: L = (imageWidth - boundingBox.right) * scaleX; T = (imageHeight - boundingBox.bottom) * scaleY; R = (imageWidth - boundingBox.left) * scaleX; B = (imageHeight - boundingBox.top) * scaleY; break;
-      case InputImageRotation.rotation270deg: L = (imageHeight - boundingBox.bottom) * scaleX; T = boundingBox.left * scaleY; R = (imageHeight - boundingBox.top) * scaleX; B = boundingBox.right * scaleY; break;
-      case InputImageRotation.rotation0deg: default: L = boundingBox.left * scaleX; T = boundingBox.top * scaleY; R = boundingBox.right * scaleX; B = boundingBox.bottom * scaleY; break;
+      case InputImageRotation.rotation90deg:
+        L = boundingBox.top * scaleX;
+        T = (imageWidth - boundingBox.right) * scaleY;
+        R = boundingBox.bottom * scaleX;
+        B = (imageWidth - boundingBox.left) * scaleY;
+        break;
+      case InputImageRotation.rotation180deg:
+        L = (imageWidth - boundingBox.right) * scaleX;
+        T = (imageHeight - boundingBox.bottom) * scaleY;
+        R = (imageWidth - boundingBox.left) * scaleX;
+        B = (imageHeight - boundingBox.top) * scaleY;
+        break;
+      case InputImageRotation.rotation270deg:
+        L = (imageHeight - boundingBox.bottom) * scaleX;
+        T = boundingBox.left * scaleY;
+        R = (imageHeight - boundingBox.top) * scaleX;
+        B = boundingBox.right * scaleY;
+        break;
+      case InputImageRotation.rotation0deg:
+      default:
+        L = boundingBox.left * scaleX;
+        T = boundingBox.top * scaleY;
+        R = boundingBox.right * scaleX;
+        B = boundingBox.bottom * scaleY;
+        break;
     }
 
     // 미러링
-    if (cameraLensDirection == CameraLensDirection.front && Platform.isAndroid) {
-      double tempL = L; L = canvasWidth - R; R = canvasWidth - tempL;
+    if (cameraLensDirection == CameraLensDirection.front &&
+        Platform.isAndroid) {
+      double tempL = L;
+      L = canvasWidth - R;
+      R = canvasWidth - tempL;
     }
 
     // 범위 제한 및 보정
-    L = L.clamp(0.0, canvasWidth); T = T.clamp(0.0, canvasHeight); R = R.clamp(0.0, canvasWidth); B = B.clamp(0.0, canvasHeight);
-    if (L > R) { double temp = L; L = R; R = temp; } if (T > B) { double temp = T; T = B; B = temp; }
+    L = L.clamp(0.0, canvasWidth);
+    T = T.clamp(0.0, canvasHeight);
+    R = R.clamp(0.0, canvasWidth);
+    B = B.clamp(0.0, canvasHeight);
+    if (L > R) {
+      double temp = L;
+      L = R;
+      R = temp;
+    }
+    if (T > B) {
+      double temp = T;
+      T = B;
+      B = temp;
+    }
 
     return Rect.fromLTRB(L, T, R, B);
   }
@@ -62,7 +98,7 @@ class BoundingBoxUtils {
 
   // 내부 헬퍼 함수
   static bool _isRotationSideways(InputImageRotation rotation) {
-   return rotation == InputImageRotation.rotation90deg ||
-       rotation == InputImageRotation.rotation270deg;
+    return rotation == InputImageRotation.rotation90deg ||
+        rotation == InputImageRotation.rotation270deg;
   }
 }

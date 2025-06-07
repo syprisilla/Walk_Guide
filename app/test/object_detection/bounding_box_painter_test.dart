@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:camera/camera.dart';
-import 'package:walk_guide/ObjectDetection/bounding_box_painter.dart'; //
-import 'dart:io' show Platform; // Required for Platform.isAndroid check in the original file
+import 'package:walk_guide/object_detection/bounding_box_painter.dart'; //
+import 'dart:io'
+    show Platform; // Required for Platform.isAndroid check in the original file
 
 void main() {
   group('BoundingBoxUtils Tests', () {
-    test('scaleAndTranslateRect should correctly scale and translate a Rect', () {
+    test('scaleAndTranslateRect should correctly scale and translate a Rect',
+        () {
       final boundingBox = const Rect.fromLTWH(10, 20, 30, 40);
       final imageSize = const Size(100, 200);
       final canvasSize = const Size(200, 400);
@@ -36,7 +38,8 @@ void main() {
     test('scaleAndTranslateRect with rotation90deg', () {
       final boundingBox = const Rect.fromLTWH(10, 20, 30, 40); // x, y, w, h
       final imageSize = const Size(100, 200); // width, height
-      final canvasSize = const Size(400, 200); // width, height (swapped due to rotation expectation)
+      final canvasSize = const Size(
+          400, 200); // width, height (swapped due to rotation expectation)
       final rotation = InputImageRotation.rotation90deg;
       final cameraLensDirection = CameraLensDirection.back;
 
@@ -60,15 +63,15 @@ void main() {
       expect(result.bottom, closeTo(180.0, 0.01));
     });
 
-
-    testWidgets('paintBoundingBox runs without error', (WidgetTester tester) async {
+    testWidgets('paintBoundingBox runs without error',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: CustomPaint(
             painter: _TestBoundingBoxPainter(
               rect: const Rect.fromLTWH(10, 10, 50, 50),
             ),
-            size: const Size(100,100),
+            size: const Size(100, 100),
           ),
         ),
       );

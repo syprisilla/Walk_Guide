@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/models/walk_session.dart';
 
 class SessionDetailPage extends StatelessWidget {
   final WalkSession session;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:walk_guide/voice_guide_service.dart'; // 음성 안내 설정 확인용
+import 'package:walk_guide/services/voice_guide_service.dart'; // 음성 안내 설정 확인용
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 

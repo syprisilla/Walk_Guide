@@ -1,4 +1,4 @@
-import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/models/walk_session.dart';
 
 class StatisticsService {
   // 오늘과 일주일 간 걸음 수 합산 계산

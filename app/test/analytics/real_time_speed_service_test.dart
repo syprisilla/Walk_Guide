@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:walk_guide/real_time_speed_service.dart';
+import 'package:walk_guide/step_counter/real_time_speed_service.dart';
 import 'dart:io';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:path_provider_platform_interface/src/method_channel_path_provider.dart';

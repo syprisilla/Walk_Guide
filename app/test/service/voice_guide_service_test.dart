@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:walk_guide/voice_guide_service.dart';
+import 'package:walk_guide/services/voice_guide_service.dart';
 
 void main() {
   setUp(() {

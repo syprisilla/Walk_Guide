@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:walk_guide/main_testable.dart' as test_app;
+import 'package:walk_guide/main/main_testable.dart' as test_app;
 
 void main() {
   testWidgets('main_testable.dart coverage 테스트 - test mode',

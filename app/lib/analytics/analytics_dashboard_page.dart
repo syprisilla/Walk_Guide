@@ -8,10 +8,10 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:walk_guide/session_detail_page.dart';
-import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/analytics/session_detail_page.dart';
+import 'package:walk_guide/models/walk_session.dart';
 import 'package:walk_guide/services/firestore_service.dart';
-import 'package:walk_guide/voice_guide_service.dart';
+import 'package:walk_guide/services/voice_guide_service.dart';
 
 class AnalyticsDashboardPage extends StatefulWidget {
   const AnalyticsDashboardPage({super.key});

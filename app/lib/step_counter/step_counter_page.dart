@@ -1,4 +1,5 @@
 // File: lib/step_counter_page.dart
+// File: lib/step_counter_page.dart
 import 'dart:math';
 import 'dart:async';
 
@@ -12,13 +13,13 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:camera/camera.dart';
 
-import 'walk_session.dart';
-import 'package:walk_guide/real_time_speed_service.dart';
-import 'package:walk_guide/voice_guide_service.dart';
+import '../models/walk_session.dart';
+import 'package:walk_guide/step_counter/real_time_speed_service.dart';
+import 'package:walk_guide/services/voice_guide_service.dart';
 
-import './ObjectDetection/object_detection_view.dart';
+import '../object_detection/object_detection_view.dart';
 
-import 'package:walk_guide/user_profile.dart';
+import 'package:walk_guide/account/user_profile.dart';
 import 'package:walk_guide/services/firestore_service.dart';
 
 class StepCounterPage extends StatefulWidget {
@@ -41,12 +42,11 @@ class _StepCounterPageState extends State<StepCounterPage> {
   StreamSubscription<StepCount>? _stepCountSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   Timer? _checkTimer;
-  
+
   late FlutterTts flutterTts;
   bool _isCurrentlySpeaking = false;
   final List<String> _ttsQueue = [];
   String? _lastEnqueuedMessage; // 마지막으로 큐에 추가된 메시지
-
 
   int _steps = 0;
   int? _initialSteps;
@@ -67,7 +67,7 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _isDisposed = false;
     print("StepCounterPage initState");
 
-    _initTts(); 
+    _initTts();
 
     requestPermission();
     loadSessions();
@@ -86,26 +86,29 @@ class _StepCounterPageState extends State<StepCounterPage> {
 
     flutterTts.setCompletionHandler(() {
       if (mounted && !_isDisposed) {
-        setState(() { // UI 변경이 있을 수 있으므로 setState 사용
+        setState(() {
+          // UI 변경이 있을 수 있으므로 setState 사용
           _isCurrentlySpeaking = false;
         });
-        _speakNextInQueue(); 
-      } else if (!_isDisposed) { // mounted 되지 않았지만 dispose 되지도 않은 경우
+        _speakNextInQueue();
+      } else if (!_isDisposed) {
+        // mounted 되지 않았지만 dispose 되지도 않은 경우
         _isCurrentlySpeaking = false;
         _speakNextInQueue();
       }
     });
 
     flutterTts.setErrorHandler((msg) {
-       if (mounted && !_isDisposed) {
-        setState(() { // UI 변경이 있을 수 있으므로 setState 사용
+      if (mounted && !_isDisposed) {
+        setState(() {
+          // UI 변경이 있을 수 있으므로 setState 사용
           _isCurrentlySpeaking = false;
         });
-         debugPrint("TTS Error: $msg");
-        _speakNextInQueue(); 
+        debugPrint("TTS Error: $msg");
+        _speakNextInQueue();
       } else if (!_isDisposed) {
-         _isCurrentlySpeaking = false;
-         debugPrint("TTS Error (not mounted): $msg");
+        _isCurrentlySpeaking = false;
+        debugPrint("TTS Error (not mounted): $msg");
         _speakNextInQueue();
       }
     });
@@ -124,20 +127,22 @@ class _StepCounterPageState extends State<StepCounterPage> {
     //    debugPrint("TTS 큐가 이미 있고 재생 중, 새 메시지로 교체: $message");
     //   _ttsQueue.clear(); // 기존 큐 비우고 새 메시지만 추가 (최신 정보 우선)
     // }
-    
-    // 간단한 큐 관리: 큐에 메시지가 1개만 있도록 유지 (가장 최신 정보만 안내)
-    if (_isCurrentlySpeaking) { // 현재 뭔가 말하고 있다면
-        if (_ttsQueue.isNotEmpty) { // 큐에 이미 대기중인 메시지가 있다면
-            _ttsQueue.removeAt(0); // 가장 오래된 대기 메시지 제거
-        }
-    } else if (_ttsQueue.isNotEmpty) { // 현재 말하고 있지 않지만 큐에 뭔가 있다면 (이전 것이 완료되고 다음 것 재생 직전)
-        _ttsQueue.clear(); // 일단 비우고 최신 것으로
-    }
 
+    // 간단한 큐 관리: 큐에 메시지가 1개만 있도록 유지 (가장 최신 정보만 안내)
+    if (_isCurrentlySpeaking) {
+      // 현재 뭔가 말하고 있다면
+      if (_ttsQueue.isNotEmpty) {
+        // 큐에 이미 대기중인 메시지가 있다면
+        _ttsQueue.removeAt(0); // 가장 오래된 대기 메시지 제거
+      }
+    } else if (_ttsQueue.isNotEmpty) {
+      // 현재 말하고 있지 않지만 큐에 뭔가 있다면 (이전 것이 완료되고 다음 것 재생 직전)
+      _ttsQueue.clear(); // 일단 비우고 최신 것으로
+    }
 
     _ttsQueue.add(message);
     _lastEnqueuedMessage = message; // 마지막으로 큐에 넣은 메시지 기록
-    
+
     if (!_isCurrentlySpeaking) {
       _speakNextInQueue();
     }
@@ -147,40 +152,42 @@ class _StepCounterPageState extends State<StepCounterPage> {
     if (_isDisposed || _ttsQueue.isEmpty || _isCurrentlySpeaking) {
       return;
     }
-    
+
     if (mounted && !_isDisposed) {
-         // setState는 _isCurrentlySpeaking 변경 시 UI 업데이트가 필요하다면 사용
-         // 여기서는 TTS 시작 직후이므로, setCompletionHandler에서 false로 바꿀 때 UI 업데이트가 주 목적
+      // setState는 _isCurrentlySpeaking 변경 시 UI 업데이트가 필요하다면 사용
+      // 여기서는 TTS 시작 직후이므로, setCompletionHandler에서 false로 바꿀 때 UI 업데이트가 주 목적
     }
     _isCurrentlySpeaking = true;
 
-
     String messageToSpeak = _ttsQueue.removeAt(0);
-    
+
     flutterTts.speak(messageToSpeak).then((result) {
-        // speak 호출 자체의 성공 여부 (Android: 1 == success)
-        // 실제 음성 출력이 완료된 것은 setCompletionHandler에서 처리
-        if (result != 1) { 
-            if (mounted && !_isDisposed) {
-                setState(() { _isCurrentlySpeaking = false; });
-            } else if (!_isDisposed) {
-                 _isCurrentlySpeaking = false;
-            }
-            debugPrint("TTS speak() call failed immediately for: $messageToSpeak");
-            _speakNextInQueue(); 
-        }
-    }).catchError((e) {
+      // speak 호출 자체의 성공 여부 (Android: 1 == success)
+      // 실제 음성 출력이 완료된 것은 setCompletionHandler에서 처리
+      if (result != 1) {
         if (mounted && !_isDisposed) {
-            setState(() { _isCurrentlySpeaking = false; });
-        } else if (!_isDisposed) {
+          setState(() {
             _isCurrentlySpeaking = false;
+          });
+        } else if (!_isDisposed) {
+          _isCurrentlySpeaking = false;
         }
-        debugPrint("TTS speak error: $e");
+        debugPrint("TTS speak() call failed immediately for: $messageToSpeak");
         _speakNextInQueue();
+      }
+    }).catchError((e) {
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCurrentlySpeaking = false;
+        });
+      } else if (!_isDisposed) {
+        _isCurrentlySpeaking = false;
+      }
+      debugPrint("TTS speak error: $e");
+      _speakNextInQueue();
     });
     debugPrint("🔊 TTS 재생 시도: $messageToSpeak (큐 남은 개수: ${_ttsQueue.length})");
   }
-
 
   Future<void> _setPortraitOrientation() async {
     print("StepCounterPage: Setting orientation to Portrait in dispose");
@@ -285,10 +292,11 @@ class _StepCounterPageState extends State<StepCounterPage> {
   void guideWhenObjectDetected(DetectedObjectInfo objectInfo) async {
     if (_isDisposed || !mounted) return;
     final now = DateTime.now();
-    
+
     // 쿨다운: _lastGuidanceTime은 마지막으로 "큐에 성공적으로 메시지를 추가한 시간"으로 간주
     if (_lastGuidanceTime != null &&
-        now.difference(_lastGuidanceTime!).inMilliseconds < 1500) { // 1.5초 쿨다운
+        now.difference(_lastGuidanceTime!).inMilliseconds < 1500) {
+      // 1.5초 쿨다운
       debugPrint("⏳ TTS 쿨다운 중 - 메시지 추가 건너뜀 (마지막 안내 시도: $_lastGuidanceTime)");
       return;
     }
@@ -302,26 +310,24 @@ class _StepCounterPageState extends State<StepCounterPage> {
     String sizeDesc = objectInfo.sizeDescription;
     String positionDesc = objectInfo.positionalDescription;
 
-
-    String message = "$positionDesc에"; 
+    String message = "$positionDesc에";
     if (sizeDesc.isNotEmpty) {
       message += " $sizeDesc 크기의";
     }
-    message += " 장애물이 있습니다. 주의하세요."; 
-
+    message += " 장애물이 있습니다. 주의하세요.";
 
     // 이전 메시지와 동일한 내용이면 큐에 추가하지 않음 (버벅거림 감소 효과)
     if (_lastEnqueuedMessage == message && _ttsQueue.isNotEmpty) {
-        // 다만, 현재 말하고 있지 않고 큐도 비어있다면 동일 메시지라도 재생 시도할 수 있도록 함
-        if (_isCurrentlySpeaking || _ttsQueue.contains(message)) {
-             debugPrint("🔁 동일 메시지 반복으로 큐 추가 건너뜀: $message");
-             return;
-        }
+      // 다만, 현재 말하고 있지 않고 큐도 비어있다면 동일 메시지라도 재생 시도할 수 있도록 함
+      if (_isCurrentlySpeaking || _ttsQueue.contains(message)) {
+        debugPrint("🔁 동일 메시지 반복으로 큐 추가 건너뜀: $message");
+        return;
+      }
     }
-    
+
     debugPrint("➕ TTS 큐 추가 요청: $message");
-    _addToTtsQueue(message); 
-    _lastGuidanceTime = DateTime.now(); 
+    _addToTtsQueue(message);
+    _lastGuidanceTime = DateTime.now();
   }
 
   void onStepCount(StepCount event) async {
@@ -639,7 +645,6 @@ class _StepCounterPageState extends State<StepCounterPage> {
     _ttsQueue.clear();
     _isCurrentlySpeaking = false;
     _lastEnqueuedMessage = null;
-
 
     _setPortraitOrientation();
 

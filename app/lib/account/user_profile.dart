@@ -1,4 +1,4 @@
-import 'package:walk_guide/walk_session.dart';
+import 'package:walk_guide/models/walk_session.dart';
 
 class UserProfile {
   final double avgSpeed;
