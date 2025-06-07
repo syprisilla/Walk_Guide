@@ -1,5 +1,8 @@
 import os
 
+# 출력용 파일명 자르기 (너비 넘어가면 ... 처리)
+def truncate(text, width):
+    return text if len(text) <= width else text[:width - 3] + '...'
 
 target_files = [
     'lib/map/map_screen.dart',
@@ -12,18 +15,15 @@ target_files = [
     'lib/ObjectDetection/name_tag_painter.dart',
     'lib/services/firestore_service.dart',
     'lib/services/statistics_service.dart',
-    'lib/analytics_dashboard_page.dart',
     'lib/main_testable.dart',
     'lib/login_page.dart',
     'lib/nickname_input_page.dart',
     'lib/real_time_speed_service.dart',
     'lib/signup_page.dart',
-    'lib/step_counter_page.dart',
     'lib/user_profile.dart',
     'lib/voice_guide_service.dart',
     'lib/walk_session.dart'
 ]
-
 
 lcov_path = 'coverage/lcov.info'
 
@@ -34,13 +34,10 @@ if not os.path.exists(lcov_path):
 with open(lcov_path, 'r') as file:
     lines = file.readlines()
 
-
 header = f"{'File':<45} {'Stmts':<6} {'Miss':<6} {'Cover':<6}"
-
 separator = "-" * len(header)
 print(header)
 print(separator)
-
 
 total_stmts = 0
 total_miss = 0
@@ -68,17 +65,16 @@ for target_file in target_files:
                 target_found = True
                 missed = total_lines - executed_lines
                 coverage = (executed_lines / total_lines) * 100 if total_lines > 0 else 0.0
-                print(f"{target_file:<45} {total_lines:<6} {missed:<6} {coverage:>5.1f}%")
+                print(f"{truncate(target_file, 45):<45} {total_lines:<6} {missed:<6} {coverage:>5.1f}%")
 
                 total_stmts += total_lines
                 total_miss += missed
 
     if not target_found:
-        print(f"{target_file:<45} {'N/A':<6} {'N/A':<6} {'0.0%':>6}")
+        print(f"{truncate(target_file, 45):<45} {'N/A':<6} {'N/A':<6} {'0.0%':>6}")
 
 # TOTAL summary
 if total_stmts > 0:
     total_coverage = (total_stmts - total_miss) / total_stmts * 100
     print(separator)
     print(f"{'TOTAL':<45} {total_stmts:<6} {total_miss:<6} {total_coverage:>5.1f}%")
-
