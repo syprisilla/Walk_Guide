@@ -42,6 +42,8 @@ android {
 
 dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx:24.10.0")
+    implementation("com.google.firebase:firebase-auth-ktx:22.3.0")
+    implementation("com.google.android.gms:play-services-auth:21.0.0") 
 }
 
 flutter {

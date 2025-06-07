@@ -3,6 +3,7 @@ import os
 target_files = [
     'lib/map/map_screen.dart',
     'lib/services/auth_service_testable.dart',
+    'lib/main_testable.dart'
 ]
 
 lcov_path = 'coverage/lcov.info'
