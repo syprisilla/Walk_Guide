@@ -27,7 +27,8 @@ class AuthService {
   }
 
   // 이메일 회원가입 → Firestore 저장 → 닉네임 입력 페이지로 이동
-  Future<void> signUpWithEmail(String email, String password, BuildContext context) async {
+  Future<void> signUpWithEmail(
+      String email, String password, BuildContext context) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -59,16 +60,19 @@ class AuthService {
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      print("🧪 googleUser: $googleUser");
       if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
       final user = userCredential.user;
 
       if (user != null) {
@@ -102,20 +106,27 @@ class AuthService {
   // 로그아웃 → 구글 로그아웃도 포함 → splash 화면으로 이동
   Future<void> signOut(BuildContext context) async {
     try {
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.disconnect();
+        await _googleSignIn.signOut();
+      }
       await _auth.signOut();
-      await _googleSignIn.disconnect(); // 계정 연결 해제 → 다음에 계정 선택창 뜸
-      await _googleSignIn.signOut();    // 구글 세션 로그아웃
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => SplashScreen(cameras: camerasGlobal)),
-        (Route<dynamic> route) => false,
-      );
+      if (context.mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+              builder: (_) => SplashScreen(cameras: camerasGlobal)),
+          (Route<dynamic> route) => false,
+        );
+      }
     } catch (e) {
       print('로그아웃 실패: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그아웃 중 오류가 발생했습니다.')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그아웃 중 오류가 발생했습니다.')),
+        );
+      }
     }
   }
 }

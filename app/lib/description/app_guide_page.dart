@@ -29,7 +29,7 @@ WalkGuide는 시각장애인의 안전한 보행을 돕기 위해 설계된 앱�
 이 앱을 통해 실시간 안내와 보행 분석 기능을 제공합니다.
 
 첫째, 실시간 안내 기능입니다.
-음성 안내 제공, 장애물 경고, AI 피드백을 제공합니다.
+음성 안내 제공, 장애물 경고를 제공합니다.
 
 둘째, 보행 데이터 분석입니다.
 걸음 수, 속도, 정지 구간을 시각화하며
@@ -75,8 +75,7 @@ WalkGuide는 시각장애인의 안전한 보행을 돕기 위해 설계된 앱�
             Text('1. 실시간 안내 기능',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
             SizedBox(height: 6),
-            Text('- 음성 안내 제공\n- 장애물 경고\n- AI 피드백',
-                style: TextStyle(fontSize: 18)),
+            Text('- 음성 안내 제공\n- 장애물 경고', style: TextStyle(fontSize: 18)),
             SizedBox(height: 24),
             Text('2. 보행 데이터 분석',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),

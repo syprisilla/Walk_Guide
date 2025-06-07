@@ -51,8 +51,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _signUp() async {
-    _speak("회원가입을 진행합니다.");
-
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -64,6 +62,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    // 이메일 형식 검사
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      _speak("이메일 형식에 맞게 작성해주세요.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이메일 형식에 맞게 작성해주세요')),
+      );
+      return;
+    }
+
+    // 비밀번호 길이 검사
+    if (password.length < 6) {
+      _speak("비밀번호는 6자리 이상이어야 합니다.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('비밀번호는 6자리 이상이어야 합니다')),
+      );
+      return;
+    }
+
+    _speak("회원가입을 진행합니다.");
     final authService = AuthService();
     await authService.signUpWithEmail(email, password, context);
   }

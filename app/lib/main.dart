@@ -4,6 +4,8 @@ import 'package:walk_guide/walk_session.dart';
 import 'package:walk_guide/splash_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:camera/camera.dart';
+import 'package:walk_guide/firebase_options.dart';
+
 List<CameraDescription> camerasGlobal = [];
 
 void main() async {
@@ -16,7 +18,9 @@ void main() async {
   await Hive.openBox<WalkSession>('walk_sessions');
   await Hive.openBox<DateTime>('recent_steps'); //  recent_steps 박스 열기
 
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   try {
     camerasGlobal = await availableCameras();
@@ -29,11 +33,9 @@ void main() async {
     camerasGlobal = [];
   }
 
-  runApp(
-      MaterialApp(
-        home: SplashScreen(cameras: camerasGlobal),
-      )
-  );
+  runApp(MaterialApp(
+    home: SplashScreen(cameras: camerasGlobal),
+  ));
 }
 
 class MyApp extends StatelessWidget {
