@@ -126,23 +126,27 @@ Walk_Guide는 이러한 문제를 해결하기 위해 개발되었습니다.
 
 <br/>
 
-<img src="https://github.com/user-attachments/assets/7cf93bf7-7b33-40ab-87ac-dc78570146bd" alt="image" width="300"/>
+<img src="https://github.com/user-attachments/assets/bec9787e-85d2-4b7d-88e1-f9060f0084f4" alt="비밀번호 오류 메시지" width="300"/>
+
+
 
 
 
 비밀번호를 6자 미만으로 입력할 경우  
-위와 같이 **Password should be at least 6 characters**라는  
+위와 같이 **비밀번호는 6자리 이상이어야 합니다**라는  
 오류 메시지가 나타나며 회원가입이 제한됩니다.  
 사용자는 **6자 이상의 비밀번호를 입력해야만 정상적으로 가입이 완료**됩니다.
 
 <br/>
 
-<img src="https://github.com/user-attachments/assets/ddd3ee93-b6bb-4831-ac66-aaf1287a4e24" alt="image" width="300"/>
+<img src="https://github.com/user-attachments/assets/8d2a1bc0-e58f-4428-8e35-c91df6c67d98" alt="이메일 형식 오류 메시지" width="300"/>
+
+
 
 
 
 또한, 이메일을 잘못된 형식으로 입력할 경우  
-**회원가입 실패: The email address is badly formatted**라는  
+**회원가입 실패: 이메일 형식에 맞게 작성해주세요**라는  
 오류 메시지가 표시됩니다.  
 
 사용자는 반드시 **example@domain.com** 형태의  
